@@ -11,7 +11,7 @@ import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, Che
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
-type Step = 'confirm' | 'halaqah' | 'pengabdian' | 'partner' | 'review' | 'akad' | 'success'
+type Step = 'confirm' | 'pengabdian' | 'review' | 'akad' | 'success'
 
 // Helper function to format time slot value
 const formatTimeSlot = (timeSlot: string): string => {
@@ -105,12 +105,8 @@ export default function DaftarUlangPage() {
     final_juz: '',
     juz_adjusted: false,
     juz_adjustment_reason: '',
-
-    // Step 2: Halaqah
     ujian_halaqah_id: '',
     tashih_halaqah_id: '',
-
-    // Step 3: Partner
     partner_type: '',
     partner_user_id: '',
     partner_name: '',
@@ -118,11 +114,11 @@ export default function DaftarUlangPage() {
     partner_wa_phone: '',
     partner_notes: '',
 
-    // Step 3b: Pengabdian
+    // Step 2: Pengabdian
     pengabdian_choice: '',
     donasi_amount: '',
 
-    // Step 4: Akad
+    // Step 3: Akad
     akad_files: [],
   })
 
@@ -322,7 +318,7 @@ export default function DaftarUlangPage() {
     // Only change step for draft status
     // For submitted/approved status, step is already set in fetchData
     if (isDraft) {
-      setCurrentStep('halaqah')
+      setCurrentStep('pengabdian')
     }
   }, [existingSubmission])
 
@@ -354,14 +350,6 @@ export default function DaftarUlangPage() {
           confirmed_backup_time_slot: formData.confirmed_backup_time_slot,
           confirmed_wa_phone: formData.confirmed_wa_phone,
           confirmed_address: formData.confirmed_address,
-          // These will be set to null in saveDaftarUlangDraft for draft status
-          ujian_halaqah_id: formData.ujian_halaqah_id,
-          tashih_halaqah_id: formData.tashih_halaqah_id,
-          partner_user_id: formData.partner_user_id,
-          partner_name: formData.partner_name,
-          partner_relationship: formData.partner_relationship,
-          partner_wa_phone: formData.partner_wa_phone,
-          partner_notes: formData.partner_notes,
           pengabdian_choice: formData.pengabdian_choice,
           donasi_amount: formData.donasi_amount,
           akad_files: formData.akad_files,
@@ -391,13 +379,6 @@ export default function DaftarUlangPage() {
         toast.error('Nama lengkap harus diisi')
         return
       }
-      setCurrentStep('halaqah')
-    } else if (currentStep === 'halaqah') {
-      // Wajib pilih kelas paket
-      if (!formData.ujian_halaqah_id) {
-        toast.error('Pilih paket kelas halaqah (wajib)')
-        return
-      }
       setCurrentStep('pengabdian')
     } else if (currentStep === 'pengabdian') {
       if (!formData.pengabdian_choice) {
@@ -412,39 +393,6 @@ export default function DaftarUlangPage() {
         }
       }
 
-      setCurrentStep('partner')
-    } else if (currentStep === 'partner') {
-      if (!formData.partner_type) {
-        toast.error('Pilih jenis pasangan belajar')
-        return
-      }
-
-      // Validasi berdasarkan jenis pasangan
-      if (formData.partner_type === 'self_match') {
-        // Untuk pilih sendiri, user WAJIB memilih pasangan
-        if (!formData.partner_user_id) {
-          toast.error('Silakan pilih nama pasangan belajar dari dropdown')
-          return
-        }
-      } else if (formData.partner_type === 'family') {
-        // Untuk keluarga, WAJIB isi nama dan hubungan
-        if (!formData.partner_name) {
-          toast.error('Isi nama pasangan belajar (keluarga)')
-          return
-        }
-        if (!formData.partner_relationship) {
-          toast.error('Pilih hubungan dengan pasangan belajar')
-          return
-        }
-      } else if (formData.partner_type === 'tarteel') {
-        // Untuk tarteel, WAJIB isi nama
-        if (!formData.partner_name) {
-          toast.error('Isi nama pasangan belajar')
-          return
-        }
-      }
-      // system_match tidak perlu validasi apapun (langsung lanjut)
-
       setCurrentStep('review')
     } else if (currentStep === 'review') {
       setCurrentStep('akad')
@@ -454,7 +402,7 @@ export default function DaftarUlangPage() {
   }
 
   const handleBack = () => {
-    const steps: Step[] = ['confirm', 'halaqah', 'pengabdian', 'partner', 'review', 'akad', 'success']
+    const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1])
@@ -464,47 +412,15 @@ export default function DaftarUlangPage() {
   const handleSubmit = async () => {
     if (!registrationData?.id) return
 
-    // Validate partner_type is set
-    if (!formData.partner_type || formData.partner_type === '' as any) {
-      toast.error('Pilih jenis pasangan belajar')
-      return
-    }
-
     if (!formData.akad_files || formData.akad_files.length === 0) {
       toast.error('Upload akad terlebih dahulu')
       return
     }
 
-    // Validate halaqah selection - ujian halaqah is required
-    if (!formData.ujian_halaqah_id || formData.ujian_halaqah_id === '') {
-      toast.error('Pilih kelas ujian halaqah')
-      setCurrentStep('halaqah')
-      return
-    }
-
-    // Validate halaqah quota - check if selected halaqah is still available
-    if (formData.ujian_halaqah_id) {
-      const ujianHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
-      if (ujianHalaqah?.is_full) {
-        toast.error(`Kelas ujian halaqah sudah penuh. Silakan pilih halaqah lain.`)
-        return
-      }
-    }
-
-    if (formData.tashih_halaqah_id) {
-      const tashihHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
-      if (tashihHalaqah?.is_full) {
-        toast.error(`Kelas tashih halaqah sudah penuh. Silakan pilih halaqah lain.`)
-        return
-      }
-    }
-
     setIsLoading(true)
     try {
-      // Cast formData to DaftarUlangFormData (partner_type is validated above)
       const submitData = {
-        ...formData,
-        partner_type: formData.partner_type as 'self_match' | 'system_match' | 'family' | 'tarteel'
+        ...formData
       }
 
       // Debug log to verify halaqah IDs are being sent
@@ -685,13 +601,11 @@ export default function DaftarUlangPage() {
           <div className="flex items-center justify-between">
             {[
               { key: 'confirm', label: 'Konfirmasi Data' },
-              { key: 'halaqah', label: 'Pilih Halaqah' },
               { key: 'pengabdian', label: 'Pengabdian' },
-              { key: 'partner', label: 'Pasangan' },
               { key: 'review', label: 'Review' },
               { key: 'akad', label: 'Upload Akad' },
             ].map((step, index) => {
-              const steps: Step[] = ['confirm', 'halaqah', 'pengabdian', 'partner', 'review', 'akad']
+              const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad']
               const currentIndex = steps.indexOf(currentStep)
               const stepIndex = steps.indexOf(step.key as Step)
               const isCompleted = stepIndex < currentIndex
@@ -712,7 +626,7 @@ export default function DaftarUlangPage() {
                       {step.label}
                     </span>
                   </div>
-                  {index < 5 && (
+                  {index < 3 && (
                     <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-600' : 'bg-gray-200'}`} />
                   )}
                 </React.Fragment>
@@ -732,28 +646,10 @@ export default function DaftarUlangPage() {
               />
             )}
 
-            {currentStep === 'halaqah' && (
-              <HalaqahSelectionStep
-                halaqahData={halaqahData}
-                formData={formData}
-                onChange={setFormData}
-                reregQuestions={reregQuestions}
-              />
-            )}
-
             {currentStep === 'pengabdian' && (
               <PengabdianStep
                 formData={formData}
                 onChange={setFormData}
-                reregQuestions={reregQuestions}
-              />
-            )}
-
-            {currentStep === 'partner' && (
-              <PartnerSelectionStep
-                formData={formData}
-                onChange={setFormData}
-                registrationId={registrationData?.id}
                 reregQuestions={reregQuestions}
               />
             )}
@@ -1967,55 +1863,6 @@ function ReviewStep({
 }) {
   const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
 
-  const getHalaqahName = (halaqahId: string) => {
-    const halaqah = halaqahData.find(h => h.id === halaqahId)
-    return halaqah?.name || '-'
-  }
-
-  const getHalaqahSchedule = (halaqahId: string) => {
-    const halaqah = halaqahData.find(h => h.id === halaqahId)
-    if (!halaqah) return '-'
-
-    // Try to parse muallimah_schedule first, fallback to day_of_week/start_time/end_time
-    if (halaqah.muallimah_schedule) {
-      try {
-        const schedule = JSON.parse(halaqah.muallimah_schedule)
-        return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
-      } catch {
-        // If parsing fails, use fallback
-      }
-    }
-
-    const day = DAY_NAMES[halaqah.day_of_week || 0]
-    const time = halaqah.start_time && halaqah.end_time
-      ? `${halaqah.start_time} - ${halaqah.end_time} WIB`
-      : ''
-    return time ? `${day} • ${time}` : day
-  }
-
-  const getHalaqahDetails = (halaqahId: string) => {
-    const halaqah = halaqahData.find(h => h.id === halaqahId)
-    if (!halaqah) return null
-
-    return {
-      name: halaqah.name,
-      schedule: getHalaqahSchedule(halaqahId),
-      juz: halaqah.muallimah_preferred_juz || '-',
-      location: halaqah.location || '-',
-      muallimah: halaqah.mentors
-        ?.filter((m: any) => m.role === 'muallimah')
-        .map((m: any) => `Ustadzah ${m.users?.full_name}`)
-        .join(', ') || '-'
-    }
-  }
-
-  const PARTNER_TYPE_LABELS = {
-    self_match: 'Pilih Sendiri',
-    system_match: 'Dipasangkan oleh Sistem',
-    family: 'Keluarga (Mahram)',
-    tarteel: 'Aplikasi Tarteel'
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -2058,48 +1905,6 @@ function ReviewStep({
               <span className="text-gray-600">Waktu Cadangan</span>
               <p className="font-medium">{formatTimeSlot(formData.confirmed_backup_time_slot)}</p>
             </div>
-          </div>
-        </div>
-
-        {/* Halaqah */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-3">Jadwal Halaqah</h3>
-          <div className="space-y-4 text-sm">
-            <div>
-              <span className="text-gray-600">Kelas Halaqah (Tashih + Ujian)</span>
-              <p className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</p>
-              {(() => {
-                const details = getHalaqahDetails(formData.ujian_halaqah_id)
-                if (!details) return null
-                return (
-                  <div className="mt-1 text-gray-600 space-y-1">
-                    <p>{details.schedule}</p>
-                    <p>Juz: {details.juz}</p>
-                    <p>Lokasi: {details.location}</p>
-                    <p>Muallimah: {details.muallimah}</p>
-                  </div>
-                )
-              })()}
-            </div>
-          </div>
-        </div>
-
-        {/* Partner */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-3">Pasangan Belajar</h3>
-          <div className="text-sm">
-            <p className="font-medium">{formData.partner_type ? PARTNER_TYPE_LABELS[formData.partner_type as keyof typeof PARTNER_TYPE_LABELS] : '-'}</p>
-            {formData.partner_type === 'family' && (
-              <div className="mt-2 space-y-1">
-                <p><span className="text-gray-600">Nama:</span> {formData.partner_name}</p>
-                <p><span className="text-gray-600">Hubungan:</span> {formData.partner_relationship}</p>
-              </div>
-            )}
-            {formData.partner_type === 'tarteel' && (
-              <div className="mt-2">
-                <p><span className="text-gray-600">Nama:</span> {formData.partner_name}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -2167,33 +1972,13 @@ function AkadUploadStep({
     fetchAkadIntisari()
   }, [])
 
-  const getHalaqahName = (halaqahId: string) => {
-    const halaqah = halaqahData.find(h => h.id === halaqahId)
-    return halaqah?.name || '-'
-  }
-
   const handleDownloadPDF = async () => {
     if (!akadData) return
     setIsGenerating(true)
     
     try {
-      const PARTNER_TYPE_LABELS: Record<string, string> = {
-        self_match: 'Pilih Sendiri',
-        system_match: 'Dipasangkan oleh Sistem',
-        family: 'Keluarga (Mahram)',
-        tarteel: 'Aplikasi Tarteel'
-      }
-
-      let partnerName = '-'
-      if (formData.partner_type === 'family' || formData.partner_type === 'tarteel') {
-        partnerName = formData.partner_name || '-'
-      } else if (formData.partner_type === 'self_match' && formData.partner_user_id) {
-        // We could theoretically fetch the partner's name, but for now we'll put 'Dipilih dari Marketplace' or leave it if not available
-        partnerName = 'Dipilih dari Marketplace'
-      }
-
       const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-      
+
       let pengabdian = formData.pengabdian_type || formData.infaq_type || '-'
       if (formData.pengabdian_type === 'donasi') {
          pengabdian = `Donasi (Rp ${formData.donasi_amount || 0})`
@@ -2204,10 +1989,6 @@ function AkadUploadStep({
         waPhone: registrationData?.wa_phone || '',
         domicile: registrationData?.domicile || '',
         chosenJuz: formData.final_juz || formData.confirmed_chosen_juz || '',
-        halaqahUjian: getHalaqahName(formData.ujian_halaqah_id),
-        halaqahTashih: getHalaqahName(formData.tashih_halaqah_id),
-        partnerType: PARTNER_TYPE_LABELS[formData.partner_type] || '-',
-        partnerName: partnerName,
         pengabdian: pengabdian,
         akadText: akadData.fullText,
         dateStr
@@ -2252,14 +2033,6 @@ function AkadUploadStep({
          </div>
          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="block text-gray-500 mb-1">Kelas Halaqah (Tashih + Ujian)</span>
-              <span className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</span>
-            </div>
-            <div>
-              <span className="block text-gray-500 mb-1">Pasangan Belajar</span>
-              <span className="font-medium">{formData.partner_type ? formData.partner_type.replace('_', ' ') : '-'}</span>
-            </div>
-            <div>
               <span className="block text-gray-500 mb-1">Pengabdian / Donasi</span>
               <span className="font-medium">{formData.pengabdian_type === 'donasi' ? `Donasi (Rp ${formData.donasi_amount || 0})` : (formData.pengabdian_type || '-')}</span>
             </div>
@@ -2274,7 +2047,7 @@ function AkadUploadStep({
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
               <p className="text-sm text-amber-800 mb-4">
-                Akad kesepakatan telah disiapkan beserta data diri dan halaqah Ukhti. Silakan download PDF di bawah ini.
+                Akad kesepakatan telah disiapkan beserta data diri Ukhti. Silakan download PDF di bawah ini.
               </p>
             </div>
           </div>
@@ -2458,58 +2231,11 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
       {(isApproved || isSubmitted) && (
         <div className="max-w-2xl mx-auto mb-8 text-left">
           <div className={`${isApproved ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-6`}>
-            <h3 className={`font-semibold mb-4 text-center ${isApproved ? 'text-emerald-900' : 'text-blue-900'}`}>Informasi Kelas & Pasangan</h3>
-
-            {/* Class Information */}
-            <div className="space-y-4 mb-6">
-              <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-emerald-100' : 'border-green-100'}`}>
-                <div className="flex items-center space-x-2 mb-2">
-                  <Calendar className={`w-5 h-5 ${isApproved ? 'text-emerald-600' : 'text-green-600'}`} />
-                  <h4 className="font-medium text-gray-900">Kelas Halaqah (Tashih + Ujian)</h4>
-                </div>
-                {existingSubmission?.ujian_halaqah_obj ? (
-                  <div className="ml-7 text-sm text-gray-700 space-y-1">
-                    <p><span className="font-medium">Nama:</span> {existingSubmission.ujian_halaqah_obj.name || '-'}</p>
-                    {existingSubmission.ujian_halaqah_obj.day_of_week && existingSubmission.ujian_halaqah_obj.start_time && existingSubmission.ujian_halaqah_obj.end_time && (
-                      <p>
-                        <span className="font-medium">Jadwal:</span> {['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][existingSubmission.ujian_halaqah_obj.day_of_week]} • {existingSubmission.ujian_halaqah_obj.start_time} - {existingSubmission.ujian_halaqah_obj.end_time} WIB
-                      </p>
-                    )}
-                    {existingSubmission.ujian_halaqah_obj.location && (
-                      <p><span className="font-medium">Lokasi:</span> {existingSubmission.ujian_halaqah_obj.location}</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="ml-7 text-sm text-gray-500">Kelas halaqah belum ditentukan</p>
-                )}
-              </div>
-
-              {/* Legacy submissions (pre tashih+ujian merge) may still have a distinct tashih halaqah */}
-              {existingSubmission?.tashih_halaqah_obj &&
-                existingSubmission.tashih_halaqah_obj.id !== existingSubmission?.ujian_halaqah_obj?.id && (
-                <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-blue-100' : 'border-indigo-100'}`}>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Calendar className="w-5 h-5 text-blue-600" />
-                    <h4 className="font-medium text-gray-900">Kelas Tashih</h4>
-                  </div>
-                  <div className="ml-7 text-sm text-gray-700 space-y-1">
-                    <p><span className="font-medium">Nama:</span> {existingSubmission.tashih_halaqah_obj.name || '-'}</p>
-                    {existingSubmission.tashih_halaqah_obj.day_of_week && existingSubmission.tashih_halaqah_obj.start_time && existingSubmission.tashih_halaqah_obj.end_time && (
-                      <p>
-                        <span className="font-medium">Jadwal:</span> {['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][existingSubmission.tashih_halaqah_obj.day_of_week]} • {existingSubmission.tashih_halaqah_obj.start_time} - {existingSubmission.tashih_halaqah_obj.end_time} WIB
-                      </p>
-                    )}
-                    {existingSubmission.tashih_halaqah_obj.location && (
-                      <p><span className="font-medium">Lokasi:</span> {existingSubmission.tashih_halaqah_obj.location}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <h3 className={`font-semibold text-center ${isApproved ? 'text-emerald-900' : 'text-blue-900'}`}>Akad Daftar Ulang</h3>
 
             {/* Akad Files */}
             {existingSubmission?.akad_files && existingSubmission.akad_files.length > 0 && (
-              <div className="bg-white rounded-lg p-4 border border-amber-100 mb-4">
+              <div className="bg-white rounded-lg p-4 border border-amber-100 mt-4">
                 <div className="flex items-center space-x-2 mb-3">
                   <FileText className="w-5 h-5 text-amber-600" />
                   <h4 className="font-medium text-gray-900">Akad Daftar Ulang</h4>
@@ -2530,66 +2256,6 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
                 </div>
               </div>
             )}
-
-            {/* Partner Information */}
-            {existingSubmission?.partner_user_id || existingSubmission?.partner_name ? (
-              <div className="bg-white rounded-lg p-4 border border-purple-100">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Users className="w-5 h-5 text-purple-600" />
-                  <h4 className="font-medium text-gray-900">Pasangan Belajar</h4>
-                </div>
-                <div className="ml-7 text-sm text-gray-700 space-y-1">
-                  {existingSubmission.partner_user_id && existingSubmission.partner_user_obj ? (
-                    <>
-                      <p><span className="font-medium">Nama:</span> {existingSubmission.partner_user_obj.full_name || '-'}</p>
-                      {existingSubmission.partner_user_obj.whatsapp && (
-                        <p>
-                          <span className="font-medium">WhatsApp:</span>{' '}
-                          <a
-                            href={`https://wa.me/${existingSubmission.partner_user_obj.whatsapp.replace(/^0/, '62').replace(/\+/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-green-600 hover:underline"
-                          >
-                            {existingSubmission.partner_user_obj.whatsapp}
-                          </a>
-                        </p>
-                      )}
-                    </>
-                  ) : existingSubmission.partner_name ? (
-                    <>
-                      <p><span className="font-medium">Nama:</span> {existingSubmission.partner_name}</p>
-                      {existingSubmission.partner_relationship && (
-                        <p><span className="font-medium">Hubungan:</span> {existingSubmission.partner_relationship}</p>
-                      )}
-                      {existingSubmission.partner_wa_phone && (
-                        <p>
-                          <span className="font-medium">WhatsApp:</span>{' '}
-                          <a
-                            href={`https://wa.me/${existingSubmission.partner_wa_phone.replace(/^0/, '62').replace(/\+/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-green-600 hover:underline"
-                          >
-                            {existingSubmission.partner_wa_phone}
-                          </a>
-                        </p>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            ) : existingSubmission?.partner_type === 'system_match' ? (
-              <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Clock className="w-5 h-5 text-blue-600" />
-                  <h4 className="font-medium text-gray-900">Pasangan Belajar</h4>
-                </div>
-                <p className="ml-7 text-sm text-gray-700">
-                  <span className="font-medium">Tipe:</span> Dipasangkan oleh sistem
-                </p>
-              </div>
-            ) : null}
           </div>
         </div>
       )}

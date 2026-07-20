@@ -13,7 +13,7 @@ export interface DaftarUlangFormData {
   confirmed_address?: string
 
   // Partner selection
-  partner_type: 'self_match' | 'system_match' | 'family' | 'tarteel'
+  partner_type?: 'self_match' | 'system_match' | 'family' | 'tarteel' | '' | null
   partner_user_id?: string
   partner_name?: string
   partner_relationship?: string
@@ -204,31 +204,8 @@ export async function submitDaftarUlang(
   }
 
   // 3. Validate required fields
-  if (!data.partner_type) {
-    return { success: false, error: 'Pilih jenis pasangan belajar.' }
-  }
-
-  if (!data.ujian_halaqah_id) {
-    return { success: false, error: 'Pilih paket kelas halaqah.' }
-  }
-
   if (!data.pengabdian_choice) {
     return { success: false, error: 'Pilih kesediaan pengabdian.' }
-  }
-
-  // If partner type is self_match, must have selected partner
-  if (data.partner_type === 'self_match' && !data.partner_user_id) {
-    return { success: false, error: 'Pilih pasangan belajar.' }
-  }
-
-  // If partner type is family or tarteel, must have name
-  if ((data.partner_type === 'family' || data.partner_type === 'tarteel') && !data.partner_name) {
-    return { success: false, error: 'Isi nama pasangan belajar.' }
-  }
-
-  // If partner type is family, must have relationship
-  if (data.partner_type === 'family' && !data.partner_relationship) {
-    return { success: false, error: 'Pilih hubungan dengan pasangan belajar.' }
   }
 
   // 4. Validate akad is uploaded
@@ -248,98 +225,6 @@ export async function submitDaftarUlang(
       has_akad_files: !!data.akad_files && data.akad_files.length > 0
     })
 
-    // 6. CHECK QUOTA FOR SELECTED HALAQAH (only for submitted status)
-    // Get the selected halaqah IDs first
-    const selectedHalaqahIds = [data.ujian_halaqah_id]
-    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
-      selectedHalaqahIds.push(data.tashih_halaqah_id)
-    }
-
-    // Get max_students for selected halaqah
-    const { data: halaqahInfo } = await supabase
-      .from('halaqah')
-      .select('id, name, max_students')
-      .in('id', selectedHalaqahIds)
-
-    if (!halaqahInfo || halaqahInfo.length === 0) {
-      return {
-        success: false,
-        error: 'Halaqah tidak ditemukan'
-      }
-    }
-
-    // Fetch all submissions with 'submitted' status for the selected halaqahs (draft doesn't count)
-    const { data: submittedSubmissions } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('ujian_halaqah_id, tashih_halaqah_id, user_id')
-      .eq('batch_id', registration.batch_id)
-      .eq('status', 'submitted')
-
-    // Fetch halaqah_students with 'active' status only for selected halaqahs (waitlist does NOT reduce quota)
-    const { data: halaqahStudents } = await supabase
-      .from('halaqah_students')
-      .select('halaqah_id, thalibah_id')
-      .eq('status', 'active')
-      .in('halaqah_id', selectedHalaqahIds)
-
-    // Count students per halaqah using Set to avoid duplicates
-    const halaqahStudentMap = new Map<string, Set<string>>()
-
-    // Count from daftar_ulang_submissions (only submitted)
-    if (submittedSubmissions) {
-      for (const sub of submittedSubmissions) {
-        // Skip current user's existing submission when counting quota
-        if (sub.user_id === authUser.id) continue
-
-        const uniqueHalaqahIds: string[] = []
-        if (sub.ujian_halaqah_id) uniqueHalaqahIds.push(sub.ujian_halaqah_id)
-        if (sub.tashih_halaqah_id && !uniqueHalaqahIds.includes(sub.tashih_halaqah_id)) {
-          uniqueHalaqahIds.push(sub.tashih_halaqah_id)
-        }
-
-        for (const halaqahId of uniqueHalaqahIds) {
-          if (!halaqahStudentMap.has(halaqahId)) {
-            halaqahStudentMap.set(halaqahId, new Set())
-          }
-          halaqahStudentMap.get(halaqahId)!.add(sub.user_id)
-        }
-      }
-    }
-
-    // Count from halaqah_students (active only, waitlist does NOT reduce quota)
-    if (halaqahStudents) {
-      for (const student of halaqahStudents) {
-        // Skip current user if they're already in halaqah_students
-        if (student.thalibah_id === authUser.id) continue
-
-        if (!halaqahStudentMap.has(student.halaqah_id)) {
-          halaqahStudentMap.set(student.halaqah_id, new Set())
-        }
-        halaqahStudentMap.get(student.halaqah_id)!.add(student.thalibah_id)
-      }
-    }
-
-    // Check if any selected halaqah is full
-    for (const halaqah of halaqahInfo) {
-      const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
-      const maxStudents = halaqah.max_students || 20
-
-      console.log('[submitDaftarUlang] Quota check for halaqah:', {
-        halaqahId: halaqah.id,
-        halaqahName: halaqah.name,
-        currentStudents,
-        maxStudents,
-        isFull: currentStudents >= maxStudents
-      })
-
-      if (currentStudents >= maxStudents) {
-        return {
-          success: false,
-          error: `Maaf, kelas "${halaqah.name}" sudah penuh. Silakan pilih kelas lain.`
-        }
-      }
-    }
-
     // Check for existing submission
     const { data: existing, error: existingError } = await supabase
       .from('daftar_ulang_submissions')
@@ -356,41 +241,6 @@ export async function submitDaftarUlang(
       existingError: existingError?.message,
       existingErrorCode: existingError?.code
     })
-
-    // IMPORTANT: If converting from draft to submitted, RECHECK QUOTA
-    // This is necessary because quota may have become full since the draft was created
-    if (existing && existing.status === 'draft') {
-      // Check if the selected halaqahs have changed
-      const halaqahChanged =
-        existing.ujian_halaqah_id !== data.ujian_halaqah_id ||
-        existing.tashih_halaqah_id !== data.tashih_halaqah_id
-
-      // Re-check quota for the newly selected halaqahs
-      if (halaqahChanged) {
-        console.log('[submitDaftarUlang] Halaqah changed, rechecking quota...')
-
-        // Recalculate quota for NEWLY selected halaqahs only
-        for (const halaqah of halaqahInfo) {
-          const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
-          const maxStudents = halaqah.max_students || 20
-
-          console.log('[submitDaftarUlang] Recheck quota for halaqah:', {
-            halaqahId: halaqah.id,
-            halaqahName: halaqah.name,
-            currentStudents,
-            maxStudents,
-            isFull: currentStudents >= maxStudents
-          })
-
-          if (currentStudents >= maxStudents) {
-            return {
-              success: false,
-              error: `Maaf, kelas "${halaqah.name}" sudah penuh. Silakan pilih kelas lain.`
-            }
-          }
-        }
-      }
-    }
 
     const submissionData = {
       user_id: authUser.id,

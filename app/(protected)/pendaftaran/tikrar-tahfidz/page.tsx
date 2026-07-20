@@ -224,6 +224,7 @@ export default function ThalibahBatch2Page() {
   const searchParams = useSearchParams()
   const urlBatchId = searchParams.get('batchId')
   const urlProgramId = searchParams.get('programId')
+  const editModeParam = searchParams.get('edit') === 'true'
 
   // Use specific batch from URL if provided, otherwise fallback to activeBatch
   const { batch: urlBatch, isLoading: urlBatchLoading } = useBatch(urlBatchId || undefined)
@@ -235,6 +236,7 @@ export default function ThalibahBatch2Page() {
   const { registrations, mutate: mutateRegistrations } = useMyRegistrations()
   const supabase = createClient()
   const [isCreating, setIsCreating] = useState(false)
+  const [isAlumni, setIsAlumni] = useState(false)
 
   // Check if user is an alumnus and has not filled in their testimonial
   useEffect(() => {
@@ -243,9 +245,12 @@ export default function ThalibahBatch2Page() {
         const res = await fetch('/api/alumni/testimonial/my')
         if (res.ok) {
           const data = await res.json()
-          if (data.isAlumni && !data.testimonial) {
-            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.')
-            router.push('/alumni')
+          if (data.isAlumni) {
+            setIsAlumni(true)
+            if (!data.testimonial) {
+              toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.')
+              router.push('/alumni')
+            }
           }
         }
       } catch (err) {
@@ -260,7 +265,7 @@ export default function ThalibahBatch2Page() {
   const [isMounted, setIsMounted] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [currentSection, setCurrentSection] = useState(0) // Start at section 0 for data diri confirmation
-  const [isEditMode, setIsEditMode] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(editModeParam)
   const [existingRegistrationId, setExistingRegistrationId] = useState<string | null>(null)
 
   // Check if user is already registered for Tikrah Tahfidz program
@@ -1133,11 +1138,13 @@ export default function ThalibahBatch2Page() {
                 <SelectValue placeholder={juzLoading ? "Memuat pilihan juz..." : "Pilih juz"} />
               </SelectTrigger>
               <SelectContent>
-                {juzOptions.map((juz) => (
-                  <SelectItem key={juz.id} value={juz.code}>
-                    {juz.name}
-                  </SelectItem>
-                ))}
+                {juzOptions
+                  .filter((juz) => isAlumni || juz.code.endsWith('A') || juz.code.endsWith('a'))
+                  .map((juz) => (
+                    <SelectItem key={juz.id} value={juz.code}>
+                      {juz.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             {errors.chosen_juz && (

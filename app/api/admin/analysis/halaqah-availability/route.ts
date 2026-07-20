@@ -202,7 +202,36 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        const juzStr = String(m.preferred_juz || '').trim();
+        let juzStr = '';
+        if (m.preferred_juz && String(m.preferred_juz).trim() !== '') {
+          juzStr = String(m.preferred_juz).trim();
+        } else if (m.memorized_juz) {
+          if (Array.isArray(m.memorized_juz)) {
+            // Extracts numbers from elements like "Juz 30", "1", etc.
+            juzStr = m.memorized_juz.map(j => {
+              if (typeof j === 'object' && j !== null && j.juz) return j.juz;
+              return String(j);
+            }).join(',');
+          } else if (typeof m.memorized_juz === 'string') {
+            try {
+              // Try to parse if it's a JSON string array
+              const parsed = JSON.parse(m.memorized_juz);
+              if (Array.isArray(parsed)) {
+                juzStr = parsed.map(j => {
+                  if (typeof j === 'object' && j !== null && j.juz) return j.juz;
+                  return String(j);
+                }).join(',');
+              } else {
+                juzStr = String(m.memorized_juz).trim();
+              }
+            } catch (e) {
+              juzStr = String(m.memorized_juz).trim();
+            }
+          } else {
+            juzStr = String(m.memorized_juz).trim();
+          }
+        }
+        
         const preferredJuzs = juzStr.split(',').map(s => getBaseJuz(s.trim())).filter(Boolean);
 
         return {

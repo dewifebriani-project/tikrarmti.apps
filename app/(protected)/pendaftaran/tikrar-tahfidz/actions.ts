@@ -107,10 +107,12 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
     // Section 4
     understands_program: formData.understands_program,
     questions: formData.questions || null,
-    // Status fields
-    status: 'pending',
-    selection_status: 'pending',
-    submission_date: new Date().toISOString(),
+    // Status fields - only set for new registrations
+    ...(isEditMode ? {} : {
+      status: 'pending',
+      selection_status: 'pending',
+      submission_date: new Date().toISOString(),
+    })
   }
 
   try {

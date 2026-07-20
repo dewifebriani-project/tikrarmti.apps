@@ -377,6 +377,10 @@ export default function PerjalananSaya() {
     const isLearningDoneByDate = getIsDateStarted(batch?.final_exam_start_date) || getIsDatePassed(batch?.review_week_end_date);
     const isGraduationDoneByDate = getIsDatePassed(batch?.graduation_end_date);
     const isFinalExamStarted = getIsDateStarted(batch?.final_exam_start_date);
+    
+    // Check if user has registered for the current batch
+    const hasFormPendaftaran = !!registrationStatus?.registration?.id;
+    const isEditModeUrl = hasFormPendaftaran && !isReEnrollmentDoneByDate;
 
     const oralExam = finalExams.find(r => r.schedule?.exam_type === 'oral');
     const writtenExam = finalExams.find(r => r.schedule?.exam_type === 'written');
@@ -384,14 +388,14 @@ export default function PerjalananSaya() {
     // Graduation is done only when both oral and written exams have been graded
     const isGraduationDone = !!(oralExam?.status === 'graded' && writtenExam?.status === 'graded');
 
-    // Check if user has registered for the current batch
-    const hasFormPendaftaran = !!registrationStatus?.registration?.id;
 
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
     const hasWritten = !!(registrationStatus?.writtenQuizSubmittedAt || registrationStatus?.examScore);
     const hasAkad = !!(registrationStatus?.registration?.daftar_ulang);
-    const hasPartner = !!(pairingData);
+    const daftarUlangData = registrationStatus?.registration?.daftar_ulang;
+    const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
+    const hasPartner = !!(pairingData) || hasPhase3;
     
     const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
 
@@ -408,8 +412,9 @@ export default function PerjalananSaya() {
             done: hasFormPendaftaran, 
             data: hasFormPendaftaran ? 'Pendaftaran Berhasil' : 'Belum daftar', 
             reviewType: hasFormPendaftaran ? 'registration' : null, 
-            isEditAction: !isRegistrationDone, // will redirect to registration page which handles edit vs new registration
-            isEditDisabled: !isRegistrationStarted
+            isEditAction: !isRegistrationDone || isEditModeUrl, 
+            isEditDisabled: hasFormPendaftaran ? isReEnrollmentDoneByDate : isRegistrationDone,
+            editUrl: `/pendaftaran/tikrar-tahfidz?edit=true`
           },
           { 
             name: 'Test Lisan', 
@@ -479,9 +484,35 @@ export default function PerjalananSaya() {
             isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
             testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
           },
-          { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null, isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz },
-          { name: 'Pilih Pasangan', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null, isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz },
-          { name: 'Verifikasi', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi', isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz }
+          { 
+            name: 'Review Akad', 
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
+            done: hasAkad, 
+            data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', 
+            reviewType: hasAkad ? 'akad' : null, 
+            isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
+            isTestAction: !hasAkad && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
+            isTestDisabled: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+            testUrl: `/daftar-ulang?batchId=${batchId}`
+          },
+          { 
+            name: 'Pilih Halaqah & Pasangan', 
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
+            done: hasPartner, 
+            data: hasPhase3 ? (partner ? partner.full_name : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad'), 
+            reviewType: hasPartner ? 'pairing' : null, 
+            isLocked: !hasAkad,
+            isTestAction: hasAkad && !hasPhase3,
+            isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
+            testUrl: `/pilih-pasangan?batchId=${batchId}`
+          },
+          { 
+            name: 'Verifikasi', 
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
+            done: isEnrollmentDone, 
+            data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi', 
+            isLocked: !hasPhase3
+          }
         ]
       },
       { 
@@ -864,7 +895,7 @@ export default function PerjalananSaya() {
                           {(sub as any).isEditAction && (
                             <button 
                               disabled={(sub as any).isEditDisabled}
-                              onClick={() => router.push(`/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
+                              onClick={() => router.push((sub as any).editUrl ? `${(sub as any).editUrl}&batchId=${batchId}` : `/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
                               className={cn(
                                 "ml-1 flex items-center gap-1 transition-colors p-1",
                                 (sub as any).isEditDisabled 

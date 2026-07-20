@@ -5,10 +5,6 @@ export async function generateAkadPDF(data: {
   waPhone: string
   domicile: string
   chosenJuz: string
-  halaqahUjian: string
-  halaqahTashih: string
-  partnerType: string
-  partnerName: string
   pengabdian: string
   akadText: string
   dateStr: string
@@ -44,25 +40,9 @@ export async function generateAkadPDF(data: {
   doc.text(`Juz Pilihan: ${data.chosenJuz}`, leftMargin + 5, y)
   y += lineHeight * 1.5
   
-  // Data Halaqah & Pasangan
-  doc.setFont('helvetica', 'bold')
-  doc.text('B. PROGRAM & KELAS', leftMargin, y)
-  doc.setFont('helvetica', 'normal')
-  y += lineHeight
-  doc.text(`Kelas Ujian: ${data.halaqahUjian}`, leftMargin + 5, y)
-  y += lineHeight
-  doc.text(`Kelas Tashih: ${data.halaqahTashih}`, leftMargin + 5, y)
-  y += lineHeight
-  doc.text(`Tipe Pasangan: ${data.partnerType}`, leftMargin + 5, y)
-  if (data.partnerName && data.partnerName !== '-') {
-    y += lineHeight
-    doc.text(`Nama Pasangan: ${data.partnerName}`, leftMargin + 5, y)
-  }
-  y += lineHeight * 1.5
-  
   // Komitmen Tambahan (Pengabdian/Donasi)
   doc.setFont('helvetica', 'bold')
-  doc.text('C. KOMITMEN TAMBAHAN', leftMargin, y)
+  doc.text('B. KOMITMEN TAMBAHAN', leftMargin, y)
   doc.setFont('helvetica', 'normal')
   y += lineHeight
   
@@ -73,7 +53,7 @@ export async function generateAkadPDF(data: {
   
   // Isi Akad
   doc.setFont('helvetica', 'bold')
-  doc.text('D. PERNYATAAN AKAD', leftMargin, y)
+  doc.text('C. PERNYATAAN AKAD', leftMargin, y)
   doc.setFont('helvetica', 'normal')
   y += lineHeight
   
