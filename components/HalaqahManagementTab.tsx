@@ -146,7 +146,8 @@ export function HalaqahManagementTab() {
         console.log('[HalaqahManagementTab] Loaded batches via API:', result.data.length);
         setBatches(result.data);
         if (!selectedBatch && result.data.length > 0) {
-          setSelectedBatch(result.data[0].id);
+          const defaultBatch = result.data.find((b: Batch) => b.status === 'open' || b.status === 'ongoing') || result.data[0];
+          setSelectedBatch(defaultBatch.id);
         }
         return;
       }
