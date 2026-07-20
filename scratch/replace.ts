@@ -1,50 +1,8 @@
-import { createServerClient } from '@/lib/supabase/server';
-import { createSupabaseAdmin } from '@/lib/supabase';
-import { NextRequest, NextResponse } from 'next/server';
+import * as fs from 'fs';
+const path = 'app/api/halaqah/auto-create/route.ts';
+let content = fs.readFileSync(path, 'utf-8');
 
-// POST /api/halaqah/auto-create - Auto-create halaqah for all approved muallimah in a batch
-const supabaseAdmin = createSupabaseAdmin();
-
-export async function POST(request: NextRequest) {
-  const supabase = createServerClient();
-
-  try {
-    // Auth check
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({
-        error: 'Unauthorized - Invalid session. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
-
-    // Admin check
-    const { data: userData, error: dbError } = await supabaseAdmin
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (dbError || !userData || !userData.roles?.includes('admin')) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const { batch_id, program_id } = body;
-
-    // Validate required fields
-    if (!batch_id || !program_id) {
-      return NextResponse.json(
-        { error: 'Missing required fields: batch_id, program_id' },
-        { status: 400 }
-      );
-    }
-
-    // Get program details
+const newCode = `    // Get program details
     const { data: program, error: programError } = await supabaseAdmin
       .from('programs')
       .select('*')
@@ -64,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Get all approved and not excluded muallimah akads for this batch
     const { data: akads, error: fetchError } = await supabaseAdmin
       .from('muallimah_akads')
-      .select(`
+      .select(\`
         id,
         user_id,
         preferred_juz,
@@ -72,7 +30,7 @@ export async function POST(request: NextRequest) {
         class_type,
         preferred_schedule,
         users ( full_name )
-      `)
+      \`)
       .eq('batch_id', batch_id)
       .eq('status', 'approved')
       .eq('exclude_from_capacity', false);
@@ -108,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Create halaqah for each muallimah based on their akad
     for (const akad of akads) {
-      const fullName = (akad.users as any)?.full_name || 'Unknown Muallimah';
+      const fullName = akad.users?.full_name || 'Unknown Muallimah';
       try {
         // Parse the preferred_schedule JSON
         let schedulesJson: any = null;
@@ -129,7 +87,7 @@ export async function POST(request: NextRequest) {
           skipped++;
           errors.push({
             muallimah: fullName,
-            error: `No schedule found for program type: ${scheduleKey || 'unknown'}`
+            error: \`No schedule found for program type: \${scheduleKey || 'unknown'}\`
           });
           continue;
         }
@@ -146,7 +104,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const halaqahName = `${program.name} - Juz ${akad.preferred_juz} - ${fullName}`;
+        const halaqahName = \`\${program.name} - Juz \${akad.preferred_juz} - \${fullName}\`;
 
         const { data: newHalaqah, error: createError } = await supabaseAdmin
           .from('halaqah')
@@ -190,14 +148,19 @@ export async function POST(request: NextRequest) {
           error: err.message || 'Unknown error'
         });
       }
-    }
-    
-    return NextResponse.json({
-      created,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined
-    });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+    }`;
+
+// Find the section to replace: from `    // Get all approved muallimah registrations` down to the end of the `try` block before returning JSON
+const startMarker = "    // Get all approved muallimah registrations for this batch";
+const endMarker = "    return NextResponse.json({";
+
+const startIndex = content.indexOf(startMarker);
+const endIndex = content.indexOf(endMarker);
+
+if (startIndex !== -1 && endIndex !== -1) {
+  content = content.substring(0, startIndex) + newCode + "\n\n" + content.substring(endIndex);
+  fs.writeFileSync(path, content);
+  console.log("Successfully replaced!");
+} else {
+  console.error("Markers not found");
 }
