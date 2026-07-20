@@ -674,154 +674,177 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
 
     console.log('[autoCreateSimpleHalaqah] Starting auto-create for batch:', batch_id)
 
-    // Get all approved muallimah for this batch
+    // Get all approved and not excluded muallimah for this batch
     const { data: muallimahs, error: muallimaError } = await supabaseAdmin
       .from('muallimah_akads')
       .select('*, user:users!muallimah_akads_user_id_fkey(full_name)')
       .eq('batch_id', batch_id)
       .eq('status', 'approved')
+      .eq('exclude_from_capacity', false)
 
     if (muallimaError) {
       console.error('[autoCreateSimpleHalaqah] Error fetching muallimah:', muallimaError)
-      return {
-        success: false,
-        error: 'Failed to fetch muallimah data'
-      }
+      return { success: false, error: 'Failed to fetch muallimah data' }
     }
 
     if (!muallimahs || muallimahs.length === 0) {
-      console.log('[autoCreateSimpleHalaqah] No approved muallimah found')
       return {
         success: true,
         created: 0,
         skipped: 0,
-        message: 'No approved muallimah found for this batch'
+        message: 'No valid muallimah found for this batch'
       }
     }
 
-    console.log('[autoCreateSimpleHalaqah] Found', muallimahs.length, 'approved muallimah')
+    // Load programs to map program names to IDs for this batch
+    const { data: programsList } = await supabaseAdmin
+      .from('programs')
+      .select('*')
+      .eq('batch_id', batch_id)
+
+    const programsMap: Record<string, any> = {}
+    programsList?.forEach(p => {
+      const pName = p.name.toLowerCase()
+      if (pName.includes('tahfidz tikrar')) programsMap['tikrar_tahfidz'] = p
+      else if (pName.includes('pra-tikrar') || pName.includes('pra tikrar') || pName.includes('pra_tahfidz')) programsMap['pra_tahfidz'] = p
+    })
+
+    const mapDayToNumber = (dayStr: string): number | null => {
+      if (!dayStr) return null;
+      const d = dayStr.toLowerCase().trim();
+      if (d.includes('senin')) return 1;
+      if (d.includes('selasa')) return 2;
+      if (d.includes('rabu')) return 3;
+      if (d.includes('kamis')) return 4;
+      if (d.includes('jumat') || d.includes("jum'at")) return 5;
+      if (d.includes('sabtu')) return 6;
+      if (d.includes('ahad') || d.includes('minggu')) return 7;
+      return null;
+    };
 
     let created = 0
     let skipped = 0
     const details: string[] = []
 
-    // Create halaqah for each muallimah (without program assignment)
     for (const muallimah of muallimahs) {
+      const fullName = muallimah.user?.full_name || 'Ustadzah'
+      
       try {
-        // Check if halaqah already exists for this muallimah (without program)
-        const { data: existingHalaqahs } = await supabaseAdmin
-          .from('halaqah')
-          .select('id, name')
-          .eq('muallimah_id', muallimah.user_id)
-          .is('program_id', null)
-
-        if (existingHalaqahs && existingHalaqahs.length > 0) {
-          details.push(`⚠️ Halaqah already exists for ${(muallimah.user?.full_name || 'Ustadzah')}`)
+        if (!muallimah.class_type) {
+          details.push(`✗ ${fullName}: class_type is empty`)
           skipped++
           continue
         }
 
-        // Create halaqah (without program assignment)
-        // Clean up the name to avoid double "Halaqah" or "Ustadzah" prefix
-        let cleanName = (muallimah.user?.full_name || 'Ustadzah')
-        console.log(`[autoCreateSimpleHalaqah] Original name: "${cleanName}"`)
-
-        // Remove "Halaqah " prefix (case-insensitive)
-        if (cleanName.toLowerCase().startsWith('halaqah ')) {
-          cleanName = cleanName.substring(8)
-          console.log(`[autoCreateSimpleHalaqah] Removed "Halaqah " prefix: "${cleanName}"`)
-        }
-        // Remove "Halaqah" prefix without space (case-insensitive)
-        else if (cleanName.toLowerCase().startsWith('halaqah')) {
-          cleanName = cleanName.substring(7)
-          console.log(`[autoCreateSimpleHalaqah] Removed "Halaqah" prefix: "${cleanName}"`)
-        }
-
-        // Remove "Ustadzah " prefix (case-insensitive)
-        if (cleanName.toLowerCase().startsWith('ustadzah ')) {
-          cleanName = cleanName.substring(9)
-          console.log(`[autoCreateSimpleHalaqah] Removed "Ustadzah " prefix: "${cleanName}"`)
-        }
-        // Remove "Ustadzah" prefix without space (case-insensitive)
-        else if (cleanName.toLowerCase().startsWith('ustadzah')) {
-          cleanName = cleanName.substring(8)
-          console.log(`[autoCreateSimpleHalaqah] Removed "Ustadzah" prefix: "${cleanName}"`)
-        }
-
-        // Trim any leading/trailing whitespace
-        cleanName = cleanName.trim()
-
-        const halaqahName = `Halaqah Ustadzah ${cleanName}`
-        console.log(`[autoCreateSimpleHalaqah] Final halaqah name: "${halaqahName}"`)
-
-        const { data: newHalaqah, error: createError } = await supabaseAdmin
-          .from('halaqah')
-          .insert({
-            program_id: null,
-            muallimah_id: muallimah.user_id,
-            name: halaqahName,
-            description: `Halaqah diampu oleh ${(muallimah.user?.full_name || 'Ustadzah')}`,
-            day_of_week: null,
-            start_time: null,
-            end_time: null,
-            max_students: muallimah.preferred_max_thalibah || 20,
-            waitlist_max: 5,
-            preferred_juz: muallimah.preferred_juz,
-            status: 'active',
-          })
-          .select()
-          .single()
-
-        if (createError) {
-          console.error('[autoCreateSimpleHalaqah] Error creating halaqah:', createError)
-          details.push(`✗ Failed to create halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}: ${createError.message}`)
+        const classTypes = muallimah.class_type.split(',').map((t: string) => t.trim())
+        
+        let schedulesJson: any = null;
+        try {
+          schedulesJson = typeof muallimah.preferred_schedule === 'string' 
+            ? JSON.parse(muallimah.preferred_schedule) 
+            : muallimah.preferred_schedule;
+        } catch (e) {
+          details.push(`✗ ${fullName}: Invalid schedule JSON`)
           skipped++
           continue
         }
 
-        // Add muallimah as mentor
-        const { error: mentorError } = await supabaseAdmin
-          .from('halaqah_mentors')
-          .insert({
-            halaqah_id: newHalaqah.id,
-            mentor_id: muallimah.user_id,
-            role: 'ustadzah',
-            is_primary: true,
-          })
+        for (const type of classTypes) {
+          const program = programsMap[type]
+          if (!program) {
+            details.push(`✗ ${fullName}: Program not found in batch for type ${type}`)
+            skipped++
+            continue
+          }
 
-        if (mentorError) {
-          console.error('[autoCreateSimpleHalaqah] Error adding mentor:', mentorError)
+          const scheduleKey = type === 'tikrar_tahfidz' ? 'tikrar' : 'pra_tahfidz'
+          const schedule = schedulesJson?.[scheduleKey]
+          
+          if (!schedule || !schedule.day || !schedule.time_start || !schedule.time_end) {
+            details.push(`✗ ${fullName}: Missing schedule for ${type}`)
+            skipped++
+            continue
+          }
+
+          const dayNum = mapDayToNumber(schedule.day)
+
+          // Check if halaqah already exists for this muallimah and program
+          const { data: existingHalaqahs } = await supabaseAdmin
+            .from('halaqah')
+            .select('id')
+            .eq('muallimah_id', muallimah.user_id)
+            .eq('program_id', program.id)
+
+          if (existingHalaqahs && existingHalaqahs.length > 0) {
+            details.push(`⚠️ Halaqah already exists for ${fullName} (${program.name})`)
+            skipped++
+            continue
+          }
+
+          let cleanName = fullName
+          if (cleanName.toLowerCase().startsWith('halaqah ')) cleanName = cleanName.substring(8)
+          else if (cleanName.toLowerCase().startsWith('halaqah')) cleanName = cleanName.substring(7)
+          if (cleanName.toLowerCase().startsWith('ustadzah ')) cleanName = cleanName.substring(9)
+          else if (cleanName.toLowerCase().startsWith('ustadzah')) cleanName = cleanName.substring(8)
+          cleanName = cleanName.trim()
+
+          const halaqahName = `${program.name} - Juz ${muallimah.preferred_juz} - ${cleanName}`
+
+          const { data: newHalaqah, error: createError } = await supabaseAdmin
+            .from('halaqah')
+            .insert({
+              program_id: program.id,
+              muallimah_id: muallimah.user_id,
+              name: halaqahName,
+              description: `Halaqah diampu oleh ${fullName}`,
+              day_of_week: dayNum,
+              start_time: schedule.time_start,
+              end_time: schedule.time_end,
+              max_students: muallimah.preferred_max_thalibah || 20,
+              waitlist_max: 5,
+              preferred_juz: muallimah.preferred_juz,
+              status: 'active',
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            details.push(`✗ Failed to create halaqah for ${fullName} (${program.name}): ${createError.message}`)
+            skipped++
+            continue
+          }
+
+          const { error: mentorError } = await supabaseAdmin
+            .from('halaqah_mentors')
+            .insert({
+              halaqah_id: newHalaqah.id,
+              mentor_id: muallimah.user_id,
+              role: 'ustadzah',
+              is_primary: true,
+            })
+
+          if (mentorError) console.error('[autoCreateSimpleHalaqah] Error adding mentor:', mentorError)
+
+          details.push(`✓ Created ${program.name} for ${fullName}`)
+          created++
         }
-
-        details.push(`✓ Created halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}`)
-        created++
       } catch (error: any) {
-        console.error(`[autoCreateSimpleHalaqah] Error creating halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}:`, error)
-        details.push(`✗ Failed to create halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}: ${error.message}`)
+        details.push(`✗ Failed processing ${fullName}: ${error.message}`)
         skipped++
       }
     }
 
-    // Audit log
     const { ip, userAgent } = getRequestInfo()
     await logAudit({
       userId: user.id,
       action: 'CREATE',
       resource: 'halaqah',
-      details: {
-        batch_id,
-        created,
-        skipped,
-        total_muallimah: muallimahs.length
-      },
+      details: { batch_id, created, skipped, total_muallimah: muallimahs.length },
       ipAddress: ip,
       userAgent: userAgent,
       level: 'INFO'
     })
 
-    console.log('[autoCreateSimpleHalaqah] Completed:', { created, skipped })
-
-    // Revalidate admin halaqah page cache
     revalidatePath('/admin/halaqah')
 
     return {
@@ -831,7 +854,6 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
       details,
       message: `Created ${created} halaqah${skipped > 0 ? `, skipped ${skipped}` : ''}`
     }
-
   } catch (error: any) {
     console.error('[autoCreateSimpleHalaqah] Exception:', error)
     return {
