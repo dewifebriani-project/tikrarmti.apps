@@ -676,8 +676,8 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
 
     // Get all approved muallimah for this batch
     const { data: muallimahs, error: muallimaError } = await supabaseAdmin
-      .from('muallimah_registrations')
-      .select('*')
+      .from('muallimah_akads')
+      .select('*, user:users!muallimah_akads_user_id_fkey(full_name)')
       .eq('batch_id', batch_id)
       .eq('status', 'approved')
 
@@ -716,14 +716,14 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
           .is('program_id', null)
 
         if (existingHalaqahs && existingHalaqahs.length > 0) {
-          details.push(`⚠️ Halaqah already exists for ${muallimah.full_name}`)
+          details.push(`⚠️ Halaqah already exists for ${(muallimah.user?.full_name || 'Ustadzah')}`)
           skipped++
           continue
         }
 
         // Create halaqah (without program assignment)
         // Clean up the name to avoid double "Halaqah" or "Ustadzah" prefix
-        let cleanName = muallimah.full_name
+        let cleanName = (muallimah.user?.full_name || 'Ustadzah')
         console.log(`[autoCreateSimpleHalaqah] Original name: "${cleanName}"`)
 
         // Remove "Halaqah " prefix (case-insensitive)
@@ -760,7 +760,7 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
             program_id: null,
             muallimah_id: muallimah.user_id,
             name: halaqahName,
-            description: `Halaqah diampu oleh ${muallimah.full_name}`,
+            description: `Halaqah diampu oleh ${(muallimah.user?.full_name || 'Ustadzah')}`,
             day_of_week: null,
             start_time: null,
             end_time: null,
@@ -774,7 +774,7 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
 
         if (createError) {
           console.error('[autoCreateSimpleHalaqah] Error creating halaqah:', createError)
-          details.push(`✗ Failed to create halaqah for ${muallimah.full_name}: ${createError.message}`)
+          details.push(`✗ Failed to create halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}: ${createError.message}`)
           skipped++
           continue
         }
@@ -793,11 +793,11 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
           console.error('[autoCreateSimpleHalaqah] Error adding mentor:', mentorError)
         }
 
-        details.push(`✓ Created halaqah for ${muallimah.full_name}`)
+        details.push(`✓ Created halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}`)
         created++
       } catch (error: any) {
-        console.error(`[autoCreateSimpleHalaqah] Error creating halaqah for ${muallimah.full_name}:`, error)
-        details.push(`✗ Failed to create halaqah for ${muallimah.full_name}: ${error.message}`)
+        console.error(`[autoCreateSimpleHalaqah] Error creating halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}:`, error)
+        details.push(`✗ Failed to create halaqah for ${(muallimah.user?.full_name || 'Ustadzah')}: ${error.message}`)
         skipped++
       }
     }

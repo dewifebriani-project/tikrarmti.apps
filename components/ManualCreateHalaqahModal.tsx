@@ -85,7 +85,7 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
       // Load programs and muallimahs in parallel
       const [programsResponse, muallimahsResponse] = await Promise.all([
         fetch(`/api/programs?batch_id=${batchId}`),
-        fetch(`/api/muallimah-registrations?batch_id=${batchId}&status=approved`)
+        fetch(`/api/muallimah-akads?batch_id=${batchId}&status=approved`)
       ]);
 
       const programsResult = await programsResponse.json();
