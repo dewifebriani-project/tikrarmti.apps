@@ -63,11 +63,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: fetchError.message }, { status: 400 });
     }
 
-    if (!approvedMuallimah || approvedMuallimah.length === 0) {
+    // Filter out those excluded in akads
+    const { data: excludedAkads } = await supabaseAdmin
+      .from('muallimah_akads')
+      .select('user_id')
+      .eq('batch_id', batch_id)
+      .eq('exclude_from_capacity', true);
+      
+    const excludedUserIds = new Set(excludedAkads?.map(a => a.user_id) || []);
+    const validMuallimah = approvedMuallimah?.filter(m => !excludedUserIds.has(m.user_id)) || [];
+
+    if (validMuallimah.length === 0) {
       return NextResponse.json({
         created: 0,
         skipped: 0,
-        errors: ['No approved muallimah found for this batch']
+        errors: ['No valid (non-excluded) muallimah found for this batch']
       }, { status: 200 });
     }
 
@@ -87,7 +97,7 @@ export async function POST(request: NextRequest) {
     const errors: Array<{ muallimah: string; error: string }> = [];
 
     // Create halaqah for each muallimah
-    for (const muallimah of approvedMuallimah) {
+    for (const muallimah of validMuallimah) {
       try {
         // Get normalized schedules for this muallimah
         const { data: schedules, error: scheduleError } = await supabaseAdmin
