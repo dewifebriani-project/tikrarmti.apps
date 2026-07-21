@@ -95,7 +95,8 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [searchQuery, setSearchQuery] = useState('');
 
   // Prevent race conditions
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const statsAbortControllerRef = useRef<AbortController | null>(null);
+  const submissionsAbortControllerRef = useRef<AbortController | null>(null);
 
   const loadBatches = async () => {
     try {
@@ -118,13 +119,18 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     console.log('[DaftarUlangTab] Loading statistics...');
     setStatsLoading(true);
 
+    if (statsAbortControllerRef.current) {
+      statsAbortControllerRef.current.abort();
+    }
+    statsAbortControllerRef.current = new AbortController();
+
     try {
       // Build query params
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
 
       const response = await fetch(`/api/admin/daftar-ulang/stats?${params.toString()}`, {
-        signal: abortControllerRef.current?.signal
+        signal: statsAbortControllerRef.current.signal
       });
       const result = await response.json();
 
@@ -138,6 +144,10 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         setStats(result.data);
       }
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[DaftarUlangTab] Stats request aborted');
+        return;
+      }
       console.error('[DaftarUlangTab] Error loading stats:', error);
     } finally {
       setStatsLoading(false);
@@ -148,10 +158,10 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     console.log('[DaftarUlangTab] Loading submissions...');
     setLoading(true);
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (submissionsAbortControllerRef.current) {
+      submissionsAbortControllerRef.current.abort();
     }
-    abortControllerRef.current = new AbortController();
+    submissionsAbortControllerRef.current = new AbortController();
 
     try {
       // Build query params
@@ -167,7 +177,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       }
 
       const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`, {
-        signal: abortControllerRef.current.signal
+        signal: submissionsAbortControllerRef.current.signal
       });
       const result = await response.json();
 
