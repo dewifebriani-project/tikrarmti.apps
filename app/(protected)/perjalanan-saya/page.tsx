@@ -489,7 +489,7 @@ export default function PerjalananSaya() {
             testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
           },
           { 
-            name: 'Review Akad', 
+            name: 'Upload Akad', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
             done: hasAkad, 
             data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', 
