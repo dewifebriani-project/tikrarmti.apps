@@ -68,20 +68,45 @@ export default function GlobalAuthenticatedHeader({
   };
 
   // Fungsi untuk clear cache
-  const handleClearCache = () => {
+  const handleClearCache = async () => {
     console.log('🧹 Clearing cache...');
     if (typeof window !== 'undefined') {
       // Clear localStorage
       localStorage.clear();
       // Clear sessionStorage
       sessionStorage.clear();
+      
+      // Unregister Service Workers to clear PWA cache
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            await registration.unregister();
+          }
+        } catch (err) {
+          console.error('Error unregistering service workers:', err);
+        }
+      }
+
+      // Clear caches API
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map((cacheName) => caches.delete(cacheName))
+          );
+        } catch (err) {
+          console.error('Error clearing caches API:', err);
+        }
+      }
+
       // Clear cookies
       document.cookie.split(";").forEach((c) => {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
 
       // Tampilkan notifikasi dan arahkan ke login
-      alert('Cache telah dibersihkan! <em>Ukhti</em> akan diarahkan ke halaman login.');
+      alert('Cache dan Service Worker telah dibersihkan! Ukhti akan diarahkan ke halaman login.');
       window.location.href = '/login';
     }
   };
