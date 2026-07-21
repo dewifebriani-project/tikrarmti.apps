@@ -181,20 +181,24 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
     } else {
-      // Selection exam: map to the next juz
-      if (chosenJuz?.startsWith('28')) {
-        requiredJuzNumber = 29;
-      } else if (chosenJuz?.startsWith('29')) {
-        requiredJuzNumber = 30;
-      } else if (chosenJuz?.startsWith('1')) {
-        requiredJuzNumber = 30;
-      } else if (chosenJuz?.startsWith('30')) {
+      // Selection exam: map to the previous juz in the sequence (30 -> 29 -> 28 -> 1 -> 2 ... 27)
+      const targetJuzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
+      
+      if (targetJuzNum === 30) {
         return NextResponse.json({
           data: [],
           total: 0,
           message: 'Tidak ada ujian untuk juz 30',
           noExamRequired: true
         });
+      } else if (targetJuzNum === 29) {
+        requiredJuzNumber = 30;
+      } else if (targetJuzNum === 28) {
+        requiredJuzNumber = 29;
+      } else if (targetJuzNum === 1) {
+        requiredJuzNumber = 30;
+      } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+        requiredJuzNumber = targetJuzNum - 1;
       } else {
         return NextResponse.json({
           error: 'Invalid chosen_juz',

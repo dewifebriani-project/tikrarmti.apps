@@ -122,14 +122,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if exam is already completed
+    // Fetch configuration to check passing score
+    const { data: config } = await supabaseAdmin
+      .from('exam_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+      
+    const passingScore = config?.passing_score || 80;
+
+    // Check if exam is already completed and passed
     logger.info('Exam status check', { examStatus: registration.exam_status });
     if (registration.exam_status === 'completed') {
-      logger.warn('Exam already completed', { userId: user.id });
-      return NextResponse.json({
-        error: 'Exam already completed',
-        details: 'Ukhti sudah menyelesaikan ujian ini'
-      }, { status: 400 });
+      const { data: attempts } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('score')
+        .eq('user_id', user.id)
+        .eq('registration_id', registration.id)
+        .eq('status', 'submitted');
+        
+      const hasPassed = attempts?.some(a => (a.score || 0) >= passingScore);
+      const maxAttempts = config?.max_attempts || 1;
+      
+      if (hasPassed || (attempts && attempts.length >= maxAttempts)) {
+        logger.warn('Exam already completed or max attempts reached', { userId: user.id });
+        return NextResponse.json({
+          error: 'Exam already completed',
+          details: 'Ukhti sudah menyelesaikan ujian ini atau batas kesempatan habis'
+        }, { status: 400 });
+      }
     }
 
     // Determine exam juz number from chosen_juz
@@ -436,12 +457,24 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if exam is already completed
+    // Check if exam is already completed and passed
     if (registration.exam_status === 'completed') {
-      return NextResponse.json({
-        error: 'Exam already completed',
-        details: 'Ukhti sudah menyelesaikan ujian ini'
-      }, { status: 400 });
+      const { data: attempts } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('score')
+        .eq('user_id', user.id)
+        .eq('registration_id', registration.id)
+        .eq('status', 'submitted');
+        
+      // For PUT (autosave draft), if we already passed or ran out of attempts, block.
+      // But if we are taking a retake (so a new draft exists), let it through.
+      const hasPassed = attempts?.some(a => (a.score || 0) >= 80); // Defaulting to 80 for quick check
+      if (hasPassed) {
+        return NextResponse.json({
+          error: 'Exam already completed',
+          details: 'Ukhti sudah menyelesaikan ujian ini'
+        }, { status: 400 });
+      }
     }
 
     // Determine exam juz number from chosen_juz

@@ -99,6 +99,9 @@ interface DaftarUlangSubmission {
     start_time?: string;
     end_time?: string;
   };
+  registration?: {
+    final_juz?: string;
+  };
 }
 
 interface Batch {
@@ -427,6 +430,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           // Confirmed Data (daftar_ulang_submissions)
           'Nama Lengkap (Confirmed)': item.confirmed_full_name || '-',
           'Juz Pilihan (Confirmed)': item.confirmed_chosen_juz || '-',
+          'Juz Pilihan Akhir (Final Juz)': registration.final_juz || '-',
           'Slot Jadwal Utama (Confirmed)': formatTimeSlot(item.confirmed_main_time_slot),
           'Slot Jadwal Cadangan (Confirmed)': formatTimeSlot(item.confirmed_backup_time_slot),
           'No. WhatsApp (Confirmed)': item.confirmed_wa_phone || '-',
@@ -493,6 +497,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           // Data Pendaftaran Awal
           'Nama Lengkap (Pendaftaran)': registration.full_name || '-',
           'Juz Pilihan (Pendaftaran)': registration.chosen_juz || '-',
+          'Juz Akhir setelah Demotion': registration.final_juz || '-',
           'Nilai Exam (Pendaftaran)': registration.exam_score ?? '-',
           'Slot Jadwal Utama (Pendaftaran)': formatTimeSlot(registration.main_time_slot),
           'Slot Jadwal Cadangan (Pendaftaran)': formatTimeSlot(registration.backup_time_slot),
@@ -581,6 +586,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         // Confirmed Data
         { wch: 35 },  // Nama Lengkap (Confirmed)
         { wch: 15 },  // Juz Pilihan (Confirmed)
+        { wch: 15 },  // Juz Pilihan Akhir (Final Juz)
         { wch: 20 },  // Slot Jadwal Utama (Confirmed)
         { wch: 20 },  // Slot Jadwal Cadangan (Confirmed)
         { wch: 18 },  // No. WhatsApp (Confirmed)
@@ -1887,8 +1893,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       <p className="text-sm">{selectedSubmission.user?.email || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Chosen Juz</p>
-                      <p className="text-sm font-medium">{selectedSubmission.confirmed_chosen_juz || '-'}</p>
+                      <p className="text-xs text-gray-500">Juz Pilihan</p>
+                      <p className="text-sm font-medium">
+                        {selectedSubmission.confirmed_chosen_juz || '-'} 
+                        {selectedSubmission.registration?.final_juz ? ` (Turun ke: ${selectedSubmission.registration.final_juz})` : ''}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Time Slot</p>

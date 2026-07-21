@@ -50,7 +50,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if user already has a completed attempt for this juz
+    // Fetch configuration
+    const { data: config } = await supabaseAdmin
+      .from('exam_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+      
+    const maxAttempts = config?.max_attempts || 1;
+    const passingScore = config?.passing_score || 80;
+
+    // Check if user already has completed attempts for this juz
     const { data: existingAttempts, error: attemptError } = await supabaseAdmin
       .from('exam_attempts')
       .select('*')
@@ -65,10 +75,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingAttempts && existingAttempts.length > 0) {
-      return NextResponse.json({
-        error: 'You have already completed this exam',
-        attempt: existingAttempts[0]
-      }, { status: 400 });
+      // Check if any attempt passed
+      const hasPassed = existingAttempts.some(a => (a.score || 0) >= passingScore);
+      
+      if (hasPassed) {
+        return NextResponse.json({
+          error: 'You have already passed this exam',
+          attempt: existingAttempts.find(a => (a.score || 0) >= passingScore)
+        }, { status: 400 });
+      }
+      
+      if (existingAttempts.length >= maxAttempts) {
+        return NextResponse.json({
+          error: 'You have reached the maximum number of attempts for this exam',
+          attempt: existingAttempts[existingAttempts.length - 1]
+        }, { status: 400 });
+      }
     }
 
     // Check for in-progress attempt

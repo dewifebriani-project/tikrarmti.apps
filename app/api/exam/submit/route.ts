@@ -95,14 +95,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to submit exam' }, { status: 500 });
     }
 
+    // Fetch configuration
+    const { data: config } = await supabaseAdmin
+      .from('exam_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+      
+    const maxAttempts = config?.max_attempts || 1;
+    const passingScore = config?.passing_score || 80;
+    
+    // Get past submitted attempts count for this user, registration, and juz
+    const { data: pastAttempts } = await supabaseAdmin
+      .from('exam_attempts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('registration_id', attempt.registration_id)
+      .eq('juz_number', attempt.juz_number)
+      .eq('status', 'submitted');
+      
+    // The current one will also be submitted now, so total submitted = pastAttempts.length (since the update above already set it to submitted, pastAttempts will include it if we query after, or maybe it won't if the transaction hasn't propagated? Actually, we just updated it above!)
+    // Let's just count pastAttempts length. Since we just updated `id: attemptId` to 'submitted', `pastAttempts` will INCLUDE this attempt!
+    const totalSubmitted = pastAttempts ? pastAttempts.length : 1;
+    const passed = score >= passingScore;
+    
+    let finalJuz = undefined;
+    
+    if (!passed && totalSubmitted >= maxAttempts) {
+       // Demotion logic! Get chosen_juz from registration
+       const { data: reg } = await supabaseAdmin
+         .from('pendaftaran_tikrar_tahfidz')
+         .select('chosen_juz')
+         .eq('id', attempt.registration_id)
+         .single();
+         
+       if (reg && reg.chosen_juz) {
+         // Demotion logic: 30 -> 30, 29 -> 30, 28 -> 29, 1 -> 30, 2 -> 1, N -> N-1
+         const targetJuzNum = parseInt(reg.chosen_juz.replace(/[AB]/g, '') || '0');
+         const suffix = reg.chosen_juz.replace(/\d/g, '');
+         let newJuzNum = targetJuzNum;
+         
+         if (targetJuzNum === 29) newJuzNum = 30;
+         else if (targetJuzNum === 28) newJuzNum = 29;
+         else if (targetJuzNum === 1) newJuzNum = 30;
+         else if (targetJuzNum >= 2 && targetJuzNum <= 27) newJuzNum = targetJuzNum - 1;
+         
+         finalJuz = `${newJuzNum}${suffix}`;
+       }
+    }
+
     // Update registration with exam results
+    const regUpdateData: any = {
+      exam_score: score,
+      exam_submitted_at: new Date().toISOString(),
+    };
+    
+    if (finalJuz) {
+      regUpdateData.final_juz = finalJuz;
+    }
+    
+    // Only mark it as 'completed' if they passed OR ran out of attempts.
+    if (passed || totalSubmitted >= maxAttempts) {
+      regUpdateData.exam_status = 'completed';
+    } else {
+      regUpdateData.exam_status = 'not_started'; // Or keep it in_progress, but not_started allows taking a new one smoothly.
+    }
+
     const { error: regUpdateError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .update({
-        exam_score: score,
-        exam_submitted_at: new Date().toISOString(),
-        exam_status: 'completed'
-      })
+      .update(regUpdateData)
       .eq('id', attempt.registration_id);
 
     if (regUpdateError) {
@@ -181,7 +242,10 @@ export async function POST(request: NextRequest) {
         attempt: updatedAttempt,
         sections,
         overall_percentage: score,
-        passed: score >= 60 // Default passing grade
+        passed,
+        finalJuz,
+        attemptsUsed: totalSubmitted,
+        maxAttempts
       }
     }, { status: 200 });
 

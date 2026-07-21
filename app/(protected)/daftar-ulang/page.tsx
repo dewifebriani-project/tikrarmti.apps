@@ -755,7 +755,7 @@ export default function DaftarUlangPage() {
 
         {/* Draft saved indicator */}
         {draftSaved && (
-          <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+          <div className="fixed bottom-24 md:bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
             <CheckCircle className="w-4 h-4" />
             <span className="text-sm">Draft tersimpan</span>
           </div>

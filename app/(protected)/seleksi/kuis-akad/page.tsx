@@ -232,14 +232,14 @@ export default function KuisAkadPage() {
               ))}
             </div>
 
-            <div className="mt-8 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between sticky bottom-4 z-10">
-              <div className="text-sm font-medium text-gray-500">
+            <div className="mt-8 bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-sm font-medium text-gray-500 text-center md:text-left">
                 <span className="font-bold text-gray-900">{Object.keys(answers).length}</span> dari {questions.length} terjawab
               </div>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-70"
+                className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-70"
               >
                 {submitting ? (
                   <RefreshCw className="h-5 w-5 animate-spin" />

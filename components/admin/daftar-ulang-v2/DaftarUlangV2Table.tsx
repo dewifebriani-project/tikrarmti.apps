@@ -200,6 +200,7 @@ export function DaftarUlangV2Table({
                       <p className="text-xs text-gray-500 font-medium mt-0.5 flex items-center gap-1.5">
                         <span className="bg-gray-100 px-1.5 py-0.5 rounded-md text-gray-600">
                           Juz {submission.confirmed_chosen_juz || '-'}
+                          {submission.registration?.final_juz ? ` (Turun ke: ${submission.registration.final_juz})` : ''}
                         </span>
                         <span>{submission.confirmed_main_time_slot || '-'}</span>
                       </p>

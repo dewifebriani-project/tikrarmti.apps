@@ -65,7 +65,10 @@ export function DetailModal({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Juz Pilihan</p>
-                <p className="text-sm font-bold text-gray-900">{submission.confirmed_chosen_juz || '-'}</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {submission.confirmed_chosen_juz || '-'}
+                  {submission.registration?.final_juz ? ` (Turun ke: ${submission.registration.final_juz})` : ''}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Jadwal</p>

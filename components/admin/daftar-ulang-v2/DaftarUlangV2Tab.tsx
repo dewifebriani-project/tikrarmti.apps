@@ -325,6 +325,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           // Confirmed Data (daftar_ulang_submissions)
           'Nama Lengkap (Confirmed)': item.confirmed_full_name || '-',
           'Juz Pilihan (Confirmed)': item.confirmed_chosen_juz || '-',
+          'Juz Pilihan Akhir (Final Juz)': registration?.final_juz || '-',
           'Slot Jadwal Utama (Confirmed)': formatTimeSlot(item.confirmed_main_time_slot),
           'Slot Jadwal Cadangan (Confirmed)': formatTimeSlot(item.confirmed_backup_time_slot),
           'No. WhatsApp (Confirmed)': item.confirmed_wa_phone || '-',
@@ -391,6 +392,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           // Data Pendaftaran Awal
           'Nama Lengkap (Pendaftaran)': registration.full_name || '-',
           'Juz Pilihan (Pendaftaran)': registration.chosen_juz || '-',
+          'Juz Akhir setelah Demotion': registration.final_juz || '-',
           'Nilai Exam (Pendaftaran)': registration.exam_score ?? '-',
           'Slot Jadwal Utama (Pendaftaran)': formatTimeSlot(registration.main_time_slot),
           'Slot Jadwal Cadangan (Pendaftaran)': formatTimeSlot(registration.backup_time_slot),
