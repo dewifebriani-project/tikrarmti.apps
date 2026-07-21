@@ -61,12 +61,21 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
     }
   }
 
+  // Get date filter from batch
+  let dateFilter = '1970-01-01'
+  if (activeRegistration.batch?.opening_class_date) {
+    dateFilter = activeRegistration.batch.opening_class_date
+  } else if (activeRegistration.batch?.start_date) {
+    dateFilter = activeRegistration.batch.start_date
+  }
+
   // Get all tashih records for this user (skip for preview-id mock)
   if (activeRegistration.id !== 'preview-id') {
     const { data: tashihRecords, error: tashihError } = await supabase
       .from('tashih_records')
       .select('blok, waktu_tashih')
       .eq('user_id', user.id)
+      .gte('waktu_tashih', dateFilter)
       .order('waktu_tashih', { ascending: true })
 
     if (!tashihError && tashihRecords) {
@@ -149,7 +158,7 @@ export async function GET(request: Request) {
         status,
         batch_id,
         chosen_juz,
-        batch:batches(id, start_date, status),
+        batch:batches(id, start_date, status, opening_class_date),
         daftar_ulang:daftar_ulang_submissions(
           id,
           user_id,

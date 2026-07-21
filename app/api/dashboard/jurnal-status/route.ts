@@ -97,12 +97,21 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
     } as any)
   }
 
+  // Get date filter from batch
+  let dateFilter = '1970-01-01'
+  if (activeRegistration.batch?.opening_class_date) {
+    dateFilter = activeRegistration.batch.opening_class_date
+  } else if (activeRegistration.batch?.start_date) {
+    dateFilter = activeRegistration.batch.start_date
+  }
+
   // Get all jurnal records for this user (skip for preview-id mock)
   if (activeRegistration.id !== 'preview-id') {
     const { data: jurnalRecords, error: jurnalError } = await supabase
       .from('jurnal_records')
       .select('blok, tanggal_setor')
       .eq('user_id', user.id)
+      .gte('tanggal_setor', dateFilter)
       .order('tanggal_setor', { ascending: true })
 
     if (!jurnalError && jurnalRecords) {
@@ -209,7 +218,7 @@ export async function GET(request: Request) {
         status,
         batch_id,
         chosen_juz,
-        batch:batches(id, start_date, status),
+        batch:batches(id, start_date, status, opening_class_date),
         daftar_ulang:daftar_ulang_submissions(
           id,
           user_id,
