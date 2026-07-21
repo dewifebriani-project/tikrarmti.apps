@@ -12,7 +12,10 @@ export function formatClassType(classType: string | null | undefined): string {
   const classTypeMap: Record<string, string> = {
     'tashih_ujian': 'Kelas Tashih + Ujian',
     'tashih_only': 'Kelas Tashih Saja',
-    'ujian_only': 'Kelas Ujian Saja'
+    'ujian_only': 'Kelas Ujian Saja',
+    'tikrar_tahfidz': 'Tikrar Tahfidz',
+    'pra_tahfidz': 'Pra-Tikrar',
+    'tikrar_berbayar': 'Tikrar Berbayar'
   };
 
   return classTypeMap[classType] || classType;
