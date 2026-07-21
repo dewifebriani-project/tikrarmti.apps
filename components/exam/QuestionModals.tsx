@@ -340,6 +340,10 @@ function EditQuestionForm({ question, juzOptions, onSave, onCancel, isSaving }: 
         </div>
       </div>
       <div>
+        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Prolog / Judul Bagian (Section Title)</label>
+        <textarea value={formData.section_title} onChange={(e) => setFormData({ ...formData, section_title: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Misal: JUZ 30A - 20 SOAL PILIHAN GANDA..." />
+      </div>
+      <div>
         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Question Text</label>
         <textarea value={formData.question_text} onChange={(e) => setFormData({ ...formData, question_text: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={3} required />
       </div>

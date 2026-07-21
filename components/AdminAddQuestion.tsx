@@ -237,6 +237,19 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
               </select>
             </div>
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Prolog / Judul Bagian (Opsional)
+            </label>
+            <textarea
+              value={sectionTitle}
+              onChange={(e) => setSectionTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              rows={2}
+              placeholder="Misal: JUZ 30A - 20 SOAL PILIHAN GANDA (1 POINT)"
+            />
+          </div>
 
           {/* Question Text */}
           <div>
