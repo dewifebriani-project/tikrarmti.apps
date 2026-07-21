@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       `)
       .eq('batch_id', batchId)
       .eq('status', 'active')
+      .eq('class_type', 'tikrar_tahfidz')
 
     if (halaqahError) {
       console.error('Error fetching halaqah:', halaqahError)

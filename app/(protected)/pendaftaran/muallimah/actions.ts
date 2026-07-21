@@ -71,6 +71,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
     const classTypesSelected = []
     if (formData.class_tikrar) classTypesSelected.push('tikrar_tahfidz')
     if (formData.class_pratikrar) classTypesSelected.push('pra_tahfidz')
+    if (formData.class_paid) classTypesSelected.push('tikrar_berbayar')
     
     // 3. Step 1: Upsert Profile (muallimah_registrations)
     // We treat this table as the permanent profile. 
