@@ -383,7 +383,7 @@ export default function PerjalananSaya() {
     const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
     const isSelectionDoneByDate = getIsDateStarted(batch?.re_enrollment_date) || getIsDatePassed(batch?.selection_result_date);
     const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
-    const isReEnrollmentDoneByDate = getIsDateStarted(batch?.opening_class_date);
+    const isReEnrollmentDoneByDate = getIsDatePassed(batch?.opening_class_date);
     const isLearningDoneByDate = getIsDateStarted(batch?.final_exam_start_date) || getIsDatePassed(batch?.review_week_end_date);
     const isGraduationDoneByDate = getIsDatePassed(batch?.graduation_end_date);
     const isFinalExamStarted = getIsDateStarted(batch?.final_exam_start_date);
@@ -475,7 +475,7 @@ export default function PerjalananSaya() {
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran || !isSelectionDone || !isSelectionPassed,
             isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten && isSelectionDone && isSelectionPassed,
-            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || hasAkad,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           {
