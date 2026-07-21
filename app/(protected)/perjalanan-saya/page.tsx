@@ -525,7 +525,7 @@ export default function PerjalananSaya() {
         icon: <BookOpen className="w-4 h-4" />,
         subPhases: [
           { name: 'Opening Class', date: batch?.opening_class_date ? formatDateShort(batch.opening_class_date) : '', done: isEnrollmentDone && today > new Date(batch?.opening_class_date || ''), data: batch?.opening_class_date ? formatDateIndo(batch.opening_class_date) : '-' },
-          { name: 'Jurnal Tikrar', date: formatDateRangeShort(batch?.opening_class_date, batch?.review_week_end_date), done: percentage >= 80, data: isEnrollmentDone ? `Progres: ${percentage}%` : 'Belum mulai' },
+          { name: 'Jurnal Tikrar', date: formatDateRangeShort(batch?.opening_class_date, batch?.review_week_end_date), done: isEnrollmentDone && percentage >= 80, data: isEnrollmentDone ? `Progres: ${percentage}%` : 'Belum mulai' },
           { name: 'Muraja’ah', date: formatDateRangeShort(batch?.review_week_start_date, batch?.review_week_end_date), done: isLearningDone, data: isLearningDone ? 'Selesai' : (today > (reviewWeekEnd || new Date()) ? 'Berlangsung' : 'Akan datang') }
         ]
       },
