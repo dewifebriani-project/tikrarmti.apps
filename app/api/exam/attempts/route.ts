@@ -71,56 +71,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if today is within selection period
-    // Use date-only comparison to avoid timezone issues
-    const today = new Date();
-    const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
-    logger.info('Date check', {
-      todayDateOnly,
-      selectionStart: batch.selection_start_date,
-      selectionEnd: batch.selection_end_date,
-      todayISO: today.toISOString()
-    });
-
-    if (batch.selection_start_date && batch.selection_end_date) {
-      // Parse dates as YYYY-MM-DD and convert to comparable numbers
-      const startDateStr = batch.selection_start_date.substring(0, 10);
-      const endDateStr = batch.selection_end_date.substring(0, 10);
-
-      const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
-      const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
-
-      logger.info('Date comparison', {
-        todayDateOnly,
-        startDateNum,
-        endDateNum,
-        todayBeforeStart: todayDateOnly < startDateNum,
-        todayAfterEnd: todayDateOnly > endDateNum
-      });
-
-      if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
-        const formatDate = (dateStr: string) => {
-          const date = new Date(dateStr);
-          return date.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-        };
-
-        logger.warn('Exam period closed', {
-          todayDateOnly,
-          startDateNum,
-          endDateNum
-        });
-
-        return NextResponse.json({
-          error: 'Exam period closed',
-          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDateStr)} sampai ${formatDate(endDateStr)}`
-        }, { status: 400 });
-      }
-    }
 
     // Fetch configuration to check passing score
     const { data: config } = await supabaseAdmin
