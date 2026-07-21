@@ -121,6 +121,8 @@ export default function DaftarUlangPage() {
     akad_files: [],
   })
 
+  const isPraTikrar = registrationData?.selection_status === 'waitlist'
+
   // Fetch registration data and halaqah on mount
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return
@@ -142,7 +144,7 @@ export default function DaftarUlangPage() {
 
         // Get registrations for thalibah
         const selectedRegistration = regData.data?.find(
-          (r: any) => r.selection_status === 'selected' && r.role === 'thalibah'
+          (r: any) => ['selected', 'waitlist'].includes(r.selection_status) && r.role === 'thalibah'
         )
 
         if (!selectedRegistration) {
@@ -415,7 +417,11 @@ export default function DaftarUlangPage() {
         toast.error('Pilih halaqah terlebih dahulu')
         return
       }
-      setCurrentStep('partner')
+      if (isPraTikrar) {
+        handleSubmit()
+      } else {
+        setCurrentStep('partner')
+      }
     } else if (currentStep === 'partner') {
       if (!formData.partner_type) {
         toast.error('Pilih tipe pasangan')
@@ -429,7 +435,11 @@ export default function DaftarUlangPage() {
     const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad', 'halaqah', 'partner', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1])
+      if (currentStep === 'success' && isPraTikrar) {
+        setCurrentStep('halaqah')
+      } else {
+        setCurrentStep(steps[currentIndex - 1])
+      }
     }
   }
 

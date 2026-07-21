@@ -331,6 +331,7 @@ export default function PerjalananSaya() {
 
     const isProfileComplete = !!(user.full_name && user.whatsapp && (user as any).tanggal_lahir);
     const isSelectionDone = registrationStatus?.selectionStatus && registrationStatus.selectionStatus !== 'pending';
+    const isPraTikrar = registrationStatus?.selectionStatus === 'waitlist';
     // Lulus jika nilai oral assessment >= 80
     const isSelectionPassed = (registrationStatus?.oralScore != null && registrationStatus.oralScore >= 80);
     const isEnrollmentDone = registrationStatus?.registration?.re_enrollment_completed === true;
@@ -457,24 +458,26 @@ export default function PerjalananSaya() {
             data: isSelectionDone 
               ? (isSelectionPassed 
                   ? `Lulus ✓ | Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}` 
-                  : `Tidak Lulus${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}`)
+                  : (registrationStatus.selectionStatus === 'waitlist' 
+                      ? 'Masuk Pra-Tikrar ✓' 
+                      : `Tidak Lulus${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}`))
               : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') 
           }
         ]
       },
       { 
-        id: 3, name: 'Daftar Ulang', status: (!isSelectionDone || !isSelectionPassed) ? 'future' : (isReEnrollmentDoneByDate ? 'completed' : (isSelectionDoneByDate ? 'current' : 'future')), 
+        id: 3, name: 'Daftar Ulang', status: (!isSelectionDone || (!isSelectionPassed && registrationStatus?.selectionStatus !== 'waitlist')) ? 'future' : (isReEnrollmentDoneByDate ? 'completed' : (isSelectionDoneByDate ? 'current' : 'future')), 
         desc: batch?.re_enrollment_date ? `Mulai ${formatDateIndo(batch.re_enrollment_date)}` : 'Akad & Pasangan', 
         icon: <CheckCircle className="w-4 h-4" />,
         subPhases: [
           { 
             name: 'Test Tertulis', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: isAlumnus || (hasFormPendaftaran && hasWritten), 
-            data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
+            done: isAlumnus || isPraTikrar || (hasFormPendaftaran && hasWritten), 
+            data: (isAlumnus || isPraTikrar) ? `Tidak wajib (${isPraTikrar ? 'Pra-Tikrar' : 'Alumni'}) ✓` : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
-            isLocked: !hasFormPendaftaran || !isSelectionDone || !isSelectionPassed,
-            isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten && isSelectionDone && isSelectionPassed,
+            isLocked: !hasFormPendaftaran || !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
+            isTestAction: hasFormPendaftaran && !isAlumnus && !isPraTikrar && !hasWritten && isSelectionDone && isSelectionPassed,
             isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || hasAkad,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
@@ -483,10 +486,10 @@ export default function PerjalananSaya() {
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: hasPassedAkadQuiz,
             data: hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100',
-            isLocked: !isSelectionDone || !isSelectionPassed || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
-            isTestAction: !hasPassedAkadQuiz && isSelectionDone && isSelectionPassed,
-            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
-            testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
+            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || (!isAlumnus && !isPraTikrar && !(hasFormPendaftaran && hasWritten)),
+            isTestAction: !hasPassedAkadQuiz && isSelectionDone && (isSelectionPassed || isPraTikrar),
+            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !isPraTikrar && !(hasFormPendaftaran && hasWritten)),
+            testUrl: isPraTikrar ? `/seleksi/kuis-akad?batchId=${batchId}&type=pra-tikrar` : `/seleksi/kuis-akad?batchId=${batchId}`
           },
           { 
             name: 'Upload Akad', 
@@ -494,19 +497,19 @@ export default function PerjalananSaya() {
             done: hasAkad, 
             data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', 
             reviewType: hasAkad ? 'akad' : null, 
-            isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
-            isTestAction: !hasAkad && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
-            isTestDisabled: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !hasPassedAkadQuiz,
+            isTestAction: !hasAkad && isSelectionDone && (isSelectionPassed || isPraTikrar) && hasPassedAkadQuiz,
+            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/daftar-ulang?batchId=${batchId}`
           },
           { 
-            name: 'Pilih Halaqah & Pasangan', 
+            name: isPraTikrar ? 'Penempatan Halaqah' : 'Pilih Halaqah & Pasangan', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
-            done: hasPartner, 
-            data: hasPhase3 ? (partnerName ? partnerName : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad'), 
+            done: hasPhase3 || (isPraTikrar && !!daftarUlangData?.ujian_halaqah_id), 
+            data: (hasPhase3 || (isPraTikrar && !!daftarUlangData?.ujian_halaqah_id)) ? (isPraTikrar ? 'Selesai ✓' : (partnerName ? partnerName : 'Menunggu Dipasangkan')) : (hasAkad ? (isPraTikrar ? 'Selesai Pilih Jadwal' : 'Belum pilih') : 'Belum submit akad'), 
             reviewType: hasPartner ? 'pairing' : null, 
             isLocked: !hasAkad,
-            isTestAction: hasAkad && !hasPhase3,
+            isTestAction: hasAkad && !hasPhase3 && !isPraTikrar,
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`
           },

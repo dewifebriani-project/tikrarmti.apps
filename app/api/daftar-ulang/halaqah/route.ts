@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
     // Get user's registration to find batch_id and calculate final juz
     const { data: registration, error: regError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot')
+      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status')
       .eq('user_id', user.id)
-      .eq('selection_status', 'selected')
+      .in('selection_status', ['selected', 'waitlist'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -195,7 +195,12 @@ export async function GET(request: NextRequest) {
         })
       })
       // Filter out tashih_only classes from daftar ulang page
-      .filter((h: any) => h.class_type !== 'tashih_only')
+      .filter((h: any) => {
+        if (registration.selection_status === 'waitlist') {
+          return h.class_type === 'pra_tahfidz'
+        }
+        return h.class_type !== 'tashih_only' && h.class_type !== 'pra_tahfidz'
+      })
 
     return NextResponse.json({
       success: true,
