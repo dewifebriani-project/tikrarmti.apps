@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -94,6 +94,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Prevent race conditions
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const loadBatches = async () => {
     try {
       const response = await fetch('/api/batch');
@@ -120,7 +123,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
 
-      const response = await fetch(`/api/admin/daftar-ulang/stats?${params.toString()}`);
+      const response = await fetch(`/api/admin/daftar-ulang/stats?${params.toString()}`, {
+        signal: abortControllerRef.current?.signal
+      });
       const result = await response.json();
 
       if (!response.ok) {
@@ -143,6 +148,11 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     console.log('[DaftarUlangTab] Loading submissions...');
     setLoading(true);
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       // Build query params
       const params = new URLSearchParams();
@@ -156,7 +166,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         params.append('limit', '50');
       }
 
-      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`, {
+        signal: abortControllerRef.current.signal
+      });
       const result = await response.json();
 
       if (!response.ok) {
@@ -179,6 +191,10 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         setPagination(null);
       }
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[DaftarUlangTab] Request aborted');
+        return;
+      }
       console.error('[DaftarUlangTab] Error loading submissions:', error);
       toast.error('Failed to load submissions: ' + error.message);
     } finally {
