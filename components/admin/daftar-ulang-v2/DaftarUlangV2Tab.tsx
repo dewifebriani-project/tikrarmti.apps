@@ -1063,6 +1063,27 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   return (
     <div className="space-y-6 relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold tracking-wider mb-2 uppercase">
+            <Shield className="w-4 h-4" />
+            Authority Console
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.history.back()} className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Daftar Ulang</h1>
+            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-100 uppercase">V2</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-bold rounded-xl border border-gray-200 transition-all">
+            <Database className="w-4 h-4" />
+            <span>Data Daftar Ulang</span>
+          </button>
+        </div>
+      </div>
 
       <DaftarUlangV2Stats 
         stats={stats as DaftarUlangStatsData}
