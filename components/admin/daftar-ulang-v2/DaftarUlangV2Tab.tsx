@@ -100,9 +100,10 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       const result = await response.json();
       if (result.success && result.data) {
         setBatches(result.data);
-        // If no initial batchId, set to the latest batch
-        if (!initialBatchId && result.data.length > 0) {
-          setLocalBatchId(result.data[0].id);
+        // Default to the open batch (or latest if none open) on initial load
+        if ((!initialBatchId || initialBatchId === 'all') && result.data.length > 0) {
+          const openBatch = result.data.find((b: any) => b.status === 'open') || result.data[0];
+          setLocalBatchId(openBatch.id);
         }
       }
     } catch (error) {
