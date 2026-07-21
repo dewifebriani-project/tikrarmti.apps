@@ -33,6 +33,7 @@ import { AssignThalibahModal } from '@/components/AssignThalibahModal';
 import { ManualCreateHalaqahModal } from '@/components/ManualCreateHalaqahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
+import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/HalaqahStats';
 
 interface Halaqah {
   id: string;
@@ -717,6 +718,22 @@ export function HalaqahManagementTab() {
           </button>
         </div>
       </div>
+
+      {/* Stats Section */}
+      <HalaqahStats
+        isLoading={loading}
+        stats={
+          halaqahs.length > 0
+            ? {
+                total: halaqahs.length,
+                active: halaqahs.filter(h => h.status === 'active').length,
+                muallimah: new Set(halaqahs.map(h => h.muallimah_id).filter(Boolean)).size,
+                capacity: halaqahs.reduce((sum, h) => sum + (h.max_students || 0), 0),
+                used: halaqahs.reduce((sum, h) => sum + (h.quota_details?.total_used || 0), 0)
+              }
+            : null
+        }
+      />
 
       {/* Filters */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
