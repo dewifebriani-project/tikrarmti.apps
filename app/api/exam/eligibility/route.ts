@@ -77,6 +77,23 @@ export async function GET(request: NextRequest) {
       .eq('juz_number', requiredJuz)
       .eq('status', 'submitted');
 
+    // Check if akad is uploaded (from daftar_ulang_submissions)
+    const { data: daftarUlang } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('akad_url, akad_submitted_at')
+      .eq('registration_id', registration.id)
+      .single();
+
+    if (daftarUlang && (daftarUlang.akad_url || daftarUlang.akad_submitted_at)) {
+      const eligibility: ExamEligibility = {
+        isEligible: false,
+        requiredJuz: null,
+        reason: 'Test tertulis sudah ditutup karena Ukhti telah mengunggah akad.',
+        hasCompleted: attempts && attempts.length > 0 ? true : false,
+      };
+      return NextResponse.json({ data: eligibility });
+    }
+
     if (attemptError) {
       logger.error('Error checking exam attempts', { error: attemptError });
       return NextResponse.json({ error: 'Failed to check eligibility' }, { status: 500 });

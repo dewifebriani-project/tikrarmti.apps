@@ -73,6 +73,20 @@ export async function POST(request: NextRequest) {
 
 
 
+    // Check if akad is uploaded (from daftar_ulang_submissions)
+    const { data: daftarUlang } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('akad_url, akad_submitted_at')
+      .eq('registration_id', registration.id)
+      .single();
+
+    if (daftarUlang && (daftarUlang.akad_url || daftarUlang.akad_submitted_at)) {
+      return NextResponse.json({
+        error: 'Exam closed',
+        details: 'Test tertulis sudah ditutup karena Ukhti telah mengunggah akad.'
+      }, { status: 400 });
+    }
+
     // Fetch configuration to check passing score
     const { data: config } = await supabaseAdmin
       .from('exam_configurations')
@@ -406,6 +420,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({
         error: 'No registration found'
       }, { status: 404 });
+    }
+
+    // Check if akad is uploaded (from daftar_ulang_submissions)
+    const { data: daftarUlang } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('akad_url, akad_submitted_at')
+      .eq('registration_id', registration.id)
+      .single();
+
+    if (daftarUlang && (daftarUlang.akad_url || daftarUlang.akad_submitted_at)) {
+      return NextResponse.json({
+        error: 'Exam closed',
+        details: 'Test tertulis sudah ditutup karena Ukhti telah mengunggah akad.'
+      }, { status: 400 });
     }
 
     // Check if exam is already completed and passed
