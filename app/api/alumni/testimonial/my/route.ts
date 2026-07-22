@@ -16,8 +16,8 @@ async function checkIsAlumnus(supabase: any, userId: string): Promise<boolean> {
   const now = new Date();
   // A user is an alumnus if they have been approved+selected in ANY past/archived batch
   const hasPassedBatch = regs.some((reg: any) => {
-    const isApproved = reg.status === 'approved';
-    const isSelected = reg.selection_status === 'selected';
+    const isApproved = reg.status === 'approved' || reg.status === 'completed';
+    const isSelected = reg.selection_status === 'selected' || reg.selection_status === 'passed';
     if (!isApproved || !isSelected) return false;
     
     const batch = reg.batch;

@@ -332,8 +332,8 @@ export default function PerjalananSaya() {
     const isProfileComplete = !!(user.full_name && user.whatsapp && (user as any).tanggal_lahir);
     const isSelectionDone = registrationStatus?.selectionStatus && registrationStatus.selectionStatus !== 'pending';
     const isPraTikrar = registrationStatus?.selectionStatus === 'waitlist';
-    // Lulus jika nilai oral assessment >= 80
-    const isSelectionPassed = (registrationStatus?.oralScore != null && registrationStatus.oralScore >= 80);
+    // Lulus jika nilai oral assessment >= 80 atau jika status seleksi sudah 'selected' (misal: alumni yang diluluskan otomatis)
+    const isSelectionPassed = (registrationStatus?.oralScore != null && registrationStatus.oralScore >= 80) || registrationStatus?.selectionStatus === 'selected';
     const isEnrollmentDone = registrationStatus?.registration?.re_enrollment_completed === true;
     
     const today = new Date();
