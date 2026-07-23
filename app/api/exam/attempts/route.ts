@@ -211,7 +211,6 @@ export async function POST(request: NextRequest) {
           correct_answers: correctAnswers,
           score: score,
           status: 'completed',
-          completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', attemptId);
@@ -235,8 +234,7 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: correctAnswers,
           score: score,
-          status: 'completed',
-          completed_at: new Date().toISOString()
+          status: 'completed'
         })
         .select()
         .single();
