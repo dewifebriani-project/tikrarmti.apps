@@ -111,11 +111,11 @@ export async function GET(request: NextRequest) {
 
     // For selection mode: check batch open + selection dates (which are aligned with registration dates)
     if (!isFinalExam) {
-      // Check if batch is open
-      if (batch.status !== 'open') {
+      // Check if batch is open or ongoing
+      if (batch.status !== 'open' && batch.status !== 'ongoing') {
         return NextResponse.json({
           error: 'Exam not available',
-          details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
+          details: `Batch "${batch.name}" tidak aktif. Status: ${batch.status}`
         }, { status: 400 });
       }
 

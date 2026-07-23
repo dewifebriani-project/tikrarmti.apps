@@ -62,12 +62,12 @@ export async function POST(request: NextRequest) {
       selectionEnd: batch.selection_end_date
     });
 
-    // Check if batch is open
-    if (batch.status !== 'open') {
-      logger.warn('Batch not open', { batchStatus: batch.status });
+    // Check if batch is open or ongoing
+    if (batch.status !== 'open' && batch.status !== 'ongoing') {
+      logger.warn('Batch not open or ongoing', { batchStatus: batch.status });
       return NextResponse.json({
         error: 'Exam not available',
-        details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
+        details: `Batch "${batch.name}" tidak aktif. Status: ${batch.status}`
       }, { status: 400 });
     }
 
