@@ -197,7 +197,6 @@ export default function KuisAkadPage() {
                       return (
                         <label
                           key={oIdx}
-                          onClick={() => handleSelectOption(q.id, opt.text)}
                           className={cn(
                             "flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
                             isSelected
