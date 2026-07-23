@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true);
 
     if (fetchError) {
-      return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch questions', details: fetchError }, { status: 500 });
     }
 
     let totalScore = 0;
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      return NextResponse.json({ error: 'Failed to save attempt' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to save attempt', details: insertError }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -72,6 +72,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }

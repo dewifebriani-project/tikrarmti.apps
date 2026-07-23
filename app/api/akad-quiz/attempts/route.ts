@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (fetchError) {
-      return NextResponse.json({ error: 'Failed to fetch attempts' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to fetch attempts', details: fetchError }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', details: String(error) }, { status: 500 });
   }
 }

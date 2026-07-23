@@ -20,6 +20,26 @@ export default function KuisAkadPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  // Load autosaved answers on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('akadQuizAutosave');
+    if (saved) {
+      try {
+        setAnswers(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse autosave', e);
+      }
+    }
+  }, []);
+
+  // Autosave when answers change
+  useEffect(() => {
+    if (Object.keys(answers).length > 0) {
+      localStorage.setItem('akadQuizAutosave', JSON.stringify(answers));
+    }
+  }, [answers]);
+
   
   // Results view state
   const [hasPassed, setHasPassed] = useState(false);
@@ -85,6 +105,7 @@ export default function KuisAkadPage() {
       
       if (attempt.passed) {
         setHasPassed(true);
+        localStorage.removeItem('akadQuizAutosave');
         toast.success('Selamat! Anda lulus Kuis Pemahaman Akad!');
       } else {
         setShowResults(true);
