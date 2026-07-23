@@ -198,7 +198,7 @@ export default function KuisAkadPage() {
                         <label
                           key={oIdx}
                           className={cn(
-                            "flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                            "relative flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
                             isSelected
                               ? "border-green-600 bg-green-50/30"
                               : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
