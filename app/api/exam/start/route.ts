@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('registration_id', registration.id)
       .eq('juz_number', juz_number)
-      .eq('status', 'completed');
+      .eq('status', 'submitted');
 
     if (attemptError) {
       logger.error('Error checking existing attempts', { error: attemptError });

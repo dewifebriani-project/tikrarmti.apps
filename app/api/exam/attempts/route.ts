@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .select('score')
         .eq('user_id', user.id)
         .eq('registration_id', registration.id)
-        .eq('status', 'completed');
+        .eq('status', 'submitted');
         
       const hasPassed = attempts?.some(a => (a.score || 0) >= passingScore);
       const maxAttempts = config?.max_attempts || 1;
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: correctAnswers,
           score: score,
-          status: 'completed',
+          status: 'submitted',
           updated_at: new Date().toISOString()
         })
         .eq('id', attemptId);
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: correctAnswers,
           score: score,
-          status: 'completed'
+          status: 'submitted'
         })
         .select()
         .single();
@@ -441,7 +441,7 @@ export async function PUT(request: NextRequest) {
         .select('score')
         .eq('user_id', user.id)
         .eq('registration_id', registration.id)
-        .eq('status', 'completed');
+        .eq('status', 'submitted');
         
       // For PUT (autosave draft), if we already passed or ran out of attempts, block.
       // But if we are taking a retake (so a new draft exists), let it through.
@@ -520,7 +520,7 @@ export async function PUT(request: NextRequest) {
           .update({ exam_attempt_id: null })
           .eq('id', registration.id);
         attemptId = null;
-      } else if (existingAttempt.status === 'completed' || existingAttempt.status === 'graded') {
+      } else if (existingAttempt.status === 'submitted' || existingAttempt.status === 'graded') {
         // Don't overwrite submitted attempts
         return NextResponse.json({
           error: 'Exam already submitted',

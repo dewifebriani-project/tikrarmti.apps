@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Exam attempt not found' }, { status: 404 });
     }
 
-    if (attempt.status === 'completed') {
+    if (attempt.status === 'submitted') {
       return NextResponse.json({
         error: 'Exam already submitted',
         attempt
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         answers: gradedAnswers,
         correct_answers: correctAnswers,
         score,
-        status: 'completed',
+        status: 'submitted',
         submitted_at: new Date().toISOString()
       })
       .eq('id', attemptId)
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('registration_id', attempt.registration_id)
       .eq('juz_number', attempt.juz_number)
-      .eq('status', 'completed');
+      .eq('status', 'submitted');
       
     // The current one will also be submitted now, so total submitted = pastAttempts.length (since the update above already set it to submitted, pastAttempts will include it if we query after, or maybe it won't if the transaction hasn't propagated? Actually, we just updated it above!)
     // Let's just count pastAttempts length. Since we just updated `id: attemptId` to 'submitted', `pastAttempts` will INCLUDE this attempt!
