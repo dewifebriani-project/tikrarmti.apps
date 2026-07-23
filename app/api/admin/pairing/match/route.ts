@@ -311,11 +311,10 @@ export async function GET(request: Request) {
  * Calculate match score between two users
  *
  * Scoring:
- * - Perfect match (zona waktu + juz option sama + waktu utama cocok): 110+
- * - Zona waktu + juz sama (waktu utama beda): 100-109
- * - Zona waktu sama, juz beda: 50
- * - Juz sama, zona waktu beda: 50
- * - Lintas juz, zona waktu beda: 0
+ * - Zona waktu sama: +1000
+ * - Waktu utama cocok: +100
+ * - Juz option sama: +10
+ * - Waktu cadangan cocok: +1
  */
 function calculateMatchScore(user1: any, user2: any): number {
   let score = 0
@@ -326,26 +325,26 @@ function calculateMatchScore(user1: any, user2: any): number {
   const user1Juz = user1.chosen_juz
   const user2Juz = user2.chosen_juz
 
-  // Priority 1: Zona waktu sama (+50 points)
+  // Priority 1: Zona waktu sama (+1000 points)
   if (user1Zona && user2Zona && user1Zona === user2Zona) {
-    score += 50
+    score += 1000
   }
 
-  // Priority 2: Juz option sama (+50 points)
-  if (user1Juz && user2Juz && user1Juz === user2Juz) {
-    score += 50
-  }
-
-  // Priority 3: Waktu utama cocok (+10 points)
+  // Priority 2: Waktu utama cocok (+100 points)
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
+    score += 100
+  }
+
+  // Priority 3: Juz option sama (+10 points)
+  if (user1Juz && user2Juz && user1Juz === user2Juz) {
     score += 10
   }
 
-  // Priority 4: Waktu cadangan cocok (+5 points)
+  // Priority 4: Waktu cadangan cocok (+1 points)
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
       hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
       hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
-    score += 5
+    score += 1
   }
 
   return score

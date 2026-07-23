@@ -20,6 +20,7 @@ export default function KuisAkadPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [wrongQuestionIds, setWrongQuestionIds] = useState<Set<string>>(new Set());
 
   // Load autosaved answers on mount
   useEffect(() => {
@@ -79,6 +80,14 @@ export default function KuisAkadPage() {
 
   const handleSelectOption = (qId: string, text: string) => {
     setAnswers(prev => ({ ...prev, [qId]: text }));
+    // Clear the error state for this question when the user selects a new answer
+    if (wrongQuestionIds.has(qId)) {
+      setWrongQuestionIds(prev => {
+        const next = new Set(prev);
+        next.delete(qId);
+        return next;
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -106,9 +115,16 @@ export default function KuisAkadPage() {
       if (attempt.passed) {
         setHasPassed(true);
         localStorage.removeItem('akadQuizAutosave');
+        setWrongQuestionIds(new Set());
         toast.success('Selamat! Anda lulus Kuis Pemahaman Akad!');
       } else {
         setShowResults(true);
+        // Track which questions were answered incorrectly
+        const wrongIds = new Set<string>();
+        (attempt.answers || []).forEach((ans: any) => {
+          if (!ans.isCorrect) wrongIds.add(ans.questionId);
+        });
+        setWrongQuestionIds(wrongIds);
         toast.error('Nilai Anda belum mencapai 100. Silakan cek bagian yang salah dan ulangi.');
       }
       
@@ -120,7 +136,8 @@ export default function KuisAkadPage() {
   };
 
   const handleRetry = () => {
-    setAnswers({});
+    // Keep ALL answers (so they don't disappear)
+    // The wrongQuestionIds state will highlight the wrong ones in red
     setShowResults(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -215,13 +232,15 @@ export default function KuisAkadPage() {
                   <div className="space-y-3 pl-0 md:pl-12">
                     {q.options.map((opt, oIdx) => {
                       const isSelected = answers[q.id] === opt.text;
+                      const isWrong = isSelected && wrongQuestionIds.has(q.id);
+                      
                       return (
                         <label
                           key={oIdx}
                           className={cn(
                             "relative flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
                             isSelected
-                              ? "border-green-600 bg-green-50/30"
+                              ? (isWrong ? "border-red-600 bg-red-50/30" : "border-green-600 bg-green-50/30")
                               : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
                           )}
                         >
@@ -234,13 +253,17 @@ export default function KuisAkadPage() {
                           />
                           <div className={cn(
                             "w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center flex-shrink-0 transition-colors",
-                            isSelected ? "border-green-600" : "border-gray-300"
+                            isSelected 
+                              ? (isWrong ? "border-red-600" : "border-green-600") 
+                              : "border-gray-300"
                           )}>
-                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+                            {isSelected && <div className={cn("w-2.5 h-2.5 rounded-full", isWrong ? "bg-red-600" : "bg-green-600")} />}
                           </div>
                           <span className={cn(
                             "text-sm md:text-base leading-snug",
-                            isSelected ? "font-bold text-green-900" : "font-medium text-gray-700"
+                            isSelected 
+                              ? (isWrong ? "font-bold text-red-900" : "font-bold text-green-900") 
+                              : "font-medium text-gray-700"
                           )}>
                             {opt.text}
                           </span>
@@ -326,15 +349,7 @@ export default function KuisAkadPage() {
                       </div>
                     </div>
                     
-                    {!ans.isCorrect && (
-                      <div className="bg-green-50 border border-green-200 p-3.5 rounded-xl flex gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <div className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Kunci Jawaban</div>
-                          <div className="font-bold text-green-900">{ans.correctAnswer}</div>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 </div>
               ))}

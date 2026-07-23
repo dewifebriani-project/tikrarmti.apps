@@ -2167,7 +2167,12 @@ function AkadUploadStep({
         ))}
       </div>
 
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors">
+      <label
+        htmlFor="akad-upload"
+        className={`relative border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
+      >
         <Upload className="w-8 h-8 text-gray-400 mb-2" />
         <p className="text-sm text-gray-600 mb-1">Klik untuk upload file yang sudah ditandatangani</p>
         <p className="text-xs text-gray-500 mb-4">Format: JPG, PNG, atau PDF (Max 5MB)</p>
@@ -2177,19 +2182,18 @@ function AkadUploadStep({
           accept="image/*,.pdf"
           onChange={onUpload}
           disabled={isLoading}
-          className="hidden"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           id="akad-upload"
           multiple
         />
-        <label
-          htmlFor="akad-upload"
+        <div
           className={`px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer ${
             isLoading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
           {isLoading ? 'Mengupload...' : 'Pilih File'}
-        </label>
-      </div>
+        </div>
+      </label>
     </div>
   )
 }

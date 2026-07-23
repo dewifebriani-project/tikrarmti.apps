@@ -128,6 +128,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('user_id', user.id)
+      .eq('batch_id', registration.batch_id)
       .maybeSingle()
 
     // Debug log to check existing submission data from DB

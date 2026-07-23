@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient();
+    const supabaseAdmin = createSupabaseAdmin();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -14,7 +16,7 @@ export async function POST(request: NextRequest) {
     const userAnswers = body.answers || {}; // { question_id: "selected text" }
 
     // Fetch all active questions
-    const { data: questions, error: fetchError } = await supabase
+    const { data: questions, error: fetchError } = await supabaseAdmin
       .from('akad_quiz_questions')
       .select('*')
       .eq('is_active', true);
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     const passed = percentage === 100;
 
     // Save attempt
-    const { data: attempt, error: insertError } = await supabase
+    const { data: attempt, error: insertError } = await supabaseAdmin
       .from('akad_quiz_attempts')
       .insert({
         user_id: user.id,
