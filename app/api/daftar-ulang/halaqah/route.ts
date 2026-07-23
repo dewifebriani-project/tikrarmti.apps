@@ -18,13 +18,21 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       )
     }
+    const url = new URL(request.url)
+    const batchId = url.searchParams.get('batchId')
 
     // Get user's registration to find batch_id and calculate final juz
-    const { data: registration, error: regError } = await supabase
+    let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status')
       .eq('user_id', user.id)
       .in('selection_status', ['selected', 'waitlist'])
+
+    if (batchId) {
+      query = query.eq('batch_id', batchId)
+    }
+
+    const { data: registration, error: regError } = await query
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()

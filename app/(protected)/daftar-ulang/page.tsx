@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -59,7 +59,8 @@ export default function DaftarUlangPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
   const params = useParams()
-  const batchId = params.batch_id as string
+  const searchParams = useSearchParams()
+  const urlBatchId = (params.batch_id as string) || searchParams.get('batchId')
 
   const [currentStep, setCurrentStep] = useState<Step>('confirm')
   const [isLoading, setIsLoading] = useState(false)
@@ -144,7 +145,13 @@ export default function DaftarUlangPage() {
 
         // Get registrations for thalibah
         const selectedRegistration = regData.data?.find(
-          (r: any) => ['selected', 'waitlist'].includes(r.selection_status) && r.role === 'thalibah'
+          (r: any) => {
+            const isSelected = ['selected', 'waitlist'].includes(r.selection_status) && r.role === 'thalibah'
+            if (urlBatchId) {
+              return isSelected && r.batch_id === urlBatchId
+            }
+            return isSelected
+          }
         )
 
         if (!selectedRegistration) {
@@ -239,7 +246,11 @@ export default function DaftarUlangPage() {
         }))
 
         // Fetch halaqah data
-        const halaqahResponse = await fetch('/api/daftar-ulang/halaqah')
+        const halaqahUrl = new URL('/api/daftar-ulang/halaqah', window.location.origin)
+        if (urlBatchId) {
+          halaqahUrl.searchParams.set('batchId', urlBatchId)
+        }
+        const halaqahResponse = await fetch(halaqahUrl.toString())
         if (!halaqahResponse.ok) {
           const errorData = await halaqahResponse.json()
           if (halaqahResponse.status === 403) {
