@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
         .select('id, status')
         .eq('user_id', user.id)
         .eq('registration_id', registration.id)
-        .eq('status', 'submitted');
+        .eq('status', 'completed');
 
       const submittedCount = existingAttempts?.length || 0;
 

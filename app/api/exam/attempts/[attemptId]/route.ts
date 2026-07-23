@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: 'Exam attempt not found' }, { status: 404 });
     }
 
-    if (attempt.status !== 'submitted') {
+    if (attempt.status !== 'completed') {
       return NextResponse.json({ error: 'Exam not yet submitted' }, { status: 400 });
     }
 

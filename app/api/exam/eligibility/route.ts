@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('registration_id', registration.id)
       .eq('juz_number', requiredJuz)
-      .eq('status', 'submitted');
+      .eq('status', 'completed');
 
     // Check if akad is uploaded (from daftar_ulang_submissions)
     const { data: daftarUlang } = await supabaseAdmin

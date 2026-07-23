@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .select('score')
         .eq('user_id', user.id)
         .eq('registration_id', registration.id)
-        .eq('status', 'submitted');
+        .eq('status', 'completed');
         
       const hasPassed = attempts?.some(a => (a.score || 0) >= passingScore);
       const maxAttempts = config?.max_attempts || 1;
@@ -441,7 +441,7 @@ export async function PUT(request: NextRequest) {
         .select('score')
         .eq('user_id', user.id)
         .eq('registration_id', registration.id)
-        .eq('status', 'submitted');
+        .eq('status', 'completed');
         
       // For PUT (autosave draft), if we already passed or ran out of attempts, block.
       // But if we are taking a retake (so a new draft exists), let it through.

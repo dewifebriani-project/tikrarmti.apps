@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const { data: attempts, error: attemptsError } = await supabaseAdmin
       .from('exam_attempts')
       .select('id, answers, submitted_at')
-      .eq('status', 'submitted');
+      .eq('status', 'completed');
 
     if (attemptsError) {
       logger.error('Error fetching attempts for analytics', { error: attemptsError });
