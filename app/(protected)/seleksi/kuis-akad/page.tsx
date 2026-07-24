@@ -27,7 +27,10 @@ export default function KuisAkadPage() {
     const saved = localStorage.getItem('akadQuizAutosave');
     if (saved) {
       try {
-        setAnswers(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          setAnswers(parsed);
+        }
       } catch (e) {
         console.error('Failed to parse autosave', e);
       }
@@ -36,7 +39,7 @@ export default function KuisAkadPage() {
 
   // Autosave when answers change
   useEffect(() => {
-    if (Object.keys(answers).length > 0) {
+    if (answers && Object.keys(answers).length > 0) {
       localStorage.setItem('akadQuizAutosave', JSON.stringify(answers));
     }
   }, [answers]);
@@ -91,7 +94,7 @@ export default function KuisAkadPage() {
   };
 
   const handleSubmit = async () => {
-    const answeredCount = Object.keys(answers).length;
+    const answeredCount = answers ? Object.keys(answers).length : 0;
     if (answeredCount < questions.length) {
       toast.error(`Harap jawab semua soal! (${answeredCount}/${questions.length} terjawab)`);
       return;
@@ -230,8 +233,8 @@ export default function KuisAkadPage() {
                   </div>
                   
                   <div className="space-y-3 pl-0 md:pl-12">
-                    {q.options.map((opt, oIdx) => {
-                      const isSelected = answers[q.id] === opt.text;
+                    {q.options?.map((opt, oIdx) => {
+                      const isSelected = answers && answers[q.id] === opt.text;
                       const isWrong = isSelected && wrongQuestionIds.has(q.id);
                       
                       return (
@@ -277,7 +280,7 @@ export default function KuisAkadPage() {
 
             <div className="mt-8 bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-sm font-medium text-gray-500 text-center md:text-left">
-                <span className="font-bold text-gray-900">{Object.keys(answers).length}</span> dari {questions.length} terjawab
+                <span className="font-bold text-gray-900">{answers ? Object.keys(answers).length : 0}</span> dari {questions.length} terjawab
               </div>
               <button
                 onClick={handleSubmit}
