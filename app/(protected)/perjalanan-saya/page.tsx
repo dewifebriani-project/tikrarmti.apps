@@ -473,11 +473,11 @@ export default function PerjalananSaya() {
           { 
             name: 'Test Tertulis', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: isAlumnus || isPraTikrar || (hasFormPendaftaran && hasWritten), 
-            data: (isAlumnus || isPraTikrar) ? `Tidak wajib (${isPraTikrar ? 'Pra-Tikrar' : 'Alumni'}) ✓` : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
+            done: isAlumnus || isPraTikrar || isJuz30 || (hasFormPendaftaran && hasWritten), 
+            data: (isAlumnus || isPraTikrar || isJuz30) ? `Tidak wajib (${isPraTikrar ? 'Pra-Tikrar' : (isJuz30 ? 'Juz 30' : 'Alumni')}) ✓` : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran || !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
-            isTestAction: hasFormPendaftaran && !isAlumnus && !isPraTikrar && !hasWritten && isSelectionDone && isSelectionPassed,
+            isTestAction: hasFormPendaftaran && !isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten && isSelectionDone && isSelectionPassed,
             isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || hasAkad,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
@@ -486,9 +486,9 @@ export default function PerjalananSaya() {
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: hasPassedAkadQuiz,
             data: hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100',
-            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || (!isAlumnus && !isPraTikrar && !(hasFormPendaftaran && hasWritten)),
+            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
             isTestAction: !hasPassedAkadQuiz && isSelectionDone && (isSelectionPassed || isPraTikrar),
-            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !isPraTikrar && !(hasFormPendaftaran && hasWritten)),
+            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: isPraTikrar ? `/seleksi/kuis-akad?batchId=${batchId}&type=pra-tikrar` : `/seleksi/kuis-akad?batchId=${batchId}`
           },
           { 
