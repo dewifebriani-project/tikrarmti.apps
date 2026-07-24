@@ -561,6 +561,23 @@ export default function PilihanGandaPage() {
               </Alert>
 
               <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Persiapan Sebelum Ujian:</h3>
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  <AlertDescription className="text-amber-900">
+                    <p className="mb-2"><strong>Wajib Murajaah:</strong> Pastikan Ukhti sudah melakukan <em>murajaah</em> (mengulang hafalan) dengan matang untuk juz yang diujikan. Jika belum yakin, silakan murajaah terlebih dahulu sebelum menekan tombol mulai.</p>
+                    <p className="font-semibold mt-3">Kisi-kisi Ujian (Kategori Soal):</p>
+                    <ul className="list-disc list-inside mt-1 space-y-1 text-sm text-amber-800">
+                      <li><strong>Sambung Ayat:</strong> Melanjutkan ayat, menebak ayat sebelumnya, atau melanjutkan ke ayat setelahnya.</li>
+                      <li><strong>Tebak Nama Surat:</strong> Menentukan nama surat dari potongan ayat yang diberikan.</li>
+                      <li><strong>Tebak Awal/Akhir Halaman:</strong> Mengidentifikasi ayat yang berada di awal atau akhir sebuah halaman mushaf.</li>
+                      <li><strong>Tajwid dasar:</strong> (Jika ada) pemahaman tajwid pada ayat-ayat tertentu.</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Petunjuk Pengerjaan:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-700">
                   <li>Bacalah <strong>basmalah</strong> dan <strong>doa</strong> sebelum memulai ujian</li>
