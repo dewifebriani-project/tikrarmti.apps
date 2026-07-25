@@ -732,6 +732,7 @@ function DaftarUlangContent() {
                 isLoading={isLoading}
                 existingSubmission={existingSubmission}
                 reregQuestions={reregQuestions}
+                batchId={urlBatchId || registrationData?.batch_id}
               />
             )}
 
@@ -2009,7 +2010,8 @@ function AkadUploadStep({
   onRemove,
   isLoading,
   existingSubmission,
-  reregQuestions
+  reregQuestions,
+  batchId
 }: {
   formData: any
   halaqahData: any[]
@@ -2019,6 +2021,7 @@ function AkadUploadStep({
   isLoading: boolean
   existingSubmission?: any
   reregQuestions: any[]
+  batchId?: string | null
 }) {
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
@@ -2030,7 +2033,9 @@ function AkadUploadStep({
         setIsLoadingAkad(true)
         setAkadError(null)
 
-        const response = await fetch('/api/daftar-ulang/akad-intisari')
+        const akadUrl = new URL('/api/daftar-ulang/akad-intisari', window.location.origin)
+        if (batchId) akadUrl.searchParams.set('batchId', batchId)
+        const response = await fetch(akadUrl.toString())
         const data = await response.json()
 
         if (!response.ok) {

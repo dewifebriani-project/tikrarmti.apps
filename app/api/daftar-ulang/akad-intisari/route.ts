@@ -21,16 +21,25 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
+    // Read optional batchId from query param
+    const { searchParams } = new URL(request.url)
+    const batchId = searchParams.get('batchId')
+
     // Get user's registration data
     const supabaseAdmin = createSupabaseAdmin()
-    const { data: registration, error: registrationError } = await supabaseAdmin
+    let regQuery = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*, users(tanggal_lahir), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
       .eq('user_id', user.id)
-      .eq('selection_status', 'selected')
+      .in('selection_status', ['selected', 'waitlist'])
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+
+    if (batchId) {
+      regQuery = regQuery.eq('batch_id', batchId)
+    }
+
+    const { data: registration, error: registrationError } = await regQuery.maybeSingle()
 
     if (registrationError || !registration) {
       return NextResponse.json({
