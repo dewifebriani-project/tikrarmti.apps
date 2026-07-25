@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,6 +56,14 @@ interface HalaqahData {
 }
 
 export default function DaftarUlangPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Memuat Formulir...</div>}>
+      <DaftarUlangContent />
+    </Suspense>
+  )
+}
+
+function DaftarUlangContent() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
   const params = useParams()
