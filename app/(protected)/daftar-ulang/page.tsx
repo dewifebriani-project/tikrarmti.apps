@@ -2050,8 +2050,13 @@ function AkadUploadStep({
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
   const [akadError, setAkadError] = useState<string | null>(null)
+  const hasFetched = useRef(false)
 
   useEffect(() => {
+    // Guard: only fetch once, even if component remounts
+    if (hasFetched.current) return
+    hasFetched.current = true
+
     async function fetchAkadIntisari() {
       try {
         setIsLoadingAkad(true)

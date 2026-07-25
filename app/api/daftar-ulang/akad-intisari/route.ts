@@ -61,10 +61,10 @@ export async function GET(request: NextRequest) {
       registrationError = fallback.error
     }
 
+    // If still not found, use empty object so akad always renders (with placeholders)
     if (registrationError || !registration) {
-      return NextResponse.json({
-        error: 'No registration found. Please complete selection process first.'
-      }, { status: 404 })
+      console.warn('[AkadIntisari] No registration found for user, building generic akad template')
+      registration = {} // Will use default placeholders in buildAkadIntisari
     }
 
 
