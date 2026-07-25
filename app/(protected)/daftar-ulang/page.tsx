@@ -10,7 +10,7 @@ import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, Che
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
-type Step = 'confirm' | 'pengabdian' | 'review' | 'akad' | 'halaqah' | 'partner' | 'success'
+type Step = 'confirm' | 'pengabdian' | 'akad' | 'halaqah' | 'partner' | 'success'
 
 // Helper function to format time slot value
 const formatTimeSlot = (timeSlot: string): string => {
@@ -426,8 +426,6 @@ function DaftarUlangContent() {
         }
       }
 
-      setCurrentStep('review')
-    } else if (currentStep === 'review') {
       setCurrentStep('akad')
     } else if (currentStep === 'akad') {
       handleSubmit()
@@ -451,7 +449,7 @@ function DaftarUlangContent() {
   }
 
   const handleBack = () => {
-    const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad', 'halaqah', 'partner', 'success']
+    const steps: Step[] = ['confirm', 'pengabdian', 'akad', 'halaqah', 'partner', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
       if (currentStep === 'success' && isPraTikrar) {
@@ -711,14 +709,6 @@ function DaftarUlangContent() {
                 formData={formData}
                 onChange={setFormData}
                 reregQuestions={reregQuestions}
-              />
-            )}
-
-            {currentStep === 'review' && (
-              <ReviewStep
-                formData={formData}
-                halaqahData={halaqahData}
-                registrationData={registrationData}
               />
             )}
 
