@@ -660,10 +660,9 @@ function DaftarUlangContent() {
             {[
               { key: 'confirm', label: 'Konfirmasi Data' },
               { key: 'pengabdian', label: 'Pengabdian' },
-              { key: 'review', label: 'Review' },
               { key: 'akad', label: 'Upload Akad' },
-            ].map((step, index) => {
-              const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad']
+            ].map((step, index, arr) => {
+              const steps: Step[] = ['confirm', 'pengabdian', 'akad']
               const currentIndex = steps.indexOf(currentStep)
               const stepIndex = steps.indexOf(step.key as Step)
               const isCompleted = stepIndex < currentIndex
@@ -684,7 +683,7 @@ function DaftarUlangContent() {
                       {step.label}
                     </span>
                   </div>
-                  {index < 3 && (
+                  {index < arr.length - 1 && (
                     <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-600' : 'bg-gray-200'}`} />
                   )}
                 </React.Fragment>
