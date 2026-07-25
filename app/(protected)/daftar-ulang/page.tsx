@@ -1372,16 +1372,15 @@ function PengabdianStep({
 }) {
   const pengabdianQuestion = reregQuestions.find(q => q.field_key === 'pengabdian_choice')
   const donasiQuestion = reregQuestions.find(q => q.field_key === 'donasi_amount')
+  const pengabdianTypeQuestion = reregQuestions.find(q => q.field_key === 'pengabdian_type')
 
   // Normalize options: DB may store as string[], [{label,value}], or raw JSON string
   const normalizeOptions = (opts: any): string[] => {
-    // If it's a raw JSON string, parse it first
     if (typeof opts === 'string') {
       try {
         const parsed = JSON.parse(opts)
         return normalizeOptions(parsed)
       } catch {
-        // Plain string, not JSON – return as a single-item array only if it looks useful
         return []
       }
     }
@@ -1396,12 +1395,31 @@ function PengabdianStep({
   const pengabdianOptions = normalizeOptions(pengabdianQuestion?.options).length > 0
     ? normalizeOptions(pengabdianQuestion?.options)
     : ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
+
   const donasiOptions = normalizeOptions(donasiQuestion?.options).length > 0
     ? normalizeOptions(donasiQuestion?.options)
     : ['Rp 25.000', 'Rp 50.000', 'Rp 75.000', 'Rp 100.000', 'Lainnya']
 
-  const isDonatur = formData.pengabdian_choice === 'Donatur'
-  
+  // Detect if DB is using a simple yes/no format for pengabdian_choice
+  const isYesNoFormat = pengabdianOptions.some(o =>
+    o.toLowerCase().includes('bersedia') || o.toLowerCase().includes('tidak, qadar')
+  )
+
+  // Role options shown when user answers "yes"
+  const roleOptions = normalizeOptions(pengabdianTypeQuestion?.options).length > 0
+    ? normalizeOptions(pengabdianTypeQuestion?.options)
+    : ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
+
+  // Is user willing to serve?
+  const isWilling = isYesNoFormat
+    ? formData.pengabdian_choice?.toLowerCase().includes('bersedia')
+    : true // non-yes/no mode: always show role selection
+
+  // Detect if "Donatur" role selected (handles both modes)
+  const isDonatur = isYesNoFormat
+    ? (formData.pengabdian_type === 'Donatur' || formData.pengabdian_type?.toLowerCase().includes('donatur') || formData.pengabdian_type?.toLowerCase().includes('donasi'))
+    : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
+
   // Clean format helper
   const cleanNumber = (val: string) => val.replace(/\D/g, '')
   const formatRupiah = (val: string) => {
@@ -1412,9 +1430,9 @@ function PengabdianStep({
   // Handle custom donasi logic
   const handleDonasiSelection = (opt: string) => {
     if (opt === 'Lainnya') {
-      onChange({ ...formData, donasi_amount: '' }) // Clear so user can type
+      onChange({ ...formData, donasi_amount: '' })
     } else {
-      onChange({ ...formData, donasi_amount: cleanNumber(opt) }) // Save raw number
+      onChange({ ...formData, donasi_amount: cleanNumber(opt) })
     }
   }
 
@@ -1429,12 +1447,15 @@ function PengabdianStep({
         </p>
       </div>
 
+      {/* Step 1: Yes/No question (or direct role selection in old format) */}
       <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700">Pilih Bentuk Pengabdian</label>
+        <label className="block text-sm font-medium text-gray-700">
+          {isYesNoFormat ? (pengabdianQuestion?.label || 'Pilih jawaban Anda') : 'Pilih Bentuk Pengabdian'}
+        </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {pengabdianOptions.map((opt: string) => (
-            <label 
-              key={opt} 
+            <label
+              key={opt}
               className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${formData.pengabdian_choice === opt ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
             >
               <input
@@ -1443,7 +1464,7 @@ function PengabdianStep({
                 value={opt}
                 checked={formData.pengabdian_choice === opt}
                 onChange={(e) => {
-                  onChange({ ...formData, pengabdian_choice: e.target.value, donasi_amount: '' })
+                  onChange({ ...formData, pengabdian_choice: e.target.value, pengabdian_type: '', donasi_amount: '' })
                 }}
                 className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
               />
@@ -1453,6 +1474,41 @@ function PengabdianStep({
         </div>
       </div>
 
+      {/* Step 2: Role sub-question (shown only when yes/no format and user said yes) */}
+      {isYesNoFormat && isWilling && (
+        <div className="mt-6 pt-6 border-t border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {pengabdianTypeQuestion?.label || 'Pilih Bentuk Pengabdian'}
+            </label>
+            {pengabdianTypeQuestion?.description && (
+              <p className="text-sm text-gray-500 mb-3">{pengabdianTypeQuestion.description}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {roleOptions.map((opt: string) => (
+              <label
+                key={opt}
+                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${formData.pengabdian_type === opt ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+              >
+                <input
+                  type="radio"
+                  name="pengabdian_type"
+                  value={opt}
+                  checked={formData.pengabdian_type === opt}
+                  onChange={(e) => {
+                    onChange({ ...formData, pengabdian_type: e.target.value, donasi_amount: '' })
+                  }}
+                  className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="ml-3 font-medium text-gray-900">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Donasi amount (shown when Donatur is selected) */}
       {isDonatur && (
         <div className="mt-8 pt-6 border-t border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-4">
           <div>
@@ -1463,7 +1519,7 @@ function PengabdianStep({
               {donasiQuestion?.description || "Silakan pilih nominal komitmen infaq per bulan/batch."}
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-3 mb-4">
             {donasiOptions.filter((opt: string) => opt !== 'Lainnya').map((opt: string) => {
               const numVal = cleanNumber(opt)
