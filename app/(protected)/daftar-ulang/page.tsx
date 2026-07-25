@@ -1373,8 +1373,32 @@ function PengabdianStep({
   const pengabdianQuestion = reregQuestions.find(q => q.field_key === 'pengabdian_choice')
   const donasiQuestion = reregQuestions.find(q => q.field_key === 'donasi_amount')
 
-  const pengabdianOptions = pengabdianQuestion?.options || ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
-  const donasiOptions = donasiQuestion?.options || ['Rp 25.000', 'Rp 50.000', 'Rp 75.000', 'Rp 100.000', 'Lainnya']
+  // Normalize options: DB may store as string[], [{label,value}], or raw JSON string
+  const normalizeOptions = (opts: any): string[] => {
+    // If it's a raw JSON string, parse it first
+    if (typeof opts === 'string') {
+      try {
+        const parsed = JSON.parse(opts)
+        return normalizeOptions(parsed)
+      } catch {
+        // Plain string, not JSON – return as a single-item array only if it looks useful
+        return []
+      }
+    }
+    if (!Array.isArray(opts)) return []
+    return opts.map((o: any) => {
+      if (typeof o === 'string') return o
+      if (typeof o === 'object' && o !== null) return String(o.label ?? o.value ?? o.text ?? '')
+      return String(o)
+    }).filter(Boolean)
+  }
+
+  const pengabdianOptions = normalizeOptions(pengabdianQuestion?.options).length > 0
+    ? normalizeOptions(pengabdianQuestion?.options)
+    : ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
+  const donasiOptions = normalizeOptions(donasiQuestion?.options).length > 0
+    ? normalizeOptions(donasiQuestion?.options)
+    : ['Rp 25.000', 'Rp 50.000', 'Rp 75.000', 'Rp 100.000', 'Lainnya']
 
   const isDonatur = formData.pengabdian_choice === 'Donatur'
   
