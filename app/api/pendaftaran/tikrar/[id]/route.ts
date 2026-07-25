@@ -224,8 +224,6 @@ export async function PUT(
       if (body.address !== undefined) updateData.address = body.address;
       if (body.birth_date !== undefined) updateData.birth_date = body.birth_date;
       if (body.age !== undefined) updateData.age = body.age;
-      if (body.activity_type !== undefined) updateData.activity_type = body.activity_type;
-      if (body.activity_description !== undefined) updateData.activity_description = body.activity_description;
       if (body.infaq_amount !== undefined) updateData.infaq_amount = body.infaq_amount;
       if (body.timezone !== undefined) updateData.timezone = body.timezone;
       

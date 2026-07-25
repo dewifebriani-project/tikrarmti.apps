@@ -370,8 +370,6 @@ export function TikrarTab({ user }: { user: any }) {
           { name: 'address', label: 'Alamat Lengkap', type: 'textarea' },
           { name: 'birth_date', label: 'Tanggal Lahir', type: 'date' },
           { name: 'age', label: 'Usia', type: 'number' },
-          { name: 'activity_type', label: 'Aktivitas Saat Ini', type: 'text' },
-          { name: 'activity_description', label: 'Deskripsi Aktivitas', type: 'text' },
           { name: 'infaq_amount', label: 'Komitmen Infaq', type: 'text' },
           { name: 'timezone', label: 'Zona Waktu', type: 'text' },
           { name: 'main_time_slot', label: 'Waktu Setoran Utama', type: 'text' },

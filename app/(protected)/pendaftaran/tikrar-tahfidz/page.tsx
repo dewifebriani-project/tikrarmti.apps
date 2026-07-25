@@ -267,6 +267,9 @@ export default function ThalibahBatch2Page() {
   const [currentSection, setCurrentSection] = useState(0) // Start at section 0 for data diri confirmation
   const [isEditMode, setIsEditMode] = useState(editModeParam)
   const [existingRegistrationId, setExistingRegistrationId] = useState<string | null>(null)
+  // Guards against re-prefilling (and clobbering in-progress edits) if `tikrarRegistration`
+  // reference changes later (e.g. SWR revalidation after mutateRegistrations()).
+  const hasPrefilledRef = React.useRef(false)
 
   // Check if user is already registered for Tikrah Tahfidz program
   const tikrarRegistration = useMemo(() => {
@@ -287,9 +290,16 @@ export default function ThalibahBatch2Page() {
       userProfile?.pekerjaan && userProfile?.alasan_daftar && userProfile?.jenis_kelamin && userProfile?.negara
   }, [userProfile])
 
-  // Load existing registration data or draft from localStorage on mount
+  // Load existing registration data or draft from localStorage on mount.
+  // NOTE: previously gated on `!isEditMode`, which meant this never ran when the user
+  // arrived via the "Edit" link (which sets ?edit=true, so isEditMode starts as true) —
+  // the form rendered empty and, since existingRegistrationId stayed null, submitting
+  // would INSERT a brand new registration instead of UPDATE-ing the existing one.
+  // Fixed by prefilling whenever a registration exists, guarded by a ref so it only
+  // runs once and doesn't clobber in-progress edits on later SWR revalidations.
   useEffect(() => {
-    if (tikrarRegistration && !isEditMode) {
+    if (tikrarRegistration && !hasPrefilledRef.current) {
+      hasPrefilledRef.current = true
       // User has existing registration, populate form for editing
       setExistingRegistrationId(tikrarRegistration.id)
       setIsEditMode(true)
@@ -316,7 +326,7 @@ export default function ThalibahBatch2Page() {
         understands_program: registrationData.understands_program || false,
         questions: registrationData.questions || ''
       })
-    } else if (typeof window !== 'undefined' && !tikrarRegistration) {
+    } else if (typeof window !== 'undefined' && !tikrarRegistration && !hasPrefilledRef.current) {
       try {
         const savedDraft = localStorage.getItem(STORAGE_KEY)
         if (savedDraft) {
@@ -336,7 +346,7 @@ export default function ThalibahBatch2Page() {
         console.error('Error loading draft:', error)
       }
     }
-  }, [tikrarRegistration, user?.id, isEditMode])
+  }, [tikrarRegistration, user?.id])
 
   // Fetch user profile data from users table
   useEffect(() => {

@@ -119,6 +119,47 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
     let result
 
     if (isEditMode && existingRegistrationId) {
+      // Check whether the chosen juz actually changed to a different juz NUMBER.
+      // Codes are formatted as "{juz_number}{A|B}" (e.g. "5A", "5B", "30A") — switching
+      // between the A/B part of the SAME juz doesn't affect written-exam placement
+      // (questions are pulled by juz number), but switching to a different juz number
+      // does, so any previous "Test Tertulis" result is stale and must be invalidated.
+      const { data: existingReg } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('chosen_juz')
+        .eq('id', existingRegistrationId)
+        .eq('user_id', authUser.id)
+        .single()
+
+      const getJuzNumber = (juz: string | null | undefined) => {
+        const num = parseInt((juz || '').replace(/[^0-9]/g, ''), 10)
+        return Number.isNaN(num) ? null : num
+      }
+
+      const oldJuzNumber = getJuzNumber(existingReg?.chosen_juz)
+      const newJuzNumber = getJuzNumber(formData.chosen_juz)
+      const juzChanged = oldJuzNumber !== null && newJuzNumber !== null && oldJuzNumber !== newJuzNumber
+
+      if (juzChanged) {
+        Object.assign(submitData, {
+          // Reset "Test Tertulis" (juz placement exam) so it re-unlocks for the new juz
+          exam_score: null,
+          exam_status: 'not_started',
+          exam_submitted_at: null,
+          exam_juz_number: null,
+          exam_attempt_id: null,
+          // Legacy written-quiz fields kept in sync for the same reason
+          written_quiz_score: null,
+          written_quiz_answers: null,
+          written_quiz_total_questions: null,
+          written_quiz_correct_answers: null,
+          written_submitted_at: null,
+          written_quiz_submitted_at: null,
+          // Prior placement result (from demotion logic) no longer applies
+          final_juz: null,
+        })
+      }
+
       // Update existing registration
       result = await supabase
         .from('pendaftaran_tikrar_tahfidz')
@@ -137,7 +178,9 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
 
       return {
         success: true,
-        message: 'Alhamdulillah! Data pendaftaran berhasil diperbarui!',
+        message: juzChanged
+          ? 'Alhamdulillah! Data pendaftaran berhasil diperbarui! Karena pilihan juz berubah, Ukhti perlu mengulang Test Tertulis untuk penempatan juz yang baru.'
+          : 'Alhamdulillah! Data pendaftaran berhasil diperbarui!',
         status: 'success_update'
       }
     } else {
