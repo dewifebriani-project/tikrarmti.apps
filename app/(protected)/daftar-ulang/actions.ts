@@ -79,7 +79,7 @@ export async function saveDaftarUlangDraft(
       confirmed_backup_time_slot: data.confirmed_backup_time_slot,
       confirmed_wa_phone: data.confirmed_wa_phone || null,
       confirmed_address: data.confirmed_address || null,
-      partner_type: data.partner_type,
+      partner_type: data.partner_type || null,
       partner_user_id: data.partner_user_id || null,
       partner_name: data.partner_name || null,
       partner_relationship: data.partner_relationship || null,
@@ -256,8 +256,10 @@ export async function submitDaftarUlang(
       confirmed_wa_phone: data.confirmed_wa_phone || registration.wa_phone,
       confirmed_address: data.confirmed_address || registration.address,
 
-      // Partner selection - Convert empty strings to null for UUID fields
-      partner_type: data.partner_type,
+      // Partner selection - Convert empty strings to null (partner_type is only
+      // known once the user reaches the 'partner' step; NOT NULL was dropped in
+      // migration 20260725_allow_null_partner_type.sql to support this)
+      partner_type: data.partner_type || null,
       partner_user_id: data.partner_user_id || null,
       partner_name: data.partner_name || null,
       partner_relationship: data.partner_relationship || null,
