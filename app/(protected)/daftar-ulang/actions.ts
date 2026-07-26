@@ -96,11 +96,22 @@ export async function saveDaftarUlangDraft(
       akad_files: data.akad_files || null,
     }
 
+    // Use the admin client for the actual write + read-back. Doing the
+    // .select().single() immediately after an insert/update through the
+    // user-session (RLS-bound) client is what was causing
+    // "Cannot coerce the result to a single JSON object": if the RLS SELECT
+    // policy doesn't line up perfectly with the row just written (e.g. right
+    // after a status change), PostgREST returns 0 rows for the read-back and
+    // .single() throws. Ownership/ eligibility were already verified above
+    // using the user-session client, so it's safe to do the write itself
+    // with the admin client.
+    const supabaseAdmin = createSupabaseAdmin()
+
     let result
 
     if (existing) {
       // Update existing draft
-      result = await supabase
+      result = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .update({
           ...cleanedData,
@@ -111,7 +122,7 @@ export async function saveDaftarUlangDraft(
         .single()
     } else {
       // Create new draft
-      result = await supabase
+      result = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .insert({
           user_id: authUser.id,
@@ -217,6 +228,15 @@ export async function submitDaftarUlang(
   // 5. Use final juz placement directly from registration (without recalculation)
   const finalJuz = (registration.chosen_juz || '').toUpperCase()
 
+  // Use the admin client for the actual write + read-back below. Doing
+  // .select().single() right after insert/update through the user-session
+  // (RLS-bound) client can return "Cannot coerce the result to a single JSON
+  // object" if the RLS SELECT policy doesn't line up with the row just
+  // written (e.g. right after status changes to 'approved'). Ownership and
+  // eligibility were already verified above using the user-session client,
+  // so it's safe to perform the write itself with the admin client.
+  const supabaseAdmin = createSupabaseAdmin()
+
   try {
     // Debug log to see what data is being received
     console.log('[submitDaftarUlang] Received data:', {
@@ -289,7 +309,7 @@ export async function submitDaftarUlang(
 
     if (existing && (existing.status === 'draft' || existing.status === 'approved')) {
       // Update existing draft or approved to save new halaqah/partner selections
-      result = await supabase
+      result = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .update(submissionData)
         .eq('id', existing.id)
@@ -297,7 +317,7 @@ export async function submitDaftarUlang(
         .single()
     } else if (!existing) {
       // Create new submission
-      result = await supabase
+      result = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .insert(submissionData)
         .select()
@@ -349,7 +369,6 @@ export async function submitDaftarUlang(
     }
 
     // Assign thalibah role automatically using Admin Client
-    const supabaseAdmin = createSupabaseAdmin()
     const { data: userData, error: userDataError } = await supabaseAdmin
       .from('users')
       .select('roles')

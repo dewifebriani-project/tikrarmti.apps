@@ -334,7 +334,10 @@ export default function PerjalananSaya() {
     const isPraTikrar = registrationStatus?.selectionStatus === 'waitlist';
     // Lulus jika nilai oral assessment >= 80 atau jika status seleksi sudah 'selected' (misal: alumni yang diluluskan otomatis)
     const isSelectionPassed = (registrationStatus?.oralScore != null && registrationStatus.oralScore >= 80) || registrationStatus?.selectionStatus === 'selected';
-    const isEnrollmentDone = registrationStatus?.registration?.re_enrollment_completed === true;
+    // Pra-Tikrar tidak melalui Daftar Ulang/Akad sama sekali (langsung Jurnal Harian &
+    // Tashih begitu periode mulai), jadi "enrollment" mereka dianggap selesai begitu
+    // masuk status Pra-Tikrar, tanpa menunggu re_enrollment_completed dari form Daftar Ulang.
+    const isEnrollmentDone = isPraTikrar || registrationStatus?.registration?.re_enrollment_completed === true;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -484,32 +487,32 @@ export default function PerjalananSaya() {
           {
             name: 'Kuis Pemahaman Akad',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: hasPassedAkadQuiz,
-            data: hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100',
-            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
-            isTestAction: !hasPassedAkadQuiz && isSelectionDone && (isSelectionPassed || isPraTikrar),
-            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
-            testUrl: isPraTikrar ? `/seleksi/kuis-akad?batchId=${batchId}&type=pra-tikrar` : `/seleksi/kuis-akad?batchId=${batchId}`
+            done: isPraTikrar || hasPassedAkadQuiz,
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100'),
+            isLocked: !isSelectionDone || !isSelectionPassed,
+            isTestAction: !isPraTikrar && !hasPassedAkadQuiz && isSelectionDone && isSelectionPassed,
+            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+            testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
           },
-          { 
-            name: 'Upload Akad', 
-            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
-            done: hasAkad, 
-            data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', 
-            reviewType: hasAkad ? 'akad' : null, 
-            isLocked: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !hasPassedAkadQuiz,
-            isTestAction: !hasAkad && isSelectionDone && (isSelectionPassed || isPraTikrar) && hasPassedAkadQuiz,
-            isTestDisabled: !isSelectionDone || (!isSelectionPassed && !isPraTikrar) || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+          {
+            name: 'Upload Akad',
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
+            done: isPraTikrar || hasAkad,
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasAkad ? 'Sudah disetujui' : 'Belum ada data'),
+            reviewType: hasAkad ? 'akad' : null,
+            isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
+            isTestAction: !isPraTikrar && !hasAkad && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
+            isTestDisabled: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/daftar-ulang?batchId=${batchId}`
           },
-          { 
-            name: isPraTikrar ? 'Penempatan Halaqah' : 'Pilih Halaqah & Pasangan', 
-            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
-            done: hasPhase3 || (isPraTikrar && !!daftarUlangData?.ujian_halaqah_id), 
-            data: (hasPhase3 || (isPraTikrar && !!daftarUlangData?.ujian_halaqah_id)) ? (isPraTikrar ? 'Selesai ✓' : (partnerName ? partnerName : 'Menunggu Dipasangkan')) : (hasAkad ? (isPraTikrar ? 'Selesai Pilih Jadwal' : 'Belum pilih') : 'Belum submit akad'), 
-            reviewType: hasPartner ? 'pairing' : null, 
+          {
+            name: 'Pilih Halaqah & Pasangan',
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
+            done: isPraTikrar || hasPhase3,
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasPhase3 ? (partnerName ? partnerName : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad')),
+            reviewType: hasPartner ? 'pairing' : null,
             isLocked: !hasAkad,
-            isTestAction: hasAkad && !hasPhase3 && !isPraTikrar,
+            isTestAction: !isPraTikrar && hasAkad && !hasPhase3,
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`
           },

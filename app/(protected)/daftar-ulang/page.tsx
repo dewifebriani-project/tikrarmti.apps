@@ -169,6 +169,14 @@ function DaftarUlangContent() {
           return
         }
 
+        // Pra-Tikrar (waitlist) tidak melalui Daftar Ulang/Akad sama sekali — langsung
+        // belajar via Jurnal Harian & Tashih begitu periode batch dimulai.
+        if (selectedRegistration.selection_status === 'waitlist') {
+          toast.error('Pra-Tikrar tidak perlu Daftar Ulang. Silakan mulai mengisi Jurnal Harian begitu periode belajar dimulai.')
+          router.push('/jurnal-harian')
+          return
+        }
+
         // Check if user has taken the written test (unless they are alumni)
         let isAlumnus = false;
         try {
@@ -182,13 +190,18 @@ function DaftarUlangContent() {
         }
 
         const hasWritten = !!(
-          selectedRegistration.written_quiz_submitted_at || 
-          selectedRegistration.written_submitted_at || 
-          selectedRegistration.exam_score != null || 
+          selectedRegistration.written_quiz_submitted_at ||
+          selectedRegistration.written_submitted_at ||
+          selectedRegistration.exam_score != null ||
           selectedRegistration.written_quiz_score != null
         );
 
-        if (!hasWritten && !isAlumnus) {
+        // Juz 30 tidak wajib Test Tertulis, sama seperti Alumni
+        // (lihat logika yang sama di perjalanan-saya/page.tsx). Pra-Tikrar (waitlist)
+        // sudah di-redirect keluar dari halaman ini di atas, jadi tidak perlu dicek lagi di sini.
+        const isJuz30 = (selectedRegistration.chosen_juz || '').toUpperCase().startsWith('30');
+
+        if (!hasWritten && !isAlumnus && !isJuz30) {
           toast.error('Anda harus menyelesaikan Test Tertulis terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
           // Redirect them to the test or user journey
           const batchParam = selectedRegistration.batch_id ? `?batchId=${selectedRegistration.batch_id}` : '';

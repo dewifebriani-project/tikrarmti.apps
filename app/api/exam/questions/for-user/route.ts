@@ -76,20 +76,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's registration with chosen_juz and batch
-    const { data: registration, error: registrationError } = await supabaseAdmin
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, exam_status, exam_attempt_id, batch_id, program_id')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // IMPORTANT: a user can have more than one registration row (different batches,
+    // re-registrations, etc). We must not just grab the most-recently-created row —
+    // that can silently pick the wrong batch's registration (and therefore the wrong
+    // chosen_juz), which previously caused Juz 30 students to be incorrectly told an
+    // exam was required. Prefer: the batchId passed in the query string, then the
+    // registration with selection_status = 'selected'/'waitlist', then fall back to
+    // the most recent one.
+    const requestedBatchId = request.nextUrl.searchParams.get('batchId');
 
-    if (registrationError || !registration) {
+    let registrationQuery = supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('id, chosen_juz, exam_status, exam_attempt_id, batch_id, program_id, selection_status, created_at')
+      .eq('user_id', user.id);
+
+    if (requestedBatchId) {
+      registrationQuery = registrationQuery.eq('batch_id', requestedBatchId);
+    }
+
+    const { data: registrations, error: registrationError } = await registrationQuery
+      .order('created_at', { ascending: false });
+
+    if (registrationError || !registrations || registrations.length === 0) {
       return NextResponse.json({
         error: 'No registration found',
         details: 'Silakan daftar tikrar terlebih dahulu'
       }, { status: 404 });
     }
+
+    const registration =
+      registrations.find((r) => r.selection_status === 'selected') ||
+      registrations.find((r) => r.selection_status === 'waitlist') ||
+      registrations[0];
 
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin

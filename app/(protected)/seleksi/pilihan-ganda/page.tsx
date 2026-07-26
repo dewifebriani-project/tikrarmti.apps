@@ -50,6 +50,7 @@ function PilihanGandaContent() {
   const searchParams = useSearchParams();
   const examSource = searchParams.get('source') || 'selection';
   const isFinalExam = examSource === 'final-exam';
+  const batchId = searchParams.get('batchId') || '';
   const { user, isLoading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -144,7 +145,8 @@ function PilihanGandaContent() {
     setQuestionsError(null);
 
     try {
-      const response = await fetch(`/api/exam/questions/for-user?source=${examSource}`);
+      const batchParam = batchId ? `&batchId=${encodeURIComponent(batchId)}` : '';
+      const response = await fetch(`/api/exam/questions/for-user?source=${examSource}${batchParam}`);
 
       if (!response.ok) {
         const errorData = await response.json();

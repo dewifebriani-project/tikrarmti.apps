@@ -172,18 +172,18 @@ export default async function Home() {
                 className="bg-white border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-2xl p-8 group"
               >
                 <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-r ${feature.color === 'green' ? 'from-green-100 to-green-200' :
-                    feature.color === 'yellow' ? 'from-yellow-100 to-yellow-200' :
-                      'from-blue-100 to-blue-200'
+                  feature.color === 'yellow' ? 'from-yellow-100 to-yellow-200' :
+                    'from-blue-100 to-blue-200'
                   } flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                   <feature.icon className={`w-8 h-8 ${feature.color === 'green' ? 'text-green-900' :
-                      feature.color === 'yellow' ? 'text-yellow-600' :
-                        'text-blue-600'
+                    feature.color === 'yellow' ? 'text-yellow-600' :
+                      'text-blue-600'
                     }`} />
                 </div>
 
                 <h3 className={`text-2xl font-bold mb-4 text-center ${feature.color === 'green' ? 'text-green-900' :
-                    feature.color === 'yellow' ? 'text-yellow-600' :
-                      'text-blue-600'
+                  feature.color === 'yellow' ? 'text-yellow-600' :
+                    'text-blue-600'
                   }`}>
                   {feature.title}
                 </h3>
@@ -284,7 +284,7 @@ export default async function Home() {
             <p className="text-xl text-white/90 mb-12 leading-relaxed">
               Transformasi kehidupan Ibu/Kakak dimulai dari Al-Qur'an.
               <br />
-              Program ini membutuhkan komitmen penuh selama 13 pekan. Kalau Ibu/Kakak sudah siap berjuang, sungguh-sungguh, dan ikhlas menjalankan Metode Tikrar 40x yang terbukti, kami tunggu ya!
+              Program ini membutuhkan komitmen penuh selama 13 pekan. Kalau Ibu/Kakak sudah siap berjuang, sungguh-sungguh, dan ikhlas menjalankan Metode Tikrar 40x yang terbukti, kami tunggu ya!.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
