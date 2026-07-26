@@ -231,18 +231,16 @@ export function DaftarUlangV2Table({
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-xs font-medium text-gray-700 space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-gray-400 w-12">Ujian:</span> 
-                        <span className={cn("font-bold", submission.ujian_halaqah?.name ? "text-blue-700" : "text-gray-900")}>
-                          {submission.ujian_halaqah?.name || (submission.is_tashih_umum ? '-' : 'Belum pilih')}
+                    <div className="text-xs font-medium text-gray-700">
+                      <div className="flex flex-col gap-0.5">
+                        <span className={cn("font-bold text-sm", submission.ujian_halaqah?.name ? "text-blue-700" : "text-gray-900")}>
+                          {submission.ujian_halaqah?.name || 'Belum pilih'}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-gray-400 w-12">Tashih:</span> 
-                        <span className={cn("font-bold", submission.is_tashih_umum || submission.tashih_halaqah?.name ? "text-purple-700" : "text-gray-900")}>
-                          {submission.is_tashih_umum ? 'Umum' : (submission.tashih_halaqah?.name || 'Belum pilih')}
-                        </span>
+                        {submission.ujian_halaqah?.muallimah_name && (
+                          <span className="text-gray-500 text-[11px]">
+                            {submission.ujian_halaqah.muallimah_name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>

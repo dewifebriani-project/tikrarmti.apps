@@ -143,20 +143,6 @@ export function DetailModal({
                   </p>
                 )}
               </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-1">Tashih Halaqah</p>
-                <p className="text-sm font-bold text-gray-900">
-                  {submission.is_tashih_umum
-                    ? 'Kelas Tashih Umum'
-                    : (submission.tashih_halaqah?.name || 'Belum memilih')}
-                </p>
-                {submission.tashih_halaqah && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {submission.tashih_halaqah.day_of_week !== undefined && `Hari ${submission.tashih_halaqah.day_of_week}, `}
-                    {submission.tashih_halaqah.start_time} - {submission.tashih_halaqah.end_time}
-                  </p>
-                )}
-              </div>
             </div>
           </section>
 

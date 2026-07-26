@@ -376,17 +376,11 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           'Alasan Penyesuaian Juz': item.juz_adjustment_reason || '-',
 
           // Halaqah Selection
-          'Halaqah Ujian': ujianHalaqah.name || '-',
-          'Jadwal Halaqah Ujian': formatHalaqahSchedule(ujianHalaqah),
-          'Lokasi Halaqah Ujian': ujianHalaqah.location || '-',
-          'Tipe Kelas Ujian': ujianHalaqah.class_type || '-',
-          'Muallimah Ujian': ujianHalaqah.muallimah_name || '-',
-
-          'Halaqah Tashih': item.is_tashih_umum ? 'Umum' : (tashihHalaqah.name || '-'),
-          'Jadwal Halaqah Tashih': item.is_tashih_umum ? 'Umum' : formatHalaqahSchedule(tashihHalaqah),
-          'Lokasi Halaqah Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.location || '-'),
-          'Tipe Kelas Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.class_type || '-'),
-          'Muallimah Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.muallimah_name || '-'),
+          'Halaqah': ujianHalaqah.name || '-',
+          'Jadwal Halaqah': formatHalaqahSchedule(ujianHalaqah),
+          'Lokasi Halaqah': ujianHalaqah.location || '-',
+          'Tipe Kelas': ujianHalaqah.class_type || '-',
+          'Muallimah': ujianHalaqah.muallimah_name || '-',
 
           // Partner
           'Tipe Partner': item.partner_type || '-',
@@ -530,19 +524,12 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         { wch: 15 },  // Juz Disesuaikan
         { wch: 50 },  // Alasan Penyesuaian Juz
 
-        // Halaqah Ujian
-        { wch: 30 },  // Halaqah Ujian
-        { wch: 30 },  // Jadwal Halaqah Ujian
-        { wch: 25 },  // Lokasi Halaqah Ujian
-        { wch: 18 },  // Tipe Kelas Ujian
-        { wch: 25 },  // Muallimah Ujian
-
-        // Halaqah Tashih
-        { wch: 30 },  // Halaqah Tashih
-        { wch: 30 },  // Jadwal Halaqah Tashih
-        { wch: 25 },  // Lokasi Halaqah Tashih
-        { wch: 18 },  // Tipe Kelas Tashih
-        { wch: 25 },  // Muallimah Tashih
+        // Halaqah
+        { wch: 30 },  // Halaqah
+        { wch: 30 },  // Jadwal Halaqah
+        { wch: 25 },  // Lokasi Halaqah
+        { wch: 18 },  // Tipe Kelas
+        { wch: 25 },  // Muallimah
 
         // Partner
         { wch: 15 },  // Tipe Partner
@@ -705,7 +692,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           getJuzCode(item.confirmed_chosen_juz),
           item.confirmed_chosen_juz || registration.chosen_juz || '-',
           ujianHalaqah.name || '-',
-          tashihName,
           user.whatsapp || user.phone || '-',
         ];
       });
@@ -713,7 +699,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       // Generate table
       autoTable(doc, {
         startY: 35,
-        head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'Halaqah Ujian', 'Halaqah Tashih', 'WhatsApp']],
+        head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'Halaqah', 'WhatsApp']],
         body: tableData,
         styles: {
           fontSize: 8,
@@ -726,13 +712,12 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         },
         columnStyles: {
           0: { cellWidth: 10 },  // No
-          1: { cellWidth: 45 },  // Nama
+          1: { cellWidth: 50 },  // Nama
           2: { cellWidth: 10 },  // Usia
           3: { cellWidth: 15 },  // Juz Code
           4: { cellWidth: 20 },  // Juz
-          5: { cellWidth: 40 },  // Halaqah Ujian
-          6: { cellWidth: 40 },  // Halaqah Tashih
-          7: { cellWidth: 35 },  // WhatsApp
+          5: { cellWidth: 55 },  // Halaqah
+          6: { cellWidth: 35 },  // WhatsApp
         },
         didDrawPage: (data) => {
           // Add page number

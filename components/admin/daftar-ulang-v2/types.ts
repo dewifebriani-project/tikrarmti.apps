@@ -57,6 +57,9 @@ export interface DaftarUlangSubmission {
     day_of_week?: number;
     start_time?: string;
     end_time?: string;
+    muallimah_name?: string;
+    class_type?: string;
+    location?: string;
   };
   tashih_halaqah?: {
     id: string;
@@ -64,6 +67,9 @@ export interface DaftarUlangSubmission {
     day_of_week?: number;
     start_time?: string;
     end_time?: string;
+    muallimah_name?: string;
+    class_type?: string;
+    location?: string;
   };
   registration?: any;
 }
