@@ -503,7 +503,15 @@ export default function PerjalananSaya() {
             isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
             isTestAction: !isPraTikrar && !hasAkad && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
             isTestDisabled: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
-            testUrl: `/daftar-ulang?batchId=${batchId}`
+            testUrl: `/daftar-ulang?batchId=${batchId}`,
+            // Once akad is uploaded, let her come back and add a file she missed —
+            // but only until Fase 4 (Masa Belajar) actually starts.
+            isEditAction: !isPraTikrar && hasAkad,
+            isEditDisabled: isReEnrollmentDoneByDate,
+            editUrl: `/daftar-ulang?editAkad=true`,
+            editLabel: 'Edit',
+            editActiveTitle: 'Tambah file akad yang terlewat',
+            editDisabledTitle: 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
@@ -903,19 +911,23 @@ export default function PerjalananSaya() {
                             </button>
                           )}
                           {(sub as any).isEditAction && (
-                            <button 
+                            <button
                               disabled={(sub as any).isEditDisabled}
                               onClick={() => router.push((sub as any).editUrl ? `${(sub as any).editUrl}&batchId=${batchId}` : `/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
                               className={cn(
                                 "ml-1 flex items-center gap-1 transition-colors p-1",
-                                (sub as any).isEditDisabled 
-                                  ? "text-gray-400 cursor-not-allowed opacity-50" 
+                                (sub as any).isEditDisabled
+                                  ? "text-gray-400 cursor-not-allowed opacity-50"
                                   : "text-emerald-600 hover:text-emerald-800"
                               )}
-                              title={(sub as any).isEditDisabled ? `Pendaftaran belum dibuka (Mulai ${batch?.registration_start_date ? formatDateIndo(batch.registration_start_date) : ''})` : (hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`)}
+                              title={
+                                (sub as any).isEditDisabled
+                                  ? ((sub as any).editDisabledTitle || `Pendaftaran belum dibuka (Mulai ${batch?.registration_start_date ? formatDateIndo(batch.registration_start_date) : ''})`)
+                                  : ((sub as any).editActiveTitle || (hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`))
+                              }
                             >
                               <Edit className="w-3.5 h-3.5" />
-                              <span className="text-[10px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
+                              <span className="text-[10px] font-bold underline">{(sub as any).editLabel || (hasFormPendaftaran ? 'Edit' : 'Daftar')}</span>
                             </button>
                           )}
                           {(sub as any).isTestAction && (

@@ -539,6 +539,93 @@ export async function uploadAkad(formData: FormData) {
   }
 }
 
+/**
+ * Update ONLY the akad_files on an existing daftar_ulang_submissions row.
+ *
+ * This exists so a thalibah who forgot to attach a page/photo of her signed akad
+ * can add it later, without touching halaqah_id, partner_type, or status (unlike
+ * submitDaftarUlang, which rewrites the whole submission). Only allowed until the
+ * batch's opening_class_date (start of "Fase 4: Masa Belajar") — after that,
+ * changes must go through admin.
+ */
+export async function updateAkadFiles(
+  registrationId: string,
+  akadFiles: Array<{ url: string; name: string }>
+) {
+  const supabase = createClient()
+
+  // 1. Validasi Auth
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+  if (!authUser || authError) {
+    return { success: false, error: 'Unauthorized. Silakan login kembali.' }
+  }
+
+  if (!akadFiles || akadFiles.length === 0) {
+    return { success: false, error: 'Minimal harus ada 1 file akad.' }
+  }
+
+  // 2. Verify registration belongs to user, and get batch opening_class_date for the Fase 4 cutoff
+  const { data: registration, error: regError } = await supabase
+    .from('pendaftaran_tikrar_tahfidz')
+    .select('id, user_id, batch:batches(opening_class_date)')
+    .eq('id', registrationId)
+    .single()
+
+  if (regError || !registration || registration.user_id !== authUser.id) {
+    return { success: false, error: 'Pendaftaran tidak valid.' }
+  }
+
+  const batch = Array.isArray((registration as any).batch) ? (registration as any).batch[0] : (registration as any).batch
+  if (batch?.opening_class_date) {
+    const openingDate = new Date(batch.opening_class_date)
+    openingDate.setHours(0, 0, 0, 0)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (today >= openingDate) {
+      return {
+        success: false,
+        error: 'Sudah memasuki Masa Belajar, upload akad tidak bisa diubah lagi dari sini. Silakan hubungi admin jika ada file yang tertinggal.'
+      }
+    }
+  }
+
+  try {
+    const supabaseAdmin = createSupabaseAdmin()
+
+    // Find the existing submission (created via submitDaftarUlang)
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .eq('registration_id', registrationId)
+      .maybeSingle()
+
+    if (existingError || !existing) {
+      return { success: false, error: 'Data daftar ulang belum ditemukan. Selesaikan daftar ulang terlebih dahulu.' }
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .update({
+        akad_files: akadFiles,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existing.id)
+
+    if (updateError) {
+      return { success: false, error: updateError.message }
+    }
+
+    revalidatePath('/daftar-ulang')
+    revalidatePath('/perjalanan-saya')
+
+    return { success: true, message: 'File akad berhasil diperbarui' }
+  } catch (error: any) {
+    console.error('updateAkadFiles error:', error)
+    return { success: false, error: error?.message || 'Terjadi kesalahan tidak terduga' }
+  }
+}
+
 export async function approveDaftarUlangSubmission(submissionId: string) {
   const supabase = createClient()
   const {

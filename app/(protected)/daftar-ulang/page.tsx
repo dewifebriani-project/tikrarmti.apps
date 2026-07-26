@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, ChevronRight, ChevronLeft, Info, FileText, X, ImageIcon, Trash2 } from 'lucide-react'
-import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
+import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
 type Step = 'confirm' | 'pengabdian' | 'akad' | 'halaqah' | 'partner' | 'success'
@@ -69,6 +69,11 @@ function DaftarUlangContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const urlBatchId = (params.batch_id as string) || searchParams.get('batchId')
+  // "Edit Upload Akad" mode: entered from the Upload Akad card in perjalanan-saya
+  // after daftar ulang is already submitted, to add a file that was missed.
+  // Only meaningful while daftar ulang is already locked (submitted/approved) —
+  // for a fresh/draft submission the normal step flow already covers akad upload.
+  const isAkadEditMode = searchParams.get('editAkad') === 'true'
 
   const [currentStep, setCurrentStep] = useState<Step>('confirm')
   const [isLoading, setIsLoading] = useState(false)
@@ -295,7 +300,12 @@ function DaftarUlangContent() {
         const existingSub = halaqahDataResult.data?.existing_submission
 
         if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
-          if (submissionStatus === 'approved') {
+          if (isAkadEditMode) {
+            // Came here specifically to add a missed akad file — jump straight
+            // to the akad step regardless of halaqah/partner completion, and
+            // don't touch either of those when saving.
+            setCurrentStep('akad')
+          } else if (submissionStatus === 'approved') {
             if (!existingSub.ujian_halaqah_id) {
               // Approved but hasn't selected halaqah
               setCurrentStep('halaqah')
@@ -323,7 +333,7 @@ function DaftarUlangContent() {
     }
 
     fetchData()
-  }, [isAuthenticated, user?.id, router])
+  }, [isAuthenticated, user?.id, router, isAkadEditMode])
 
   // Load existing submission data into form
   // For draft status: reset halaqah selection but preserve akad files and partner data
@@ -512,6 +522,35 @@ function DaftarUlangContent() {
       }
     } catch (error: any) {
       console.error('Submit error:', error)
+      toast.error(error?.message || 'Terjadi kesalahan')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Save-only flow for "Edit Upload Akad" mode (daftar ulang already submitted,
+  // user is just adding a file they missed). Unlike handleSubmit/submitDaftarUlang,
+  // this never touches halaqah_id, partner_type, or status.
+  const handleSaveAkadEdit = async () => {
+    if (!registrationData?.id) return
+
+    if (!formData.akad_files || formData.akad_files.length === 0) {
+      toast.error('Minimal harus ada 1 file akad')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await updateAkadFiles(registrationData.id, formData.akad_files)
+
+      if (result.success) {
+        toast.success(result.message || 'File akad berhasil diperbarui')
+        router.push('/perjalanan-saya')
+      } else {
+        toast.error(result.error || 'Gagal memperbarui file akad')
+      }
+    } catch (error: any) {
+      console.error('Save akad edit error:', error)
       toast.error(error?.message || 'Terjadi kesalahan')
     } finally {
       setIsLoading(false)
@@ -763,7 +802,26 @@ function DaftarUlangContent() {
         </Card>
 
         {/* Navigation Buttons */}
-        {currentStep !== 'success' && (
+        {currentStep !== 'success' && isAkadEditMode ? (
+          <div className="flex justify-between mt-6">
+            <Button
+              variant="outline"
+              onClick={() => router.push('/perjalanan-saya')}
+              disabled={isLoading}
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Batal
+            </Button>
+
+            <Button
+              onClick={handleSaveAkadEdit}
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Simpan Perubahan
+            </Button>
+          </div>
+        ) : currentStep !== 'success' && (
           <div className="flex justify-between mt-6">
             <Button
               variant="outline"
