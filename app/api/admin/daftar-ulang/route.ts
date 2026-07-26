@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     // Fetch study partners for all submissions
     const userIds = dataWithMuallimah?.map((sub: any) => sub.user_id) || [];
     const studyPartnersMap: Record<string, any[]> = {};
-
+    const mutualMatches = new Set<string>();
     if (userIds.length > 0) {
       // Get batch IDs from submissions
       const batchIds = Array.from(new Set(dataWithMuallimah?.map((sub: any) => sub.batch_id) || []));
@@ -151,12 +151,40 @@ export async function GET(request: NextRequest) {
           }
         });
       }
+
+      // Check mutual matches for self_match
+      const selfMatchUserIds = dataWithMuallimah
+        ?.filter((s: any) => s.partner_type === 'self_match' && s.partner_user_id)
+        .map((s: any) => s.user_id) || [];
+      if (selfMatchUserIds.length > 0 && batchIds.length > 0) {
+        // Find if the partner also chose this user
+        const { data: partnerSubmissions } = await supabaseAdmin
+          .from('daftar_ulang_submissions')
+          .select('user_id, partner_user_id')
+          .eq('partner_type', 'self_match')
+          .in('batch_id', batchIds)
+          .in('partner_user_id', selfMatchUserIds);
+          
+        if (partnerSubmissions) {
+          dataWithMuallimah?.forEach((sub: any) => {
+            if (sub.partner_type === 'self_match' && sub.partner_user_id) {
+              const partnerChoseUser = partnerSubmissions.some(
+                (p: any) => p.user_id === sub.partner_user_id && p.partner_user_id === sub.user_id
+              );
+              if (partnerChoseUser) {
+                mutualMatches.add(sub.user_id);
+              }
+            }
+          });
+        }
+      }
     }
 
-    // Attach study partners to submissions
+    // Attach study partners and mutual match flag to submissions
     const dataWithPartners = dataWithMuallimah?.map((sub: any) => ({
       ...sub,
-      study_partners: studyPartnersMap[sub.user_id] || []
+      study_partners: studyPartnersMap[sub.user_id] || [],
+      is_mutual_match: mutualMatches?.has(sub.user_id) || false
     }));
 
     // Get total count

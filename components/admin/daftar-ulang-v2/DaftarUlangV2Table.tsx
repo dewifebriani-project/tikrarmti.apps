@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart } from 'lucide-react';
 import { DaftarUlangSubmission } from './types';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,16 @@ export function DaftarUlangV2Table({
 
   const getPartnerLabel = (submission: DaftarUlangSubmission) => {
     if (submission.partner_type === 'self_match' && submission.partner_user) {
-      return submission.partner_user.full_name || submission.partner_user_id || '-';
+      return (
+        <div className="flex items-center gap-1.5">
+          <span>{submission.partner_user.full_name || submission.partner_user_id || '-'}</span>
+          {submission.is_mutual_match && (
+            <span title="Mutual Self Match (Jodoh)" className="inline-flex">
+              <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
+            </span>
+          )}
+        </div>
+      );
     }
     if (submission.partner_type === 'family' || submission.partner_type === 'tarteel') {
       return submission.partner_name || '-';
@@ -149,7 +158,7 @@ export function DaftarUlangV2Table({
                 <div className="flex items-center gap-2">Thalibah {getSortIcon('name')}</div>
               </th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Partner</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Test Tertulis</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Score Test</th>
               <th 
                 className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
                 onClick={() => onSort('halaqah')}
@@ -215,20 +224,44 @@ export function DaftarUlangV2Table({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {submission.registration?.written_quiz_score !== null && submission.registration?.written_quiz_score !== undefined ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900">
-                          {submission.registration.written_quiz_score}
-                        </span>
-                        <span className="text-[10px] text-gray-400 font-medium">Skor</span>
-                      </div>
-                    ) : submission.registration?.written_quiz_submitted_at || submission.registration?.written_exam_submitted_at ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
-                        ✓ SELESAI
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-300 font-bold italic">N/A</span>
-                    )}
+                    <div className="flex gap-3">
+                      {/* Test Tertulis */}
+                      {submission.registration?.written_quiz_score !== null && submission.registration?.written_quiz_score !== undefined ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-gray-900">
+                            {submission.registration.written_quiz_score}
+                          </span>
+                          <span className="text-[9px] text-gray-400 font-medium">TERTULIS</span>
+                        </div>
+                      ) : submission.registration?.written_quiz_submitted_at || submission.registration?.written_exam_submitted_at ? (
+                        <div className="flex flex-col">
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
+                            ✓ SELESAI
+                          </span>
+                          <span className="text-[9px] text-gray-400 font-medium mt-1">TERTULIS</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-300 font-bold italic">N/A</span>
+                          <span className="text-[9px] text-gray-400 font-medium mt-0.5">TERTULIS</span>
+                        </div>
+                      )}
+
+                      {/* Lisan / Oral */}
+                      {submission.registration?.oral_total_score !== null && submission.registration?.oral_total_score !== undefined ? (
+                        <div className="flex flex-col pl-3 border-l border-gray-100">
+                          <span className="text-sm font-black text-blue-600">
+                            {submission.registration.oral_total_score}
+                          </span>
+                          <span className="text-[9px] text-gray-400 font-medium">LISAN</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col pl-3 border-l border-gray-100">
+                          <span className="text-xs text-gray-300 font-bold italic">N/A</span>
+                          <span className="text-[9px] text-gray-400 font-medium mt-0.5">LISAN</span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-xs font-medium text-gray-700">

@@ -22,6 +22,7 @@ export interface DaftarUlangSubmission {
   partner_relationship?: string;
   partner_wa_phone?: string;
   partner_notes?: string;
+  is_mutual_match?: boolean;
 
   // Halaqah
   ujian_halaqah_id?: string;

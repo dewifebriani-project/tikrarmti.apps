@@ -88,6 +88,8 @@ export async function GET(request: Request) {
         .single()
         
       let partnerName = submissionData.partner_name;
+      let isMutualMatch = false;
+
       if (submissionData.partner_type === 'self_match' && submissionData.partner_user_id) {
         const { data: partnerDetails } = await supabase
           .from('users')
@@ -96,6 +98,21 @@ export async function GET(request: Request) {
           .single()
         if (partnerDetails) {
           partnerName = partnerDetails.full_name;
+        }
+
+        // Check mutual match
+        const { data: partnerSubmission } = await supabase
+          .from('daftar_ulang_submissions')
+          .select('id')
+          .eq('user_id', submissionData.partner_user_id)
+          .eq('partner_user_id', user.id)
+          .eq('batch_id', batchId)
+          .eq('partner_type', 'self_match')
+          .in('status', ['submitted', 'approved'])
+          .maybeSingle();
+        
+        if (partnerSubmission) {
+          isMutualMatch = true;
         }
       }
         
@@ -125,6 +142,7 @@ export async function GET(request: Request) {
             partner_wa_phone: submissionData.partner_wa_phone,
             partner_type: submissionData.partner_type,
             partner_user_id: submissionData.partner_user_id,
+            is_mutual_match: isMutualMatch,
           },
         }
       })

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { GroupLinks } from "@/components/dashboard/GroupLinks";
 
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle, Heart } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
@@ -105,6 +105,7 @@ interface PairingData {
     partner_relationship: string | null;
     partner_notes: string | null;
     partner_wa_phone: string | null;
+    is_mutual_match?: boolean;
   } | null;
 }
 
@@ -518,6 +519,7 @@ export default function PerjalananSaya() {
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isPraTikrar || hasPhase3,
             data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasPhase3 ? (partnerName ? partnerName : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad')),
+            isMutualMatch: pairingData?.partner_details?.is_mutual_match,
             reviewType: hasPartner ? 'pairing' : null,
             isLocked: !hasAkad,
             isTestAction: !isPraTikrar && hasAkad && !hasPhase3,
@@ -897,7 +899,14 @@ export default function PerjalananSaya() {
                             </span>
                           )}
                           <span className="text-xs font-medium text-gray-300">—</span>
-                          <span className="text-xs font-medium text-gray-500 break-words">{sub.data}</span>
+                          <span className="text-xs font-medium text-gray-500 break-words flex items-center gap-1.5">
+                            {sub.data}
+                            {(sub as any).isMutualMatch && (
+                              <span title="Mutual Self Match (Jodoh)" className="inline-flex">
+                                <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
+                              </span>
+                            )}
+                          </span>
                           {(sub as any).reviewType && (
                             <button 
                               onClick={() => { 
