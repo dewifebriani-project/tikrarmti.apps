@@ -22,9 +22,8 @@ export async function GET(request: NextRequest) {
     // Get user's registration data
     const { data: registration, error: regError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name')
+      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score, oral_score')
       .eq('user_id', user.id)
-      .eq('selection_status', 'selected')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -36,14 +35,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const oralScore = registration.oral_total_score ?? registration.oral_score ?? 0;
+    const isPassed = registration.selection_status === 'selected' || oralScore >= 80;
+
+    if (!isPassed) {
+      return NextResponse.json(
+        { error: 'Belum lulus seleksi' },
+        { status: 403 }
+      )
+    }
+
     // Fetch ALL thalibah who passed selection in the same batch (for partner search)
     // INCLUDING extra fields for the marketplace UI
-    const { data: allSelectedThalibah } = await supabase
+    const { data: rawAllThalibah } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone')
+      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score, oral_score')
       .eq('batch_id', registration.batch_id)
-      .eq('selection_status', 'selected')
       .neq('user_id', user.id) // Exclude current user
+      
+    const allSelectedThalibah = (rawAllThalibah || []).filter(reg => {
+      const score = reg.oral_total_score ?? reg.oral_score ?? 0;
+      return reg.selection_status === 'selected' || score >= 80;
+    })
 
     // Fetch all submissions in this batch to determine who selected who
     const { data: allSubmissions } = await supabase

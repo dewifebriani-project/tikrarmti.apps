@@ -92,6 +92,7 @@ function DaftarUlangContent() {
     confirmed_wa_phone: string
     confirmed_address: string
     exam_score: number | null
+    oral_score: number | null
     final_juz: string
     juz_adjusted: boolean
     juz_adjustment_reason: string
@@ -115,6 +116,7 @@ function DaftarUlangContent() {
     confirmed_wa_phone: '',
     confirmed_address: '',
     exam_score: null,
+    oral_score: null,
     final_juz: '',
     juz_adjusted: false,
     juz_adjustment_reason: '',
@@ -266,6 +268,7 @@ function DaftarUlangContent() {
           confirmed_wa_phone: selectedRegistration.wa_phone || (user as any)?.user_metadata?.wa_phone || prev.confirmed_wa_phone,
           confirmed_address: selectedRegistration.address || prev.confirmed_address,
           exam_score: selectedRegistration.exam_score || null,
+          oral_score: selectedRegistration.oral_total_score ?? selectedRegistration.oral_score ?? null,
           final_juz: chosenJuz,
           juz_adjusted: false,
           juz_adjustment_reason: '',
@@ -299,13 +302,13 @@ function DaftarUlangContent() {
         const submissionStatus = halaqahDataResult.data?.existing_submission?.status
         const existingSub = halaqahDataResult.data?.existing_submission
 
-        if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
-          if (isAkadEditMode) {
-            // Came here specifically to add a missed akad file — jump straight
-            // to the akad step regardless of halaqah/partner completion, and
-            // don't touch either of those when saving.
-            setCurrentStep('akad')
-          } else if (submissionStatus === 'approved') {
+        if (isAkadEditMode && existingSub) {
+          // Came here specifically to add a missed akad file — jump straight to
+          // the akad step regardless of draft/submitted/approved status or
+          // halaqah/partner completion, and don't touch any of those when saving.
+          setCurrentStep('akad')
+        } else if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
+          if (submissionStatus === 'approved') {
             if (!existingSub.ujian_halaqah_id) {
               // Approved but hasn't selected halaqah
               setCurrentStep('halaqah')
@@ -371,12 +374,13 @@ function DaftarUlangContent() {
       akad_files: existingSubmission.akad_files || [],
     }))
 
-    // Only change step for draft status
+    // Only change step for draft status, and only outside "Edit Upload Akad" mode
+    // (where fetchData already forced currentStep to 'akad' — don't clobber that).
     // For submitted/approved status, step is already set in fetchData
-    if (isDraft) {
+    if (isDraft && !isAkadEditMode) {
       setCurrentStep('pengabdian')
     }
-  }, [existingSubmission])
+  }, [existingSubmission, isAkadEditMode])
 
   // Save draft on form data changes (debounced)
   // IMPORTANT: DO NOT save draft for submitted/approved status - this would overwrite halaqah data!
@@ -568,6 +572,10 @@ function DaftarUlangContent() {
         formDataToUpload.append('file', file)
 
         const result = await uploadAkad(formDataToUpload)
+
+        if (!result) {
+          throw new Error('Gagal menghubungi server. Kemungkinan ukuran file terlalu besar.')
+        }
 
         if (result.success && result.data) {
           return {
@@ -953,22 +961,40 @@ function ConfirmDataStep({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Utama</label>
-          <input
-            type="text"
-            value={formatTimeSlot(formData.confirmed_main_time_slot)}
-            readOnly
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-          />
+          <select
+            value={formData.confirmed_main_time_slot}
+            onChange={e => onChange({ ...formData, confirmed_main_time_slot: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+            required
+          >
+            <option value="">Pilih Waktu Utama</option>
+            <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
+            <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
+            <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
+            <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
+            <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
+            <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
+            <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
+          </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Cadangan</label>
-          <input
-            type="text"
-            value={formatTimeSlot(formData.confirmed_backup_time_slot)}
-            readOnly
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-          />
+          <select
+            value={formData.confirmed_backup_time_slot}
+            onChange={e => onChange({ ...formData, confirmed_backup_time_slot: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
+            required
+          >
+            <option value="">Pilih Waktu Cadangan</option>
+            <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
+            <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
+            <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
+            <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
+            <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
+            <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
+            <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
+          </select>
         </div>
 
         {isWaActive && (
@@ -1696,8 +1722,8 @@ function PartnerSelectionStep({
   const isSelfActive = selfMatchQuestion ? selfMatchQuestion.is_active : true
   const isSystemActive = systemMatchQuestion ? systemMatchQuestion.is_active : true
   const isFamilyActive = familyQuestion ? familyQuestion.is_active : true
-  const examScore = formData.exam_score || 0
-  const isTarteelEligible = examScore >= 90
+  const oralScore = formData.oral_score || 0
+  const isTarteelEligible = oralScore >= 90
   const isTarteelActive = tarteelQuestion ? tarteelQuestion.is_active : true
 
   return (
@@ -2033,7 +2059,7 @@ function PartnerSelectionStep({
                 </p>
                 {!isTarteelEligible && (
                   <p className="text-xs text-red-600 mt-2 font-semibold">
-                    *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {examScore})
+                    *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {oralScore})
                   </p>
                 )}
               </div>

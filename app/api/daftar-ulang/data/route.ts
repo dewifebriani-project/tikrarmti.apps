@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', user.id)
-      .eq('selection_status', 'selected')
       .order('created_at', { ascending: false })
 
     if (batchId) {
@@ -29,10 +28,18 @@ export async function GET(request: NextRequest) {
     const { data: registrations, error: regError } = await query
 
     if (regError || !registrations || registrations.length === 0) {
-      return ApiResponses.error('NOT_FOUND', 'Pendaftaran tidak ditemukan atau belum lulus seleksi', undefined, 404)
+      return ApiResponses.error('NOT_FOUND', 'Pendaftaran tidak ditemukan', undefined, 404)
     }
 
     const registration = registrations[0]
+    
+    const oralScore = registration.oral_total_score ?? registration.oral_score ?? 0;
+    const isPassed = registration.selection_status === 'selected' || oralScore >= 80;
+    
+    if (!isPassed) {
+      return ApiResponses.error('FORBIDDEN', 'Pendaftaran Anda belum lulus seleksi', undefined, 403)
+    }
+
     batchId = registration.batch_id
 
     const { data: existingSubmission } = await supabase

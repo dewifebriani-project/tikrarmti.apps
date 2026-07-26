@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
         .from('pendaftaran_tikrar_tahfidz')
         .select('*, users(tanggal_lahir), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
         .eq('user_id', user.id)
-        .in('selection_status', ['selected', 'waitlist'])
+        .not('selection_status', 'in', '("rejected","withdrawn")')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()

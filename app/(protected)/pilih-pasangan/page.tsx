@@ -74,10 +74,14 @@ export default function PilihPasanganPage() {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/daftar-ulang/data${batchId ? `?batchId=${batchId}` : ''}`)
-      if (!response.ok) throw new Error('Gagal memuat data')
-      const data = await response.json()
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Gagal memuat data dari server');
+      }
 
-      if (data.success) {
+      if (response.ok && data.success) {
         setRegistrationData(data.data.registration)
         setHalaqahData(data.data.halaqah || [])
         setExistingSubmission(data.data.existingSubmission)
@@ -97,10 +101,12 @@ export default function PilihPasanganPage() {
         }
       } else {
         toast.error(data.error || 'Gagal memuat data pendaftaran')
+        router.push('/perjalanan-saya')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Load initial data error:', error)
-      toast.error('Terjadi kesalahan saat memuat data')
+      toast.error(error.message || 'Terjadi kesalahan saat memuat data')
+      router.push('/perjalanan-saya')
     } finally {
       setIsLoading(false)
     }

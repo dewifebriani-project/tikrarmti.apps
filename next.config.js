@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '15mb',
+    },
+  },
   reactStrictMode: process.env.NODE_ENV === 'development',
   transpilePackages: ['lucide-react'],
   trailingSlash: false,

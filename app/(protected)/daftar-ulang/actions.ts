@@ -359,7 +359,9 @@ export async function submitDaftarUlang(
       .from('pendaftaran_tikrar_tahfidz')
       .update({
         re_enrollment_completed: true,
-        re_enrollment_completed_at: new Date().toISOString()
+        re_enrollment_completed_at: new Date().toISOString(),
+        main_time_slot: data.confirmed_main_time_slot || registration.main_time_slot,
+        backup_time_slot: data.confirmed_backup_time_slot || registration.backup_time_slot
       })
       .eq('id', registrationId)
 
