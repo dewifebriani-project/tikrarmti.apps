@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { requireAdmin } from '@/lib/rbac';
 
 /**
  * GET /api/debug/halaqah-muallimah-reg
@@ -7,6 +8,9 @@ import { createSupabaseAdmin } from '@/lib/supabase';
  */
 export async function GET(request: NextRequest) {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createSupabaseAdmin();
 
     // Get a sample halaqah

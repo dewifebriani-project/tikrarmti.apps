@@ -16,6 +16,16 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: requestingUser } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+
+    if (!requestingUser?.roles?.includes('admin')) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('muallimah_registrations')
       .select(`
@@ -55,6 +65,16 @@ export async function PATCH(
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: requestingUser } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+
+    if (!requestingUser?.roles?.includes('admin')) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
     // Get the public.user record for foreign key reference
@@ -113,6 +133,16 @@ export async function DELETE(
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: requestingUser } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+
+    if (!requestingUser?.roles?.includes('admin')) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
     const { error } = await supabaseAdmin

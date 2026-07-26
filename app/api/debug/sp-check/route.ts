@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/rbac';
 
 // Helper function to calculate first week start from batch start_date
 // First week starts 3 weeks after batch start_date
@@ -45,6 +46,9 @@ function hasWeekEnded(batch: any, weekNumber: number): boolean {
 // Debug API to check why SP list is empty
 export async function GET(request: Request) {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const supabase = createClient();
 
     // Get active batch

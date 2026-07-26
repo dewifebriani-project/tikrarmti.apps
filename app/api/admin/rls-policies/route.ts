@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
 import { ApiResponses, HTTP_STATUS } from '@/lib/api-responses'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/rbac'
 
 /**
  * RLS Policies Management API
@@ -22,6 +23,9 @@ const ALLOWED_SQL_OPERATIONS = {
 
 export async function GET(request: NextRequest) {
   try {
+    const authError = await requireAdmin()
+    if (authError) return authError
+
     const supabase = createClient()
 
     // Get RLS policies from system catalog

@@ -3,10 +3,24 @@ import { createSupabaseAdmin } from '@/lib/supabase';
 
 /**
  * GET /api/admin/fix-mujiani-email
- * Task 1: Set Mujiani's email to anijiee82@gmail.com
- * Task 2: Remove tikrararbain@gmail from Mujiani
+ *
+ * RETIRED: this was a one-off data-fix utility (set Mujiani's email, remove a
+ * stray duplicate email) that shipped as a live, UNAUTHENTICATED API route —
+ * anyone who found this URL could GET it and it would mutate a user's login
+ * email using the service-role client, no admin session or auth check at all.
+ * The one-off task it existed for is done, so the handler below is disabled
+ * rather than deleted (keeps git history/context). Do not re-enable this
+ * without wrapping it in the same verifyAdmin() check used elsewhere in
+ * app/(protected)/admin/actions.ts, and preferably not as a GET route.
  */
 export async function GET() {
+  return NextResponse.json(
+    { error: 'This one-off endpoint has been retired.' },
+    { status: 410 }
+  );
+}
+
+async function _disabled_originalHandler() {
   const supabase = createSupabaseAdmin();
   const results: any[] = [];
 

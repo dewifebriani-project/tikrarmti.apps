@@ -204,6 +204,43 @@ export async function updateUser(data: UpdateUserData) {
       }
     })
 
+    // If the email is changing, update the Supabase Auth login credential FIRST.
+    // auth.users is the source of truth for email (see the on_auth_user_updated
+    // trigger in supabase/migrations/20260217_sync_auth_email_trigger.sql, which
+    // copies auth.users.email into public.users.email whenever it changes).
+    // Previously this action only wrote to public.users, which silently desynced
+    // the displayed email from the user's actual login email — she'd keep logging
+    // in with the OLD email while the admin panel showed the new one.
+    if (userData.email) {
+      const { data: currentUser } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', id)
+        .single()
+
+      const newEmail = userData.email.toLowerCase().trim()
+      if (currentUser && currentUser.email?.toLowerCase() !== newEmail) {
+        const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+          email: newEmail,
+          email_confirm: true,
+        })
+
+        if (authUpdateError) {
+          await logError(authUpdateError, {
+            userId: user.id,
+            userEmail: user.email,
+            function: 'updateUser',
+            errorType: 'database',
+            context: { targetUserId: id, newEmail },
+          } as LogErrorContext)
+          return {
+            success: false,
+            error: `Gagal mengubah email login: ${authUpdateError.message}`
+          }
+        }
+      }
+    }
+
     // Update user using admin client (bypasses RLS)
     const { data: updatedUser, error } = await supabaseAdmin
       .from('users')

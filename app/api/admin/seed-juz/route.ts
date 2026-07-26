@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
 export async function POST() {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     // First, check if juz_options has any data
     const { data: existingData, error: checkError } = await supabaseAdmin
       .from('juz_options')
@@ -75,6 +79,9 @@ export async function POST() {
 // Also allow GET to check status
 export async function GET() {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const { data, error } = await supabaseAdmin
       .from('juz_options')
       .select('*')

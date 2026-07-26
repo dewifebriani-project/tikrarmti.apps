@@ -15,12 +15,16 @@ export async function POST(request: NextRequest) {
 
     const { data: publicUser, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('id, roles')
       .eq('id', user.id)
       .single();
 
     if (userError || !publicUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 400 });
+    }
+
+    if (!publicUser.roles?.includes('admin')) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
     const body = await request.json();

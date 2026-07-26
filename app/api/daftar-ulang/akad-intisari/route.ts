@@ -114,10 +114,7 @@ function buildAkadIntisari(registration: any): {
   const backupTimeSlot = registration.backup_time_slot || '________________'
   const timezone = registration.timezone || 'WIB/WITA/WIT'
   
-  const batchName = registration.batches?.name || '3' 
-  
-  const batchStartDate = registration.batches?.opening_class_date ? new Date(registration.batches.opening_class_date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '12 Januari 2026'
-  const batchEndDate = registration.batches?.graduation_end_date ? new Date(registration.batches.graduation_end_date).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '12 April 2026'
+  const batchName = registration.batches?.name || '________________'
 
   // Build akad content sections
   const content: string[] = []
@@ -132,7 +129,7 @@ function buildAkadIntisari(registration: any): {
   content.push(`Usia: ${age}`)
   content.push(`Domisili: ${domicile}`)
   content.push('')
-  content.push(`Dengan sadar tanpa paksaan, menulis akad keikutsertaan pada kelas Tahfidz Tikrar MTI ${batchName} Tahun 2026 tanggal ${batchStartDate} sampai dengan tanggal ${batchEndDate}.`)
+  content.push(`Dengan sadar tanpa paksaan, menulis akad keikutsertaan pada kelas Tahfidz Tikrar MTI ${batchName}.`)
   content.push('')
   content.push('Saya siap memulai kelas Tikrar. Saya berjanji untuk menjadikan program ini sebagai salah satu prioritas. Saya berusaha menjaga kehadiran, bersungguh-sungguh dalam belajar dan menuntut ilmu ini dengan niat karena Allah Ta\'ala. Saya bersedia menjaga adab, patuh dan ta\'at pada aturan yang tercantum pada poin-poin di bawah ini,')
   content.push('')

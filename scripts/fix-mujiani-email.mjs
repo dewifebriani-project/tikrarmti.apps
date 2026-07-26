@@ -2,10 +2,34 @@
  * Script: fix-mujiani-email.mjs
  * Task 1: Change Mujiani email to anijiee82@gmail.com
  * Task 2: Remove tikrararbain@gmail.com from Mujiani
+ *
+ * NOTE: this used to have the Supabase URL and service role key hardcoded in
+ * plain text right here (and committed to git history). That key has full
+ * bypass-RLS access to the database, so if you're reading this: rotate the
+ * service role key in the Supabase dashboard (Project Settings > API) and
+ * update .env.local / deployment env vars — removing it from this file does
+ * NOT remove it from git history.
  */
+import * as fs from 'fs';
+import * as path from 'path';
 
-const SUPABASE_URL = 'https://nmbvklixthlqtkkgqnjl.supabase.co';
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tYnZrbGl4dGhscXRra2dxbmpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NDYyNTgyOSwiZXhwIjoyMDgwMjAxODI5fQ.PVvANGhrqKOvqdOSuNQyC4fDMypJCiMBwxuDm_2aMIs';
+const envPath = path.resolve(process.cwd(), '.env.local');
+const envContent = fs.readFileSync(envPath, 'utf-8');
+const env = {};
+envContent.split('\n').forEach(line => {
+  const match = line.match(/^([^=]+)=(.*)$/);
+  if (match) {
+    env[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, '');
+  }
+});
+
+const SUPABASE_URL = env['NEXT_PUBLIC_SUPABASE_URL'];
+const SERVICE_ROLE_KEY = env['SUPABASE_SERVICE_ROLE_KEY'];
+
+if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local');
+  process.exit(1);
+}
 
 const headers = {
   'Content-Type': 'application/json',

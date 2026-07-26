@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import path from 'path'
+import { requireAdmin } from '@/lib/rbac'
 
 /**
  * Get migration SQL file content
@@ -10,6 +11,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ filename: string }> }
 ) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const { filename } = await params
 
   // Security: Only allow .sql files from migrations directory
