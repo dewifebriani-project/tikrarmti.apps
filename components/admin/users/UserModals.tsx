@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 // Re-export specific modal
 export { MergeUserModal } from './MergeUserModal';
+export { EditUserModal } from './EditUserModal';
 
 // --- USER DETAIL MODAL ---
 interface UserDetailModalProps {

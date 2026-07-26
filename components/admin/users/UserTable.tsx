@@ -15,7 +15,7 @@ interface UserTableProps {
     totalPages: number;
   } | null;
   onPageChange: (page: number) => void;
-  onAction: (action: 'detail' | 'role' | 'blacklist' | 'resetPassword' | 'preview' | 'merge', user: AdminUser) => void;
+  onAction: (action: 'detail' | 'edit' | 'role' | 'blacklist' | 'resetPassword' | 'preview' | 'merge', user: AdminUser) => void;
   detectDuplicates?: boolean;
 }
 
@@ -211,6 +211,14 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                       >
                         <Info className="h-4 w-4" />
                         Profil
+                      </button>
+                      <button
+                        onClick={() => onAction('edit', user)}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-xs flex items-center gap-1.5 transition-colors"
+                        title="Edit User"
+                      >
+                        <User className="h-4 w-4" />
+                        Edit
                       </button>
                       <button
                         onClick={() => onAction('preview', user)}
