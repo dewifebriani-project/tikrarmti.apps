@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart } from 'lucide-react';
+import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart, CheckCircle, XCircle } from 'lucide-react';
 import { DaftarUlangSubmission } from './types';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ interface DaftarUlangV2TableProps {
   onResetHalaqah: (submissionId: string) => void;
   onRevertToDraft: (submissionId: string) => void;
   onApprove: (submissionId: string) => void;
+  onUnapprove: (submissionId: string) => void;
   resettingId: string | null;
   sortField: string;
   sortOrder: 'asc' | 'desc';
@@ -31,6 +32,7 @@ export function DaftarUlangV2Table({
   onResetHalaqah,
   onRevertToDraft,
   onApprove,
+  onUnapprove,
   resettingId,
   sortField,
   sortOrder,
@@ -340,8 +342,18 @@ export function DaftarUlangV2Table({
                           {resettingId === submission.id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            <CheckCircle className="w-4 h-4" />
                           )}
+                        </button>
+                      )}
+                      {submission.status === 'approved' && (
+                        <button
+                          onClick={() => onUnapprove(submission.id)}
+                          disabled={resettingId === submission.id}
+                          className="p-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 transition-colors disabled:opacity-50"
+                          title="Batal Approve (Revert ke Submitted)"
+                        >
+                          <XCircle className="w-4 h-4" />
                         </button>
                       )}
                       {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (

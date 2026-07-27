@@ -1007,6 +1007,33 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
+  const handleUnapprove = async (submissionId: string) => {
+    if (!confirm('Apakah Anda yakin ingin membatalkan approval (kembali menjadi Submitted)?')) {
+      return;
+    }
+
+    setResettingId(submissionId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/unapprove`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to unapprove');
+      }
+
+      toast.success('Pendaftaran berhasil diubah kembali menjadi Submitted');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error unapproving:', error);
+      toast.error('Gagal batal approve: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
   const handleApprove = async (submissionId: string) => {
     if (!confirm('Apakah Anda yakin ingin menyetujui pendaftaran ini?')) {
       return;
@@ -1157,6 +1184,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onResetHalaqah={handleResetHalaqah}
         onRevertToDraft={handleRevertToDraft}
         onApprove={handleApprove}
+        onUnapprove={handleUnapprove}
         resettingId={resettingId}
         sortField={sortField}
         sortOrder={sortOrder}
