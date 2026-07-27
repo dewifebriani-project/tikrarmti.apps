@@ -102,10 +102,10 @@ export function DaftarUlangV2Table({
   };
 
   const getPartnerLabel = (submission: DaftarUlangSubmission) => {
-    if (submission.partner_type === 'self_match' && submission.partner_user) {
+    if (submission.partner_type === 'self_match') {
       return (
         <div className="flex items-center gap-1.5">
-          <span>{submission.partner_user.full_name || submission.partner_user_id || '-'}</span>
+          <span>{submission.partner_user?.full_name || (submission.partner_user_id ? 'User Deleted / Not Found' : '-')}</span>
           {submission.is_mutual_match && (
             <span title="Mutual Self Match (Jodoh)" className="inline-flex">
               <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />

@@ -1,27 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-dotenv.config({ path: '.env.local' })
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-async function test() {
-  const { data: userData } = await supabase
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+async function main() {
+  const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id, full_name')
-    .ilike('full_name', '%Sainah%')
-    .limit(1)
+    .select('*')
+    .eq('id', '597e70ec-dfdc-4be2-bd24-7cc996e300fc');
     
-  if (userData && userData.length > 0) {
-    const userId = userData[0].id
-    const { data: exams } = await supabase
-      .from('akad_quiz_attempts')
-      .select('*')
-      .eq('user_id', userId)
-      
-    console.log("Akad Quiz attempts for Sainah:", exams)
+  if (error) {
+    console.error('Error:', error);
+  } else {
+    console.log('Data:', JSON.stringify(data, null, 2));
   }
 }
 
-test()
+main();
