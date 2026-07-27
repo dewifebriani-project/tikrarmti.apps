@@ -98,7 +98,17 @@ export async function GET(request: NextRequest) {
         if (h.muallimah_preferred_juz || h.preferred_juz) {
           const pref = h.muallimah_preferred_juz || h.preferred_juz
           const preferredJuzs = pref.split(',').map((j: string) => j.trim().toUpperCase())
-          return preferredJuzs.includes(finalJuz)
+          
+          if (preferredJuzs.includes(finalJuz)) return true
+          
+          // Match base juz (e.g. "30A" matches "30")
+          const baseJuzMatch = finalJuz.match(/^(\d+)/)
+          if (baseJuzMatch) {
+            const baseJuz = baseJuzMatch[1]
+            if (preferredJuzs.includes(baseJuz)) return true
+          }
+          
+          return false
         }
         return true
       })
