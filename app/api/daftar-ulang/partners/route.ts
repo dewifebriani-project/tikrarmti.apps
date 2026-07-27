@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration data
     let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score, oral_score')
+      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const oralScore = registration.oral_total_score ?? registration.oral_score ?? 0;
+    const oralScore = registration.oral_total_score ?? 0;
     const isPassed = registration.selection_status === 'selected' || oralScore >= 80;
 
     if (!isPassed) {
@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
     // INCLUDING extra fields for the marketplace UI
     const { data: rawAllThalibah } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score, oral_score')
+      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score')
       .eq('batch_id', registration.batch_id)
       .neq('user_id', user.id) // Exclude current user
       
     const allSelectedThalibah = (rawAllThalibah || []).filter(reg => {
-      const score = reg.oral_total_score ?? reg.oral_score ?? 0;
+      const score = reg.oral_total_score ?? 0;
       return reg.selection_status === 'selected' || score >= 80;
     })
 

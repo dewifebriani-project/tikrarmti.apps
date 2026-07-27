@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration to find batch_id and calculate final juz
     let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status, oral_total_score, oral_score')
+      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status, oral_total_score')
       .eq('user_id', user.id)
 
     if (batchId) {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const oralScore = registration.oral_total_score ?? registration.oral_score ?? 0;
+    const oralScore = registration.oral_total_score ?? 0;
     const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;
 
     if (!isPassed) {

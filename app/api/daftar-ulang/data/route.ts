@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
 
     const registration = registrations[0]
     
-    const oralScore = registration.oral_total_score ?? registration.oral_score ?? 0;
-    const isPassed = registration.selection_status === 'selected' || oralScore >= 80;
+    const oralScore = registration.oral_total_score ?? 0;
+    const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;
     
     if (!isPassed) {
       return ApiResponses.error('FORBIDDEN', 'Pendaftaran Anda belum lulus seleksi', undefined, 403)
