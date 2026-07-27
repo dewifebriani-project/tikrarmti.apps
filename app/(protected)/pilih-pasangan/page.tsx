@@ -414,41 +414,185 @@ export default function PilihPasanganPage() {
                 <p className="text-purple-50">Silakan pilih skema pasangan belajar.</p>
               </div>
 
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
-                  <input type="radio" name="partner" value="system_match" checked={formData.partner_type === 'system_match'} onChange={() => setFormData(p => ({ ...p, partner_type: 'system_match' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                  <div className="ml-3">
-                    <span className="font-medium text-gray-900 block">Dipasangkan oleh Sistem</span>
-                    <span className="text-sm text-gray-500">Anda akan dipasangkan secara otomatis dengan peserta lain.</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
-                  <input type="radio" name="partner" value="self_match" checked={formData.partner_type === 'self_match'} onChange={() => setFormData(p => ({ ...p, partner_type: 'self_match' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                  <div className="ml-3">
-                    <span className="font-medium text-gray-900 block">Memilih Sendiri</span>
-                    <span className="text-sm text-gray-500">Cari dan pilih pasangan dari daftar peserta.</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
-                  <input type="radio" name="partner" value="family" checked={formData.partner_type === 'family'} onChange={() => setFormData(p => ({ ...p, partner_type: 'family' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                  <div className="ml-3">
-                    <span className="font-medium text-gray-900 block">Talaqqi Keluarga</span>
-                    <span className="text-sm text-gray-500">Berpasangan dengan keluarga (Ibu, Anak, Saudara, dll).</span>
-                  </div>
-                </label>
-
-                {(registrationData?.oral_total_score >= 90 || (registrationData as any)?.oral_score >= 90) && (
-                  <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
-                    <input type="radio" name="partner" value="tarteel" checked={formData.partner_type === 'tarteel'} onChange={() => setFormData(p => ({ ...p, partner_type: 'tarteel' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                    <div className="ml-3">
-                      <span className="font-medium text-gray-900 block">Aplikasi Tarteel</span>
-                      <span className="text-sm text-gray-500">Setoran mandiri menggunakan aplikasi Tarteel (Khusus Nilai Lisan &ge; 90).</span>
+                {/* System Match */}
+                <div
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    formData.partner_type === 'system_match'
+                      ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setFormData(p => ({ ...p, partner_type: 'system_match', partner_user_id: '', partner_name: '', partner_relationship: '', partner_wa_phone: '', partner_notes: '' }))}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-purple-100 p-2 rounded-lg mt-0.5">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
                     </div>
-                  </label>
-                )}
-              </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">Dipasangkan oleh Sistem</h3>
+                      <p className="text-sm text-gray-500 mt-1">Anda akan dipasangkan secara otomatis dengan peserta lain berdasarkan jadwal utama, zona waktu, dan juz.</p>
+                    </div>
+                    <input
+                      type="radio"
+                      checked={formData.partner_type === 'system_match'}
+                      readOnly
+                      className="w-5 h-5 text-purple-600 mt-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Self Match */}
+                <div
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    formData.partner_type === 'self_match'
+                      ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setFormData(p => ({ ...p, partner_type: 'self_match', partner_user_id: '', partner_name: '', partner_relationship: '', partner_wa_phone: '', partner_notes: '' }))}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Users className="w-6 h-6 text-purple-600 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">Memilih Sendiri</h3>
+                      <p className="text-sm text-gray-500 mt-1">Cari dan pilih pasangan dari daftar peserta yang tersedia dan cocok dengan Anda.</p>
+                    </div>
+                    <input
+                      type="radio"
+                      checked={formData.partner_type === 'self_match'}
+                      readOnly
+                      className="w-5 h-5 text-purple-600 mt-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Family */}
+                <div
+                  className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                    formData.partner_type === 'family'
+                      ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setFormData(p => ({ ...p, partner_type: 'family', partner_user_id: '', partner_name: '', partner_relationship: '', partner_wa_phone: '', partner_notes: '' }))}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Users className="w-6 h-6 text-purple-600 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">Keluarga (Mahram)</h3>
+                      <p className="text-sm text-gray-500 mt-1">Setoran kepada keluarga (Ayah, Ibu, anak, atau saudara mahram).</p>
+                    </div>
+                    <input
+                      type="radio"
+                      checked={formData.partner_type === 'family'}
+                      readOnly
+                      className="w-5 h-5 text-purple-600 mt-2"
+                    />
+                  </div>
+
+                  {formData.partner_type === 'family' && (
+                    <div className="mt-4 space-y-3 pl-9">
+                      <input
+                        type="text"
+                        placeholder="Nama lengkap keluarga"
+                        value={formData.partner_name}
+                        onChange={e => setFormData(p => ({ ...p, partner_name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                      <select
+                        value={formData.partner_relationship}
+                        onChange={e => setFormData(p => ({ ...p, partner_relationship: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Pilih hubungan</option>
+                        <option value="ayah">Ayah</option>
+                        <option value="ibu">Ibu</option>
+                        <option value="suami">Suami</option>
+                        <option value="anak">Anak</option>
+                        <option value="saudara">Saudara (Mahram)</option>
+                        <option value="lainnya">Lainnya</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Nomor WhatsApp keluarga (opsional)"
+                        value={formData.partner_wa_phone}
+                        onChange={e => setFormData(p => ({ ...p, partner_wa_phone: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                      <textarea
+                        placeholder="Catatan tambahan (opsional)"
+                        value={formData.partner_notes}
+                        onChange={e => setFormData(p => ({ ...p, partner_notes: e.target.value }))}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Tarteel */}
+                <div
+                  className={`border rounded-lg p-4 transition-all ${
+                    !((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90)
+                      ? 'border-gray-100 bg-gray-50/50 cursor-not-allowed opacity-60' 
+                      : formData.partner_type === 'tarteel'
+                      ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-500 cursor-pointer'
+                      : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                  }`}
+                  onClick={() => {
+                    const oralScore = registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0;
+                    if (oralScore >= 90) {
+                      setFormData(p => ({ ...p, partner_type: 'tarteel', partner_user_id: '', partner_name: '', partner_relationship: '', partner_wa_phone: '', partner_notes: '' }))
+                    } else {
+                      toast.error('Pilihan Tarteel hanya tersedia untuk thalibah dengan nilai seleksi lisan minimal 90.')
+                    }
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Upload className="w-6 h-6 text-orange-600 mt-1" />
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                        Aplikasi Tarteel
+                        {!((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90) && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wider">
+                            Nilai &lt; 90
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">Setoran mandiri menggunakan aplikasi Tarteel dengan lampiran screenshot penggunaan.</p>
+                      {!((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90) && (
+                        <p className="text-xs text-red-600 mt-2 font-semibold">
+                          *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0})
+                        </p>
+                      )}
+                    </div>
+                    <input
+                      type="radio"
+                      checked={formData.partner_type === 'tarteel'}
+                      disabled={!((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90)}
+                      readOnly
+                      className="w-5 h-5 text-purple-600 mt-2"
+                    />
+                  </div>
+
+                  {((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90) && formData.partner_type === 'tarteel' && (
+                    <div className="mt-4 space-y-3 pl-9">
+                      <input
+                        type="text"
+                        placeholder="Username atau nama di aplikasi Tarteel"
+                        value={formData.partner_name}
+                        onChange={e => setFormData(p => ({ ...p, partner_name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                      <textarea
+                        placeholder="Catatan tambahan (opsional)"
+                        value={formData.partner_notes}
+                        onChange={e => setFormData(p => ({ ...p, partner_notes: e.target.value }))}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  )}
+                </div>
 
               {formData.partner_type === 'self_match' && (
                 <div className="bg-purple-50 rounded-lg p-5 border border-purple-100">

@@ -306,8 +306,8 @@ export async function submitDaftarUlang(
 
     let result
 
-    if (existing && (existing.status === 'draft' || existing.status === 'approved')) {
-      // Update existing draft or approved to save new halaqah/partner selections
+    if (existing && (existing.status === 'draft' || existing.status === 'submitted' || existing.status === 'approved')) {
+      // Update existing draft, submitted, or approved to save new halaqah/partner selections
       result = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .update(submissionData)
