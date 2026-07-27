@@ -13,6 +13,8 @@ interface DaftarUlangV2TableProps {
   onSelectOne: (id: string, checked: boolean) => void;
   onViewDetail: (submission: DaftarUlangSubmission) => void;
   onResetHalaqah: (submissionId: string) => void;
+  onRevertToDraft: (submissionId: string) => void;
+  onApprove: (submissionId: string) => void;
   resettingId: string | null;
   sortField: string;
   sortOrder: 'asc' | 'desc';
@@ -27,6 +29,8 @@ export function DaftarUlangV2Table({
   onSelectOne,
   onViewDetail,
   onResetHalaqah,
+  onRevertToDraft,
+  onApprove,
   resettingId,
   sortField,
   sortOrder,
@@ -225,27 +229,21 @@ export function DaftarUlangV2Table({
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-3">
-                      {/* Test Tertulis */}
-                      {submission.registration?.written_quiz_score !== null && submission.registration?.written_quiz_score !== undefined ? (
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-gray-900">
-                            {submission.registration.written_quiz_score}
-                          </span>
-                          <span className="text-[9px] text-gray-400 font-medium">TERTULIS</span>
-                        </div>
-                      ) : submission.registration?.written_quiz_submitted_at || submission.registration?.written_exam_submitted_at ? (
-                        <div className="flex flex-col">
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
-                            ✓ SELESAI
-                          </span>
-                          <span className="text-[9px] text-gray-400 font-medium mt-1">TERTULIS</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-300 font-bold italic">N/A</span>
-                          <span className="text-[9px] text-gray-400 font-medium mt-0.5">TERTULIS</span>
-                        </div>
-                      )}
+                      {/* Kuis Akad (Fase 3) */}
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-gray-900">
+                          {submission.akad_quiz?.score ?? '-'}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">KUIS AKAD (F3)</span>
+                      </div>
+
+                      {/* Ujian Tulis (Fase 1) */}
+                      <div className="flex flex-col pl-3 border-l border-gray-100">
+                        <span className="text-sm font-black text-gray-900">
+                          {submission.registration?.written_quiz_score ?? '-'}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F1)</span>
+                      </div>
 
                       {/* Lisan / Oral */}
                       {submission.registration?.oral_total_score !== null && submission.registration?.oral_total_score !== undefined ? (
@@ -318,6 +316,34 @@ export function DaftarUlangV2Table({
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      {(submission.status === 'submitted' || submission.status === 'approved') && (
+                        <button
+                          onClick={() => onRevertToDraft(submission.id)}
+                          disabled={resettingId === submission.id}
+                          className="p-2 rounded-xl bg-gray-50 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50"
+                          title="Revert to Draft"
+                        >
+                          {resettingId === submission.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                      {submission.status === 'submitted' && (
+                        <button
+                          onClick={() => onApprove(submission.id)}
+                          disabled={resettingId === submission.id}
+                          className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors disabled:opacity-50"
+                          title="Approve"
+                        >
+                          {resettingId === submission.id ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          )}
+                        </button>
+                      )}
                       {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
                         <button
                           onClick={() => onResetHalaqah(submission.id)}

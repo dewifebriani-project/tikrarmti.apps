@@ -981,6 +981,60 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     setSelectedIds(newSelected);
   };
 
+  const handleRevertToDraft = async (submissionId: string) => {
+    if (!confirm('Apakah Anda yakin ingin mengubah status pendaftaran ini menjadi DRAFT?')) {
+      return;
+    }
+
+    setResettingId(submissionId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/revert-status`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to revert to draft');
+      }
+
+      toast.success('Pendaftaran berhasil diubah menjadi Draft');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error reverting to draft:', error);
+      toast.error('Gagal revert ke draft: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  const handleApprove = async (submissionId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menyetujui pendaftaran ini?')) {
+      return;
+    }
+
+    setResettingId(submissionId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/approve`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to approve submission');
+      }
+
+      toast.success('Pendaftaran berhasil disetujui');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error approving submission:', error);
+      toast.error('Gagal menyetujui pendaftaran: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
   const handleBulkAction = async () => {
     setIsBulkProcessing(true);
     try {
@@ -1102,6 +1156,8 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onSelectOne={handleSelectOne}
         onViewDetail={(sub) => setSelectedSubmission(sub)}
         onResetHalaqah={handleResetHalaqah}
+        onRevertToDraft={handleRevertToDraft}
+        onApprove={handleApprove}
         resettingId={resettingId}
         sortField={sortField}
         sortOrder={sortOrder}

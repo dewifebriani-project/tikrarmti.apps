@@ -298,10 +298,9 @@ export async function submitDaftarUlang(
       akad_files: data.akad_files || null,
       akad_submitted_at: new Date().toISOString(),
 
-      // Status - auto approved per user request
-      status: 'approved' as const,
+      // Status - submit for admin review
+      status: 'submitted' as const,
       submitted_at: new Date().toISOString(),
-      reviewed_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 

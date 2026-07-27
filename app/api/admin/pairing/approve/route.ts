@@ -78,7 +78,6 @@ export async function POST(request: Request) {
       const { data: updateResult1, error: updateError1 } = await supabase
         .from('daftar_ulang_submissions')
         .update({
-          status: 'approved',
           pairing_status: 'paired'
         })
         .eq('user_id', user_1_id)
@@ -90,7 +89,6 @@ export async function POST(request: Request) {
       const { data: updateResult2, error: updateError2 } = await supabase
         .from('daftar_ulang_submissions')
         .update({
-          status: 'approved',
           pairing_status: 'paired'
         })
         .eq('user_id', user_2_id)
@@ -137,11 +135,10 @@ export async function POST(request: Request) {
 
     if (pairingError) throw pairingError
 
-    // 6. Update both submissions to approved status
+    // 6. Update both submissions to paired pairing_status
     const { data: updateResult3, error: updateError3 } = await supabase
       .from('daftar_ulang_submissions')
       .update({
-        status: 'approved',
         pairing_status: 'paired'
       })
       .eq('user_id', user_1_id)
@@ -153,7 +150,6 @@ export async function POST(request: Request) {
     const { data: updateResult4, error: updateError4 } = await supabase
       .from('daftar_ulang_submissions')
       .update({
-        status: 'approved',
         pairing_status: 'paired'
       })
       .eq('user_id', user_2_id)

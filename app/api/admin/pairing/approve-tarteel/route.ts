@@ -50,7 +50,6 @@ export async function POST(request: Request) {
     const { error: updateError } = await supabase
       .from('daftar_ulang_submissions')
       .update({
-        status: 'approved',
         reviewed_at: new Date().toISOString(),
         reviewed_by: user.id,
         pairing_status: 'paired',

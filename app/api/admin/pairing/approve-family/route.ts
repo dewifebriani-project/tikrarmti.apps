@@ -46,11 +46,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
     }
 
-    // Update submission status to approved
+    // Update submission status
     const { error: updateError } = await supabase
       .from('daftar_ulang_submissions')
       .update({
-        status: 'approved',
         reviewed_at: new Date().toISOString(),
         reviewed_by: user.id,
         pairing_status: 'paired',

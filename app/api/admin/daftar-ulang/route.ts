@@ -178,14 +178,31 @@ export async function GET(request: NextRequest) {
           });
         }
       }
+
+      // Fetch Akad Quiz scores
+      const { data: akadQuizzes } = await supabaseAdmin
+        .from('akad_quiz_attempts')
+        .select('user_id, score, passed')
+        .in('user_id', userIds)
+        .order('score', { ascending: false });
+
+      const akadQuizMap: Record<string, any> = {};
+      akadQuizzes?.forEach((quiz: any) => {
+        if (!akadQuizMap[quiz.user_id]) {
+          akadQuizMap[quiz.user_id] = quiz;
+        }
+      });
+
+      // Attach partners and akad quiz to submissions
+      dataWithMuallimah = dataWithMuallimah?.map((sub: any) => ({
+        ...sub,
+        study_partners: studyPartnersMap[sub.user_id] || [],
+        akad_quiz: akadQuizMap[sub.user_id] || null,
+        is_mutual_match: mutualMatches?.has(sub.user_id) || false
+      }));
     }
 
-    // Attach study partners and mutual match flag to submissions
-    const dataWithPartners = dataWithMuallimah?.map((sub: any) => ({
-      ...sub,
-      study_partners: studyPartnersMap[sub.user_id] || [],
-      is_mutual_match: mutualMatches?.has(sub.user_id) || false
-    }));
+    const dataWithPartners = dataWithMuallimah;
 
     // Get total count
     let countQuery = supabaseAdmin

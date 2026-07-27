@@ -73,6 +73,10 @@ export interface DaftarUlangSubmission {
     location?: string;
   };
   registration?: any;
+  akad_quiz?: {
+    score: number;
+    passed: boolean;
+  };
 }
 
 export interface DaftarUlangStatsData {

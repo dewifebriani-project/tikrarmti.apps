@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     const oralScore = registration.oral_total_score ?? 0;
-    const isPassed = registration.selection_status === 'selected' || oralScore >= 80;
+    const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;
 
     if (!isPassed) {
       return NextResponse.json(
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     const allSelectedThalibah = (rawAllThalibah || []).filter((reg: any) => {
       const score = reg.oral_total_score ?? 0;
-      return reg.selection_status === 'selected' || score >= 80;
+      return reg.selection_status === 'selected' || reg.selection_status === 'waitlist' || score >= 80;
     })
 
     // Fetch all submissions in this batch to determine who selected who
