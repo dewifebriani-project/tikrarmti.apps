@@ -36,9 +36,11 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
   const authenticatedRoutes = [
     '/dashboard',
     '/jurnal-harian',
+    '/jurnal-pra-tikrar',
     '/tashih',
     '/perjalanan-saya',
     '/daftar-ulang',
+    '/pilih-pasangan',
     '/seleksi',
     '/ujian',
     '/alumni',
