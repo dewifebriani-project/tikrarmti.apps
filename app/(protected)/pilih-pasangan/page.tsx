@@ -438,6 +438,16 @@ export default function PilihPasanganPage() {
                     <span className="text-sm text-gray-500">Berpasangan dengan keluarga (Ibu, Anak, Saudara, dll).</span>
                   </div>
                 </label>
+
+                {(registrationData?.oral_total_score >= 90 || (registrationData as any)?.oral_score >= 90) && (
+                  <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
+                    <input type="radio" name="partner" value="tarteel" checked={formData.partner_type === 'tarteel'} onChange={() => setFormData(p => ({ ...p, partner_type: 'tarteel' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
+                    <div className="ml-3">
+                      <span className="font-medium text-gray-900 block">Aplikasi Tarteel</span>
+                      <span className="text-sm text-gray-500">Setoran mandiri menggunakan aplikasi Tarteel (Khusus Nilai Lisan &ge; 90).</span>
+                    </div>
+                  </label>
+                )}
               </div>
 
               {formData.partner_type === 'self_match' && (
@@ -450,23 +460,100 @@ export default function PilihPasanganPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-purple-500 mb-4"
                   />
-                  <div className="max-h-60 overflow-y-auto bg-white rounded border">
+                  <div className="max-h-[500px] overflow-y-auto mt-4 pr-2">
                     {filteredPartners.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">Tidak ada peserta ditemukan</div>
+                      <div className="p-8 text-center text-gray-500 bg-white rounded-lg border">
+                        {searchQuery ? 'Tidak ada peserta dengan nama tersebut.' : 'Tidak ada peserta yang tersedia.'}
+                      </div>
                     ) : (
-                      <div className="divide-y">
-                        {filteredPartners.map((p) => (
-                          <div
-                            key={p.user_id}
-                            onClick={() => setFormData(f => ({ ...f, partner_user_id: p.user_id, partner_name: p.users?.full_name }))}
-                            className={`p-3 cursor-pointer hover:bg-purple-50 flex items-center justify-between
-                              ${formData.partner_user_id === p.user_id ? 'bg-purple-100 text-purple-900 font-medium' : 'text-gray-700'}
-                            `}
-                          >
-                            <span>{p.users?.full_name}</span>
-                            {formData.partner_user_id === p.user_id && <CheckCircle className="w-4 h-4 text-purple-600" />}
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredPartners.map((p) => {
+                          const reg = p.registrations?.[0]
+                          
+                          // Calculate age
+                          let ageText = '-'
+                          if (reg?.birth_date) {
+                            const today = new Date()
+                            const birthDate = new Date(reg.birth_date)
+                            let age = today.getFullYear() - birthDate.getFullYear()
+                            const m = today.getMonth() - birthDate.getMonth()
+                            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                              age--
+                            }
+                            ageText = `${age} thn`
+                          }
+
+                          const formatTimeSlot = (slot: string) => {
+                            const slots: Record<string, string> = {
+                              'pagi_1': 'Pagi (05:00-07:00)', 'pagi_2': 'Pagi (07:00-09:00)', 'pagi_3': 'Pagi (09:00-11:30)',
+                              'siang_1': 'Siang (12:30-14:30)', 'sore_1': 'Sore (15:30-17:30)',
+                              'malam_1': 'Malam (18:30-20:30)', 'malam_2': 'Malam (20:30-22:30)'
+                            }
+                            return slots[slot] || slot
+                          }
+
+                          return (
+                            <div
+                              key={p.user_id}
+                              onClick={() => setFormData(f => ({ ...f, partner_user_id: p.user_id, partner_name: p.users?.full_name }))}
+                              className={`relative p-4 border rounded-xl cursor-pointer transition-all flex flex-col justify-between hover:shadow-md
+                                ${formData.partner_user_id === p.user_id ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' : 'bg-white border-gray-200 hover:border-purple-300'}
+                              `}
+                            >
+                              <div className="absolute top-3 right-3 flex flex-col items-end space-y-1">
+                                {formData.partner_user_id === p.user_id && (
+                                  <div className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm flex items-center space-x-1">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span>Dipilih</span>
+                                  </div>
+                                )}
+                                {p.has_user_selected_them && (
+                                  <div className="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+                                    Memilih Anda
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <div className="flex items-center space-x-3 mb-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center text-purple-700 font-bold text-lg">
+                                    {p.users?.full_name?.charAt(0) || '?'}
+                                  </div>
+                                  <div className="pr-16">
+                                    <h4 className="font-semibold text-gray-900 leading-tight">
+                                      {p.users?.full_name}
+                                    </h4>
+                                    <p className="text-xs text-gray-500">{ageText} • {reg?.domicile || 'Lokasi tidak diketahui'}</p>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                  <div className={`rounded p-2 border ${p.juz_compatible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}>
+                                    <span className="block text-gray-500 mb-1">Juz Pilihan</span>
+                                    <span className={`font-medium ${p.juz_compatible ? 'text-green-700' : 'text-gray-900'}`}>{reg?.chosen_juz || '-'}</span>
+                                    {p.juz_compatible && <span className="text-[10px] text-green-600 block mt-0.5">Sama dengan Anda</span>}
+                                  </div>
+                                  <div className="bg-gray-50 rounded p-2 border border-transparent">
+                                    <span className="block text-gray-500 mb-1">Zona Waktu</span>
+                                    <span className="font-medium text-gray-900">{reg?.timezone || 'WIB'}</span>
+                                  </div>
+                                  <div className={`rounded p-2 col-span-2 border ${p.schedule_compatible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}>
+                                    <span className="block text-gray-500 mb-1">Ketersediaan Waktu</span>
+                                    <span className={`font-medium ${p.schedule_compatible ? 'text-green-700' : 'text-gray-900'}`}>
+                                      {reg?.main_time_slot ? formatTimeSlot(reg.main_time_slot) : '-'}
+                                    </span>
+                                    {reg?.backup_time_slot && (
+                                      <span className="block text-gray-500 mt-1">
+                                        Alt: {formatTimeSlot(reg.backup_time_slot)}
+                                      </span>
+                                    )}
+                                    {p.schedule_compatible && <span className="text-[10px] text-green-600 block mt-0.5">Jadwal cocok dengan Anda</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -499,13 +586,27 @@ export default function PilihPasanganPage() {
                 </div>
               )}
 
+              {formData.partner_type === 'tarteel' && (
+                <div className="bg-purple-50 rounded-lg p-5 border border-purple-100 space-y-4">
+                  <h3 className="font-medium text-purple-900">Data Akun Tarteel</h3>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Username / Nama di Aplikasi Tarteel</label>
+                    <input type="text" value={formData.partner_name} onChange={e => setFormData(f => ({ ...f, partner_name: e.target.value }))} className="w-full px-4 py-2 border rounded-lg focus:ring-purple-500" placeholder="Masukkan nama profil Tarteel Anda" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Catatan Tambahan (Opsional)</label>
+                    <textarea value={formData.partner_notes} onChange={e => setFormData(f => ({ ...f, partner_notes: e.target.value }))} className="w-full px-4 py-2 border rounded-lg focus:ring-purple-500" rows={2} placeholder="Tambahkan catatan jika ada" />
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between pt-6 border-t">
                 <Button variant="outline" onClick={() => setCurrentStep('halaqah')}>
                   <ChevronLeft className="w-4 h-4 mr-2" /> Kembali
                 </Button>
                 <Button 
                   onClick={handleSubmit}
-                  disabled={!formData.partner_type || isSubmitting || (formData.partner_type === 'self_match' && !formData.partner_user_id) || (formData.partner_type === 'family' && (!formData.partner_name || !formData.partner_relationship))}
+                  disabled={!formData.partner_type || isSubmitting || (formData.partner_type === 'self_match' && !formData.partner_user_id) || (formData.partner_type === 'family' && (!formData.partner_name || !formData.partner_relationship)) || (formData.partner_type === 'tarteel' && !formData.partner_name)}
                   className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {isSubmitting ? 'Memproses...' : 'Simpan & Selesai'}
