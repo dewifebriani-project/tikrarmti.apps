@@ -50,7 +50,8 @@ export function DaftarUlangV2Table({
     });
   };
 
-  const getStatusBadge = (status: string) => {
+  const renderStatusDropdown = (submission: DaftarUlangSubmission) => {
+    const status = submission.status;
     const styles = {
       draft: 'bg-gray-100 text-gray-800 border-gray-200',
       submitted: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -58,20 +59,45 @@ export function DaftarUlangV2Table({
       rejected: 'bg-red-50 text-red-700 border-red-200',
     };
 
-    const labels = {
-      draft: 'Draft',
-      submitted: 'Submitted',
-      approved: 'Approved',
-      rejected: 'Rejected',
-    };
-
     return (
-      <span className={cn(
-        "px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-sm",
-        styles[status as keyof typeof styles] || styles.draft
-      )}>
-        {labels[status as keyof typeof labels] || status}
-      </span>
+      <div className="relative inline-block">
+        <select
+          value={status}
+          disabled={resettingId === submission.id}
+          onChange={(e) => {
+            const newStatus = e.target.value;
+            if (newStatus === status) return;
+            
+            if (newStatus === 'approved' && status === 'submitted') {
+              onApprove(submission.id);
+            } else if (newStatus === 'submitted' && status === 'approved') {
+              onUnapprove(submission.id);
+            } else if (newStatus === 'draft' && (status === 'submitted' || status === 'approved')) {
+              if (window.confirm('Yakin ingin mengembalikan ke Draft?')) {
+                onRevertToDraft(submission.id);
+              } else {
+                e.target.value = status;
+              }
+            } else {
+              e.target.value = status;
+              window.alert('Transisi status tidak valid.');
+            }
+          }}
+          className={cn(
+            "appearance-none px-2.5 py-1 pr-6 rounded-lg text-[11px] font-bold border shadow-sm cursor-pointer outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50",
+            styles[status as keyof typeof styles] || styles.draft
+          )}
+        >
+          <option value="draft">Draft</option>
+          <option value="submitted">Submitted</option>
+          <option value="approved">Approved</option>
+        </select>
+        {resettingId === submission.id ? (
+          <RefreshCw className="w-3 h-3 animate-spin absolute right-1.5 top-1/2 -translate-y-1/2 text-current opacity-70 pointer-events-none" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-current opacity-50 pointer-events-none" />
+        )}
+      </div>
     );
   };
 
@@ -303,7 +329,7 @@ export function DaftarUlangV2Table({
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {getStatusBadge(submission.status)}
+                    {renderStatusDropdown(submission)}
                   </td>
                   <td className="px-6 py-4 text-xs font-medium text-gray-600">
                     {formatDate(submission.submitted_at || submission.created_at)}
@@ -323,44 +349,6 @@ export function DaftarUlangV2Table({
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {(submission.status === 'submitted' || submission.status === 'approved') && (
-                        <button
-                          onClick={() => onRevertToDraft(submission.id)}
-                          disabled={resettingId === submission.id}
-                          className="p-2 rounded-xl bg-gray-50 hover:bg-gray-200 text-gray-600 transition-colors disabled:opacity-50"
-                          title="Revert to Draft"
-                        >
-                          {resettingId === submission.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                      {submission.status === 'submitted' && (
-                        <button
-                          onClick={() => onApprove(submission.id)}
-                          disabled={resettingId === submission.id}
-                          className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors disabled:opacity-50"
-                          title="Approve"
-                        >
-                          {resettingId === submission.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <CheckCircle className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                      {submission.status === 'approved' && (
-                        <button
-                          onClick={() => onUnapprove(submission.id)}
-                          disabled={resettingId === submission.id}
-                          className="p-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 transition-colors disabled:opacity-50"
-                          title="Batal Approve (Revert ke Submitted)"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
                       {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
                         <button
                           onClick={() => onResetHalaqah(submission.id)}
