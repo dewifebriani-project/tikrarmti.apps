@@ -267,10 +267,18 @@ export function DaftarUlangV2Table({
 
                       {/* Ujian Tulis (Fase 3 Placement) */}
                       <div className="flex flex-col pl-3 border-l border-gray-100">
-                        <span className="text-sm font-black text-gray-900">
+                        <span className="text-sm font-black text-gray-900 flex items-center gap-1">
                           {submission.registration?.exam_score ?? '-'}
                         </span>
-                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F3)</span>
+                        <div className="flex flex-col mt-0.5">
+                          <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F3)</span>
+                          {submission.registration?.exam_score == null && submission.is_alumni && (
+                            <span className="text-[8px] text-blue-500 font-semibold">(Alumni)</span>
+                          )}
+                          {submission.registration?.exam_score == null && !submission.is_alumni && submission.registration?.chosen_juz?.startsWith('30') && (
+                            <span className="text-[8px] text-orange-500 font-semibold">(Juz 30)</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Lisan / Oral */}

@@ -65,6 +65,7 @@ export interface TikrarTahfidz {
   batch?: { name: string; min_exam_score?: number | null };
   program?: { name: string };
   isAlumni?: boolean;
+  isDuplicate?: boolean;
 }
 
 export interface TikrarStatsData {

@@ -100,7 +100,8 @@ export default function PilihPasanganPage() {
           }))
         }
       } else {
-        toast.error(data.error || 'Gagal memuat data pendaftaran')
+        const errorMessage = typeof data.error === 'object' ? data.error.message : data.error;
+        toast.error(errorMessage || 'Gagal memuat data pendaftaran')
         router.push('/perjalanan-saya')
       }
     } catch (error: any) {

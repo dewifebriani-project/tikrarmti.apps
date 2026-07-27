@@ -132,6 +132,33 @@ export async function GET(request: Request) {
       }
     }
 
+    // 6. Detect duplicate registrations
+    const batchIdsInPage = Array.from(new Set(enrichedData.map((d: any) => d.batch_id).filter(Boolean)));
+    if (batchIdsInPage.length > 0) {
+      const { data: allRegs } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('user_id, batch_id')
+        .in('batch_id', batchIdsInPage);
+
+      if (allRegs) {
+        const counts: Record<string, number> = {};
+        allRegs.forEach(reg => {
+          if (reg.user_id && reg.batch_id) {
+            const key = `${reg.user_id}_${reg.batch_id}`;
+            counts[key] = (counts[key] || 0) + 1;
+          }
+        });
+
+        enrichedData = enrichedData.map((item: any) => {
+          if (item.user_id && item.batch_id) {
+            const key = `${item.user_id}_${item.batch_id}`;
+            return { ...item, is_duplicate: counts[key] > 1 };
+          }
+          return { ...item, is_duplicate: false };
+        });
+      }
+    }
+
     return ApiResponses.success({
       data: enrichedData,
       pagination: {

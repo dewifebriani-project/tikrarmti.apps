@@ -33,21 +33,22 @@ export async function GET(request: NextRequest) {
 
     const registration = registrations[0]
     
-    const oralScore = registration.oral_total_score ?? 0;
-    const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;
-    
-    if (!isPassed) {
-      return ApiResponses.error('FORBIDDEN', 'Pendaftaran Anda belum lulus seleksi', undefined, 403)
-    }
-
-    batchId = registration.batch_id
-
     const { data: existingSubmission } = await supabase
       .from('daftar_ulang_submissions')
       .select('*')
       .eq('user_id', user.id)
       .eq('registration_id', registration.id)
       .maybeSingle()
+
+    const oralScore = registration.oral_total_score ?? 0;
+    const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;
+    
+    // Jika user belum lulus seleksi tapi sudah memiliki submission Akad, izinkan lanjut pilih halaqah
+    if (!isPassed && !existingSubmission) {
+      return ApiResponses.error('FORBIDDEN', 'Pendaftaran Anda belum lulus seleksi', undefined, 403)
+    }
+
+    batchId = registration.batch_id
 
     // Ambil Halaqah yang sesuai
     const { data: rawHalaqah, error: halaqahError } = await supabase

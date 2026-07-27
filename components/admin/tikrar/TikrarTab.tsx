@@ -98,6 +98,23 @@ export function TikrarTab({ user }: { user: any }) {
 
       let filteredData = data as TikrarTahfidz[];
 
+      // Detect duplicates
+      const userBatchCounts = new Map<string, number>();
+      for (const item of filteredData) {
+        if (!item.user_id || !item.batch_id) continue;
+        const key = `${item.user_id}_${item.batch_id}`;
+        userBatchCounts.set(key, (userBatchCounts.get(key) || 0) + 1);
+      }
+      
+      filteredData = filteredData.map(item => {
+        if (!item.user_id || !item.batch_id) return item;
+        const key = `${item.user_id}_${item.batch_id}`;
+        return {
+          ...item,
+          isDuplicate: (item as any).is_duplicate || (userBatchCounts.get(key) || 0) > 1
+        };
+      });
+
       // Fetch previous registrations to determine alumni status
       const userIds = filteredData.map(t => t.user_id);
       const alumniUserIds = new Set<string>();

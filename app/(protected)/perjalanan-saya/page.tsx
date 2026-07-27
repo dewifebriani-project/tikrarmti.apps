@@ -304,7 +304,9 @@ export default function PerjalananSaya() {
       oralScore: registration?.oral_total_score || (registration as any)?.oral_score,
       registrationId: registration?.id,
       chosenJuz: registration?.chosen_juz,
-      examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
+      examStatus: (registration as any)?.exam_status,
+      examScore: registration?.exam_score,
+      examSubmittedAt: (registration as any)?.exam_submitted_at,
       needsRevision: (registration as any)?.needs_revision || (registration as any)?.oral_assessment_notes === 'NEEDS_REVISION',
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: displaySelectionStatus,
@@ -406,7 +408,7 @@ export default function PerjalananSaya() {
 
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
-    const hasWritten = !!(registrationStatus?.writtenQuizSubmittedAt || registrationStatus?.examScore);
+    const hasWritten = !!(registrationStatus?.examStatus === 'completed' || registrationStatus?.examScore != null || registrationStatus?.examSubmittedAt != null);
 
     return [
       { 

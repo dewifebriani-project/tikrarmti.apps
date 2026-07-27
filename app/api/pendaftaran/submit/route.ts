@@ -155,26 +155,57 @@ export async function POST(request: Request) {
       submission_date: new Date().toISOString()
     };
 
-    // 8. Insert into database
-    const { data: result, error: insertError } = await supabaseAdmin
+    // 8. Check for existing registration in the same batch
+    const { data: existingReg } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .insert(submissionData)
       .select('id')
+      .eq('user_id', context.userId)
+      .eq('batch_id', validatedBody.batch_id)
       .maybeSingle();
 
-    if (insertError) {
-      logger.error('Registration insertion error', { error: insertError, userId: context.userId });
-      return ApiResponses.databaseError(insertError);
+    let result;
+    if (existingReg) {
+      // Update existing registration
+      const { data: updateResult, error: updateError } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .update({
+          ...submissionData,
+          created_at: undefined, // Don't override original created_at
+          status: undefined, // Don't reset status if admin has reviewed
+          selection_status: undefined // Don't reset selection status if admin has set it
+        })
+        .eq('id', existingReg.id)
+        .select('id')
+        .maybeSingle();
+
+      if (updateError) {
+        logger.error('Registration update error', { error: updateError, userId: context.userId });
+        return ApiResponses.databaseError(updateError);
+      }
+      result = updateResult;
+    } else {
+      // Insert new registration
+      const { data: insertResult, error: insertError } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .insert(submissionData)
+        .select('id')
+        .maybeSingle();
+
+      if (insertError) {
+        logger.error('Registration insertion error', { error: insertError, userId: context.userId });
+        return ApiResponses.databaseError(insertError);
+      }
+      result = insertResult;
     }
 
     if (!result) {
-      logger.error('Registration insertion returned no result', { userId: context.userId });
+      logger.error('Registration operation returned no result', { userId: context.userId });
       return ApiResponses.serverError('Failed to retrieve registration ID after submission.');
     }
 
     logger.info('Registration submitted successfully', { registrationId: result.id, userId: context.userId });
 
-    return ApiResponses.success({ id: result.id }, 'Registration submitted successfully', 201);
+    return ApiResponses.success({ id: result.id }, existingReg ? 'Pendaftaran berhasil diperbarui' : 'Pendaftaran berhasil dikirim', existingReg ? 200 : 201);
 
   } catch (error) {
     logger.error('[Pendaftaran Submit API] Unexpected error', { error: error as Error, ip: clientIP });

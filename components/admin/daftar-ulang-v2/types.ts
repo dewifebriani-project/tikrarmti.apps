@@ -38,6 +38,7 @@ export interface DaftarUlangSubmission {
   updated_at: string;
   submitted_at?: string;
   reviewed_at?: string;
+  is_alumni?: boolean;
 
   // Relations
   user?: {

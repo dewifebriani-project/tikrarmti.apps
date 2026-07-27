@@ -121,6 +121,11 @@ export function TikrarTable({
                               Baru
                             </span>
                           )}
+                          {t.isDuplicate && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-red-50 text-red-600 border border-red-100 select-none" title="Pendaftaran Ganda Terdeteksi">
+                              Ganda
+                            </span>
+                          )}
                         </div>
                         <span className="text-xs text-gray-550 truncate">{t.user?.email || '-'}</span>
                         {(t.wa_phone || t.user?.whatsapp) && (

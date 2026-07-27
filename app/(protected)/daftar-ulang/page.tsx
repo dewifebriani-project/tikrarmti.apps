@@ -197,10 +197,9 @@ function DaftarUlangContent() {
         }
 
         const hasWritten = !!(
-          selectedRegistration.written_quiz_submitted_at ||
-          selectedRegistration.written_submitted_at ||
+          selectedRegistration.exam_status === 'completed' ||
           selectedRegistration.exam_score != null ||
-          selectedRegistration.written_quiz_score != null
+          selectedRegistration.exam_submitted_at != null
         );
 
         // Juz 30 tidak wajib Test Tertulis, sama seperti Alumni
@@ -469,6 +468,10 @@ function DaftarUlangContent() {
     } else if (currentStep === 'partner') {
       if (!formData.partner_type) {
         toast.error('Pilih tipe pasangan')
+        return
+      }
+      if (formData.partner_type === 'self_match' && !formData.partner_user_id) {
+        toast.error('Pilih nama pasangan belajar terlebih dahulu')
         return
       }
       handleSubmit()

@@ -193,12 +193,28 @@ export async function GET(request: NextRequest) {
         }
       });
 
+      // Fetch alumni status by checking for previous approved registrations
+      const alumniUserIds = new Set<string>();
+      const { data: prevRegs } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('status', 'approved')
+        .eq('selection_status', 'selected');
+
+      if (prevRegs) {
+        prevRegs.forEach((reg: any) => {
+          alumniUserIds.add(reg.user_id);
+        });
+      }
+
       // Attach partners and akad quiz to submissions
       dataWithMuallimah = dataWithMuallimah?.map((sub: any) => ({
         ...sub,
         study_partners: studyPartnersMap[sub.user_id] || [],
         akad_quiz: akadQuizMap[sub.user_id] || null,
-        is_mutual_match: mutualMatches?.has(sub.user_id) || false
+        is_mutual_match: mutualMatches?.has(sub.user_id) || false,
+        is_alumni: alumniUserIds.has(sub.user_id)
       }));
     }
 
