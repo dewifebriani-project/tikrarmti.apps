@@ -31,6 +31,7 @@ export interface DaftarUlangSubmission {
 
   // Pengabdian
   pengabdian_choice?: string | null;
+  pengabdian_type?: string | null;
   donasi_amount?: number | null;
 
   // Akad

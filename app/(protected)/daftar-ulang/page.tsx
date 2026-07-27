@@ -367,7 +367,12 @@ function DaftarUlangContent() {
       partner_relationship: existingSubmission.partner_relationship || '',
       partner_wa_phone: existingSubmission.partner_wa_phone || '',
       partner_notes: existingSubmission.partner_notes || '',
-      pengabdian_choice: existingSubmission.pengabdian_choice || '',
+      pengabdian_choice: (existingSubmission.pengabdian_choice || '').includes(' - ') 
+        ? (existingSubmission.pengabdian_choice || '').split(' - ')[0] 
+        : existingSubmission.pengabdian_choice || '',
+      pengabdian_type: (existingSubmission.pengabdian_choice || '').includes(' - ')
+        ? (existingSubmission.pengabdian_choice || '').split(' - ')[1]
+        : '',
       donasi_amount: existingSubmission.donasi_amount ? String(existingSubmission.donasi_amount) : '',
       // Preserve akad files for both draft and submitted
       akad_files: existingSubmission.akad_files || [],
@@ -409,7 +414,9 @@ function DaftarUlangContent() {
           confirmed_backup_time_slot: formData.confirmed_backup_time_slot,
           confirmed_wa_phone: formData.confirmed_wa_phone,
           confirmed_address: formData.confirmed_address,
-          pengabdian_choice: formData.pengabdian_choice,
+          pengabdian_choice: formData.pengabdian_type 
+            ? `${formData.pengabdian_choice} - ${formData.pengabdian_type}` 
+            : formData.pengabdian_choice,
           donasi_amount: formData.donasi_amount,
           akad_files: formData.akad_files,
         }

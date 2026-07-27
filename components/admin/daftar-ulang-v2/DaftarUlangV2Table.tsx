@@ -319,31 +319,54 @@ export function DaftarUlangV2Table({
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-xs font-medium text-gray-700">
-                      {submission.pengabdian_choice === 'muallimah' && (
-                        <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
-                          Muallimah
-                        </span>
-                      )}
-                      {submission.pengabdian_choice === 'musyrifah' && (
-                        <span className="text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-md border border-purple-100">
-                          Musyrifah
-                        </span>
-                      )}
-                      {submission.pengabdian_choice === 'donasi' && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
-                            Donasi
-                          </span>
-                          {submission.donasi_amount && (
-                            <span className="text-[11px] text-gray-600 font-medium">
-                              Rp {submission.donasi_amount.toLocaleString('id-ID')}
+                      {(() => {
+                        const val = (submission.pengabdian_type || submission.pengabdian_choice || '').toLowerCase();
+                        if (!val || val === '-' || val === 'tidak, qadarullah belum bisa.') {
+                          return <span className="text-gray-400 italic">-</span>;
+                        }
+                        
+                        if (val.includes('muallimah')) {
+                          return (
+                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                              Muallimah
                             </span>
-                          )}
-                        </div>
-                      )}
-                      {!submission.pengabdian_choice && (
-                        <span className="text-gray-400 italic">-</span>
-                      )}
+                          );
+                        }
+                        if (val.includes('musyrifah')) {
+                          return (
+                            <span className="text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-md border border-purple-100">
+                              Musyrifah
+                            </span>
+                          );
+                        }
+                        if (val.includes('admin')) {
+                          return (
+                            <span className="text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                              Admin
+                            </span>
+                          );
+                        }
+                        if (val.includes('donasi') || val.includes('donatur')) {
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
+                                Donasi
+                              </span>
+                              {submission.donasi_amount && (
+                                <span className="text-[11px] text-gray-600 font-medium">
+                                  Rp {submission.donasi_amount.toLocaleString('id-ID')}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <span className="text-gray-700 font-medium bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                            {submission.pengabdian_type || submission.pengabdian_choice}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4">
