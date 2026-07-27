@@ -88,7 +88,11 @@ export async function GET(request: NextRequest) {
       if (quotaResponse.ok) {
         const quotaResult = await quotaResponse.json()
         if (quotaResult.data && Array.isArray(quotaResult.data.halaqah)) {
-          halaqahWithQuotas = quotaResult.data.halaqah
+          const quotaMap = new Map(quotaResult.data.halaqah.map((h: any) => [h.id, h]))
+          halaqahWithQuotas = rawHalaqah.map(h => {
+            const quotaInfo = quotaMap.get(h.id)
+            return quotaInfo ? { ...h, ...quotaInfo } : h
+          })
         }
       }
       
