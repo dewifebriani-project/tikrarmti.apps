@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/daftar-ulang/partners
  * Fetch ALL eligible partners for self-matching
@@ -52,33 +54,48 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       )
     }
+    
+    // Use admin client to bypass RLS when searching for other participants
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+    const adminClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // Fetch ALL thalibah who passed selection in the same batch (for partner search)
     // INCLUDING extra fields for the marketplace UI
-    const { data: rawAllThalibah } = await supabase
+    const { data: rawAllThalibah, error: errTest } = await adminClient
       .from('pendaftaran_tikrar_tahfidz')
       .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score')
       .eq('batch_id', registration.batch_id)
       .neq('user_id', user.id) // Exclude current user
       
-    const allSelectedThalibah = (rawAllThalibah || []).filter(reg => {
+    if (errTest) {
+      console.error('Error fetching rawAllThalibah:', errTest)
+    }
+
+    const allSelectedThalibah = (rawAllThalibah || []).filter((reg: any) => {
       const score = reg.oral_total_score ?? 0;
       return reg.selection_status === 'selected' || score >= 80;
     })
 
     // Fetch all submissions in this batch to determine who selected who
-    const { data: allSubmissions } = await supabase
+    const { data: allSubmissions, error: errSub } = await adminClient
       .from('daftar_ulang_submissions')
       .select('user_id, partner_user_id')
       .eq('batch_id', registration.batch_id)
       .eq('partner_type', 'self_match')
       .in('status', ['submitted', 'approved']) // Only locked submissions count
+      
+    if (errSub) {
+      console.error('Error fetching allSubmissions:', errSub)
+    }
 
     const submissions = allSubmissions || []
     
     // Map of user_id -> partner_user_id they selected
     const userChoices = new Map<string, string>()
-    submissions.forEach(sub => {
+    submissions.forEach((sub: any) => {
       if (sub.partner_user_id) {
         userChoices.set(sub.user_id, sub.partner_user_id)
       }
@@ -106,7 +123,7 @@ export async function GET(request: NextRequest) {
     const currentUserChoice = userChoices.get(user.id)
 
     // Filter available partners based on logic
-    const partners = (allSelectedThalibah || []).filter(reg => {
+    const partners = (allSelectedThalibah || []).filter((reg: any) => {
       const partnerId = reg.user_id
       
       // 1. If they are part of a mutual match (with ANYONE), exclude them entirely
@@ -123,7 +140,7 @@ export async function GET(request: NextRequest) {
       
       // 3. Otherwise, they are available
       return true
-    }).map(reg => {
+    }).map((reg: any) => {
       // Calculate schedule compatibility
       const schedule_compatible = checkScheduleCompatibility(
         registration,
@@ -151,7 +168,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Sort: Those who selected current user first, then those with matching juz/schedule
-    partners.sort((a, b) => {
+    partners.sort((a: any, b: any) => {
       if (a.has_user_selected_them && !b.has_user_selected_them) return -1
       if (!a.has_user_selected_them && b.has_user_selected_them) return 1
       if (a.juz_compatible && !b.juz_compatible) return -1
@@ -161,8 +178,8 @@ export async function GET(request: NextRequest) {
       return 0
     })
 
-    const partners_selected_by_others = partners.filter(p => p.has_user_selected_them)
-    const partners_selected_by_user = partners.filter(p => p.has_selected_them)
+    const partners_selected_by_others = partners.filter((p: any) => p.has_user_selected_them)
+    const partners_selected_by_user = partners.filter((p: any) => p.has_selected_them)
 
     return NextResponse.json({
       success: true,

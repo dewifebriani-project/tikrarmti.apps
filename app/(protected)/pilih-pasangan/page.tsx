@@ -418,7 +418,7 @@ export default function PilihPasanganPage() {
                 <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
                   <input type="radio" name="partner" value="system_match" checked={formData.partner_type === 'system_match'} onChange={() => setFormData(p => ({ ...p, partner_type: 'system_match' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
                   <div className="ml-3">
-                    <span className="font-medium text-gray-900 block">Dipasangkan oleh Sistem (Tarteel)</span>
+                    <span className="font-medium text-gray-900 block">Dipasangkan oleh Sistem</span>
                     <span className="text-sm text-gray-500">Anda akan dipasangkan secara otomatis dengan peserta lain.</span>
                   </div>
                 </label>
@@ -426,7 +426,7 @@ export default function PilihPasanganPage() {
                 <label className="flex items-center p-4 border rounded-lg cursor-pointer bg-white border-gray-200 hover:bg-gray-50">
                   <input type="radio" name="partner" value="self_match" checked={formData.partner_type === 'self_match'} onChange={() => setFormData(p => ({ ...p, partner_type: 'self_match' }))} className="w-4 h-4 text-purple-600 focus:ring-purple-500" />
                   <div className="ml-3">
-                    <span className="font-medium text-gray-900 block">Memilih Sendiri (Tarteel)</span>
+                    <span className="font-medium text-gray-900 block">Memilih Sendiri</span>
                     <span className="text-sm text-gray-500">Cari dan pilih pasangan dari daftar peserta.</span>
                   </div>
                 </label>
