@@ -320,8 +320,8 @@ export default function PerjalananSaya() {
 
   const isLoading = authLoading || registrationsLoading;
 
-  const hasAkad = !!(registrationStatus?.registration?.daftar_ulang);
   const daftarUlangData = registrationStatus?.registration?.daftar_ulang as any;
+  const hasAkad = !!(daftarUlangData && daftarUlangData.status === 'submitted');
   const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
   const hasPartner = !!(pairingData) || hasPhase3;
   
