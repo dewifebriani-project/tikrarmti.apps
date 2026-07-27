@@ -62,6 +62,7 @@ export interface DaftarUlangSubmission {
     class_type?: string;
     location?: string;
     batch?: { name: string };
+    program?: { batch?: { name: string } };
   };
   tashih_halaqah?: {
     id: string;
@@ -73,6 +74,7 @@ export interface DaftarUlangSubmission {
     class_type?: string;
     location?: string;
     batch?: { name: string };
+    program?: { batch?: { name: string } };
   };
   registration?: any;
   akad_quiz?: {
