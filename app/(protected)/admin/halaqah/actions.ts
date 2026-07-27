@@ -814,8 +814,7 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
           if (cleanName.toLowerCase().startsWith('ustadzah ')) cleanName = cleanName.substring(9)
           else if (cleanName.toLowerCase().startsWith('ustadzah')) cleanName = cleanName.substring(8)
           cleanName = cleanName.trim()
-
-          const halaqahName = `${program.name} - Juz ${muallimah.preferred_juz} - ${cleanName}`
+          const halaqahName = `${program.name} - Juz ${muallimah.preferred_juz} - Ustadzah ${cleanName}`
 
           const { data: newHalaqah, error: createError } = await supabaseAdmin
             .from('halaqah')
