@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
       // Use halaqah schedule first, fallback to muallimah_registrations schedule
       const halaqahSchedule = (h.day_of_week !== null && h.start_time && h.end_time)
         ? JSON.stringify({
-            day: ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][h.day_of_week],
+            day: ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][h.day_of_week],
             time_start: h.start_time,
             time_end: h.end_time
           })
