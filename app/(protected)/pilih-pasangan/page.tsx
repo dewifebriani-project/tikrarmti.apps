@@ -376,7 +376,7 @@ export default function PilihPasanganPage() {
                               <div className="flex items-center space-x-2 text-sm">
                                 <Users className="w-4 h-4 text-blue-600" />
                                 <span className="text-gray-700">
-                                  Sisa Kuota: <span className="font-medium">{halaqah.available_slots}</span>
+                                  Sisa Kuota: <span className="font-medium">{halaqah.available_slots}</span> dari <span className="font-medium">{halaqah.total_max_students}</span>
                                 </span>
                               </div>
                             )}
@@ -385,7 +385,7 @@ export default function PilihPasanganPage() {
                           {halaqah.mentors && halaqah.mentors.length > 0 && (
                             <div className="mt-2 text-sm text-gray-600">
                               <span className="font-medium">Muallimah:</span>{' '}
-                              {halaqah.mentors.filter(m => m.role === 'muallimah').map(m => `Ustadzah ${m.users?.full_name}`).join(', ') || '-'}
+                              {halaqah.mentors.filter((m: any) => m.role === 'muallimah' || m.role === 'ustadzah').map((m: any) => `Ustadzah ${m.users?.full_name}`).join(', ') || '-'}
                             </div>
                           )}
                         </div>
