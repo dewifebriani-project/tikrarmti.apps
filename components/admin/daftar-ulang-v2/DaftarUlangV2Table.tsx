@@ -197,6 +197,7 @@ export function DaftarUlangV2Table({
               >
                 <div className="flex items-center gap-2">Halaqah {getSortIcon('halaqah')}</div>
               </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pengabdian</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Akad Files</th>
               <th 
                 className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
@@ -314,6 +315,35 @@ export function DaftarUlangV2Table({
                           </span>
                         )}
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-medium text-gray-700">
+                      {submission.pengabdian_choice === 'muallimah' && (
+                        <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                          Muallimah
+                        </span>
+                      )}
+                      {submission.pengabdian_choice === 'musyrifah' && (
+                        <span className="text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-md border border-purple-100">
+                          Musyrifah
+                        </span>
+                      )}
+                      {submission.pengabdian_choice === 'donasi' && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
+                            Donasi
+                          </span>
+                          {submission.donasi_amount && (
+                            <span className="text-[11px] text-gray-600 font-medium">
+                              Rp {submission.donasi_amount.toLocaleString('id-ID')}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {!submission.pengabdian_choice && (
+                        <span className="text-gray-400 italic">-</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">

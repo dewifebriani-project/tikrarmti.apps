@@ -29,6 +29,10 @@ export interface DaftarUlangSubmission {
   tashih_halaqah_id?: string;
   is_tashih_umum?: boolean;
 
+  // Pengabdian
+  pengabdian_choice?: string | null;
+  donasi_amount?: number | null;
+
   // Akad
   akad_files?: Array<{ url: string; name: string }>;
   akad_submitted_at?: string;
