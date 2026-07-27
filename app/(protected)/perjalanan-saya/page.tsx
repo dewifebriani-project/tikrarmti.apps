@@ -524,7 +524,13 @@ export default function PerjalananSaya() {
             isLocked: !hasAkad,
             isTestAction: !isPraTikrar && hasAkad && !hasPhase3,
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
-            testUrl: `/pilih-pasangan?batchId=${batchId}`
+            testUrl: `/pilih-pasangan?batchId=${batchId}`,
+            isEditAction: !isPraTikrar && hasPhase3,
+            isEditDisabled: isReEnrollmentDoneByDate,
+            editUrl: `/pilih-pasangan?batchId=${batchId}`,
+            editLabel: 'Edit',
+            editActiveTitle: 'Ubah Pilihan Halaqah & Pasangan',
+            editDisabledTitle: 'Sudah masuk Masa Belajar, halaqah tidak bisa diubah lagi'
           },
           { 
             name: 'Verifikasi', 
