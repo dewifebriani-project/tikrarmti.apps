@@ -155,7 +155,7 @@ export default function PerjalananSaya() {
   const [isExamPortalOpen, setIsExamPortalOpen] = useState(false);
 
   // Fetch Akad Quiz status
-  const { data: akadQuizData } = useSWR('/api/akad-quiz/attempts', (url) => fetch(url).then(r => r.json()));
+  const { data: akadQuizData, isLoading: akadQuizLoading } = useSWR('/api/akad-quiz/attempts', getFetcher);
   const hasPassedAkadQuiz = akadQuizData?.data?.[0]?.passed === true;
 
   // Identify if user is Admin/Staff for preview mode
@@ -318,9 +318,10 @@ export default function PerjalananSaya() {
 
   const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
 
-  const isLoading = authLoading || registrationsLoading;
+  const isLoading = authLoading || registrationsLoading || akadQuizLoading;
 
-  const daftarUlangData = registrationStatus?.registration?.daftar_ulang as any;
+  const daftarUlangArray = registrationStatus?.registration?.daftar_ulang;
+  const daftarUlangData = Array.isArray(daftarUlangArray) ? daftarUlangArray[0] : daftarUlangArray;
   const hasAkad = !!(daftarUlangData && daftarUlangData.status === 'submitted');
   const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
   const hasPartner = !!(pairingData) || hasPhase3;
