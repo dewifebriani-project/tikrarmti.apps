@@ -53,16 +53,17 @@ export async function GET(request: NextRequest) {
     const { data: rawHalaqah, error: halaqahError } = await supabase
       .from('halaqah')
       .select(`
-        id, name, description, class_type, 
+        id, name, description,
         day_of_week, start_time, end_time, location, max_students,
         mentors:halaqah_mentors(
           mentor_id, role, is_primary,
           users:users!halaqah_mentors_mentor_id_fkey(full_name)
-        )
+        ),
+        programs!inner(batch_id, class_type)
       `)
-      .eq('batch_id', batchId)
+      .eq('programs.batch_id', batchId)
       .eq('status', 'active')
-      .eq('class_type', 'tikrar_tahfidz')
+      .eq('programs.class_type', 'tikrar_tahfidz')
 
     if (halaqahError) {
       console.error('Error fetching halaqah:', halaqahError)

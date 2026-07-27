@@ -45,10 +45,11 @@ export async function GET(request: NextRequest) {
         status,
         zoom_link,
         preferred_juz,
-        muallimah_id
+        muallimah_id,
+        programs!inner(batch_id)
       `)
       .eq('status', 'active')
-      .eq('batch_id', batchId)
+      .eq('programs.batch_id', batchId)
       .order('day_of_week', { ascending: true })
 
     if (halaqahError) {
