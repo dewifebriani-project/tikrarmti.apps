@@ -237,12 +237,12 @@ export function DaftarUlangV2Table({
                         <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">KUIS AKAD (F3)</span>
                       </div>
 
-                      {/* Ujian Tulis (Fase 1) */}
+                      {/* Ujian Tulis (Fase 3 Placement) */}
                       <div className="flex flex-col pl-3 border-l border-gray-100">
                         <span className="text-sm font-black text-gray-900">
-                          {submission.registration?.written_quiz_score ?? '-'}
+                          {submission.registration?.exam_score ?? '-'}
                         </span>
-                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F1)</span>
+                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F3)</span>
                       </div>
 
                       {/* Lisan / Oral */}

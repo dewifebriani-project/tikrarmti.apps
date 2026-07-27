@@ -437,9 +437,8 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           'Oral Feedback': registration.oral_feedback || '-',
 
           // Written Quiz Data
-          'Written Quiz Score': registration.written_quiz_score ?? '-',
-          'Written Quiz Total Questions': registration.written_quiz_total_questions ?? '-',
-          'Written Quiz Correct Answers': registration.written_quiz_correct_answers ?? '-',
+          'Written Quiz Score (F3)': registration.exam_score ?? '-',
+          'Written Quiz Score (F1)': registration.written_quiz_score ?? '-',
           'Written Quiz Submitted At': formatDateTime(registration.written_quiz_submitted_at),
 
           // Commitment Data
