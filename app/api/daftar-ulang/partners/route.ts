@@ -19,14 +19,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const batchId = searchParams.get('batchId')
+
     // Get user's registration data
-    const { data: registration, error: regError } = await supabase
+    let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score, oral_score')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+
+    if (batchId) {
+      query = query.eq('batch_id', batchId)
+    }
+
+    const { data: registration, error: regError } = await query.maybeSingle()
 
     if (regError || !registration) {
       return NextResponse.json(

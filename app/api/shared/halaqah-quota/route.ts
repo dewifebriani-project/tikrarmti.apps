@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         muallimah_id
       `)
       .eq('status', 'active')
+      .eq('batch_id', batchId)
       .order('day_of_week', { ascending: true })
 
     if (halaqahError) {

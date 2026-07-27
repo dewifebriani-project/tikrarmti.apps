@@ -87,8 +87,8 @@ export async function GET(request: NextRequest) {
       let halaqahWithQuotas = rawHalaqah as any[]
       if (quotaResponse.ok) {
         const quotaResult = await quotaResponse.json()
-        if (quotaResult.data) {
-          halaqahWithQuotas = quotaResult.data
+        if (quotaResult.data && Array.isArray(quotaResult.data.halaqah)) {
+          halaqahWithQuotas = quotaResult.data.halaqah
         }
       }
       

@@ -122,11 +122,11 @@ export default function PilihPasanganPage() {
     if (formData.partner_type === 'self_match' && registrationData?.id) {
       fetchPartners()
     }
-  }, [formData.partner_type, registrationData?.id])
+  }, [formData.partner_type, registrationData?.id, batchId])
 
   const fetchPartners = async () => {
     try {
-      const response = await fetch('/api/daftar-ulang/partners')
+      const response = await fetch(`/api/daftar-ulang/partners${batchId ? `?batchId=${batchId}` : ''}`)
       if (response.ok) {
         const data = await response.json()
         setPartners(data.data?.all_available_partners || [])

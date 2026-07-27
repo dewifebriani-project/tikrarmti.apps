@@ -121,18 +121,21 @@ export async function POST(request: NextRequest) {
     // Determine exam juz number from chosen_juz
     const chosenJuz = registration.chosen_juz;
     let examJuzNumber: number | null = null;
+    const targetJuzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
 
-    if (chosenJuz?.startsWith('28')) {
-      examJuzNumber = 29;
-    } else if (chosenJuz?.startsWith('29')) {
-      examJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('1')) {
-      examJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('30')) {
+    if (targetJuzNum === 30) {
       return NextResponse.json({
         error: 'No exam required for Juz 30',
         details: 'Tidak ada ujian untuk juz 30'
       }, { status: 400 });
+    } else if (targetJuzNum === 29) {
+      examJuzNumber = 30;
+    } else if (targetJuzNum === 28) {
+      examJuzNumber = 29;
+    } else if (targetJuzNum === 1) {
+      examJuzNumber = 30;
+    } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+      examJuzNumber = targetJuzNum - 1;
     }
 
     if (!examJuzNumber) {
@@ -457,17 +460,20 @@ export async function PUT(request: NextRequest) {
     // Determine exam juz number from chosen_juz
     const chosenJuz = registration.chosen_juz;
     let examJuzNumber: number | null = null;
+    const targetJuzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
 
-    if (chosenJuz?.startsWith('28')) {
-      examJuzNumber = 29;
-    } else if (chosenJuz?.startsWith('29')) {
-      examJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('1')) {
-      examJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('30')) {
+    if (targetJuzNum === 30) {
       return NextResponse.json({
         error: 'No exam required for Juz 30'
       }, { status: 400 });
+    } else if (targetJuzNum === 29) {
+      examJuzNumber = 30;
+    } else if (targetJuzNum === 28) {
+      examJuzNumber = 29;
+    } else if (targetJuzNum === 1) {
+      examJuzNumber = 30;
+    } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+      examJuzNumber = targetJuzNum - 1;
     }
 
     if (!examJuzNumber) {
