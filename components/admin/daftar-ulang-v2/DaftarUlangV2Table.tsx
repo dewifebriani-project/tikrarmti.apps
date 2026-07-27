@@ -295,9 +295,9 @@ export function DaftarUlangV2Table({
                         <span className={cn("font-bold text-sm", submission.ujian_halaqah?.name ? "text-blue-700" : "text-gray-900")}>
                           {submission.ujian_halaqah?.name || 'Belum pilih'}
                         </span>
-                        {submission.ujian_halaqah?.batch?.name && (
+                        {submission.ujian_halaqah?.program?.batch?.name && (
                           <span className="text-orange-600 font-semibold text-[10px] bg-orange-50 w-fit px-1.5 py-0.5 rounded border border-orange-100">
-                            {submission.ujian_halaqah.batch.name}
+                            {submission.ujian_halaqah.program.batch.name}
                           </span>
                         )}
                         {submission.ujian_halaqah?.muallimah_name && (

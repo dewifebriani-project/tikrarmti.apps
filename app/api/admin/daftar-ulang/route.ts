@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
         *,
         user:users!daftar_ulang_submissions_user_id_fkey(*),
         registration:pendaftaran_tikrar_tahfidz(*),
-        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*, batch:batches(name)),
-        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*, batch:batches(name)),
+        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*, program:programs(batch:batches(name))),
+        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*, program:programs(batch:batches(name))),
         partner_user:users!daftar_ulang_submissions_partner_user_id_fkey(*),
         reviewed_by_user:users!daftar_ulang_submissions_reviewed_by_fkey(*)
       `)
