@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('*')
+      .select('*, batch:batches(opening_class_date)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 

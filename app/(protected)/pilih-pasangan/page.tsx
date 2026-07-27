@@ -164,12 +164,88 @@ export default function PilihPasanganPage() {
     )
   }
 
-  if (existingSubmission && existingSubmission.status === 'approved') {
+  const isLocked = () => {
+    if (!registrationData?.batch?.opening_class_date) return false;
+    const openingDate = new Date(registrationData.batch.opening_class_date);
+    openingDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today >= openingDate;
+  };
+
+  if (isLocked() && existingSubmission?.ujian_halaqah_id) {
+    const chosenHalaqah = halaqahData.find(h => h.id === existingSubmission.ujian_halaqah_id)
+    
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <Card className="shadow-lg border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white text-center">
+            <Clock className="w-16 h-16 mx-auto mb-4 text-blue-100" />
+            <h2 className="text-2xl font-bold mb-2">Pilihan Anda Telah Terkunci</h2>
+            <p className="text-blue-100 opacity-90">
+              Masa belajar telah dimulai. Anda tidak dapat mengubah pilihan halaqah dan pasangan lagi.
+            </p>
+          </div>
+          <CardContent className="p-6 md:p-8">
+            <div className="space-y-6">
+              <div className="bg-gray-50 border rounded-lg p-5">
+                <h3 className="font-semibold text-gray-900 mb-4 border-b pb-2">Detail Pilihan Anda</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-sm text-gray-500 block mb-1">Halaqah</span>
+                    <div className="font-medium text-gray-900">{chosenHalaqah?.name || '-'}</div>
+                    {(chosenHalaqah?.muallimah_schedule || (chosenHalaqah?.day_of_week !== null && chosenHalaqah?.start_time && chosenHalaqah?.end_time)) && (
+                      <div className="text-sm text-gray-600 mt-1 flex items-center">
+                        <Calendar className="w-4 h-4 mr-2 text-amber-600" />
+                        {(() => {
+                          if (chosenHalaqah.muallimah_schedule) {
+                            try {
+                              const schedule = JSON.parse(chosenHalaqah.muallimah_schedule)
+                              return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
+                            } catch {
+                              return chosenHalaqah.muallimah_schedule
+                            }
+                          }
+                          if (chosenHalaqah.day_of_week !== null && chosenHalaqah.start_time && chosenHalaqah.end_time) {
+                            const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
+                            return `${DAY_NAMES[chosenHalaqah.day_of_week]} • ${chosenHalaqah.start_time} - ${chosenHalaqah.end_time} WIB`
+                          }
+                          return '-'
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm text-gray-500 block mb-1">Pasangan Belajar</span>
+                    <div className="font-medium text-gray-900">
+                      {existingSubmission.partner_type === 'system_match' && 'Dipasangkan oleh Sistem'}
+                      {existingSubmission.partner_type === 'self_match' && (existingSubmission.partner_name || 'Memilih Sendiri')}
+                      {existingSubmission.partner_type === 'family' && `${existingSubmission.partner_name} (${existingSubmission.partner_relationship})`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center pt-4">
+                <Button onClick={() => router.push('/perjalanan-saya')} className="bg-emerald-600 hover:bg-emerald-700">
+                  Kembali ke Perjalanan Saya
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (isLocked() && !existingSubmission?.ujian_halaqah_id) {
     return (
       <div className="text-center py-12">
-        <Clock className="w-16 h-16 mx-auto mb-4 text-blue-500" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilihan Anda Sudah Disetujui</h2>
-        <p className="text-gray-600 mb-8">Data pendaftaran dan halaqah Anda telah diverifikasi oleh admin. Anda tidak dapat mengubahnya lagi.</p>
+        <Clock className="w-16 h-16 mx-auto mb-4 text-red-500" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Masa Pemilihan Telah Berakhir</h2>
+        <p className="text-gray-600 mb-8">Masa belajar telah dimulai. Anda terlambat memilih halaqah dan pasangan. Silakan hubungi admin.</p>
         <Button onClick={() => router.push('/perjalanan-saya')} className="bg-emerald-600 hover:bg-emerald-700">
           Kembali ke Perjalanan Saya
         </Button>

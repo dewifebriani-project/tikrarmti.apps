@@ -143,7 +143,7 @@ export async function submitPilihPasangan(
     // 5. Update daftar_ulang_submissions
     const { data: existing, error: existingError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('id, status')
+      .select('id, status, ujian_halaqah_id, tashih_halaqah_id')
       .eq('user_id', authUser.id)
       .eq('registration_id', registrationId)
       .maybeSingle()
@@ -171,6 +171,44 @@ export async function submitPilihPasangan(
 
     if (updateError) {
       return { success: false, error: updateError.message }
+    }
+
+    // 6. Sync halaqah_students if already approved
+    if (existing.status === 'approved') {
+      const oldHalaqahIds: string[] = []
+      if (existing.ujian_halaqah_id) oldHalaqahIds.push(existing.ujian_halaqah_id)
+      if (existing.tashih_halaqah_id && existing.tashih_halaqah_id !== existing.ujian_halaqah_id) {
+        oldHalaqahIds.push(existing.tashih_halaqah_id)
+      }
+
+      if (oldHalaqahIds.length > 0) {
+        await supabase.from('halaqah_students')
+          .delete()
+          .eq('thalibah_id', authUser.id)
+          .in('halaqah_id', oldHalaqahIds)
+      }
+
+      const newHalaqahEntries = []
+      if (data.ujian_halaqah_id) {
+        newHalaqahEntries.push({
+          halaqah_id: data.ujian_halaqah_id,
+          thalibah_id: authUser.id,
+          assigned_by: authUser.id,
+          status: 'active'
+        })
+      }
+      if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
+        newHalaqahEntries.push({
+          halaqah_id: data.tashih_halaqah_id,
+          thalibah_id: authUser.id,
+          assigned_by: authUser.id,
+          status: 'active'
+        })
+      }
+
+      if (newHalaqahEntries.length > 0) {
+        await supabase.from('halaqah_students').insert(newHalaqahEntries)
+      }
     }
 
     revalidatePath('/dashboard')
