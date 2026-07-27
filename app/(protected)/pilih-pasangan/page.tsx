@@ -371,6 +371,15 @@ export default function PilihPasanganPage() {
                                 <span className="text-gray-700">Juz: {halaqah.muallimah_preferred_juz}</span>
                               </div>
                             )}
+
+                            {halaqah.total_max_students !== undefined && (
+                              <div className="flex items-center space-x-2 text-sm">
+                                <Users className="w-4 h-4 text-blue-600" />
+                                <span className="text-gray-700">
+                                  Sisa Kuota: <span className="font-medium">{halaqah.available_slots}</span>
+                                </span>
+                              </div>
+                            )}
                           </div>
                           
                           {halaqah.mentors && halaqah.mentors.length > 0 && (
