@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .from('halaqah')
       .select(`
         *,
-        program:programs(*, batch:batches(*)),
+        program:programs!inner(*, batch:batches(*)),
         muallimah:users!left(id, full_name, email)
       `)
       .eq('status', 'active')

@@ -61,6 +61,7 @@ export interface DaftarUlangSubmission {
     muallimah_name?: string;
     class_type?: string;
     location?: string;
+    batch?: { name: string };
   };
   tashih_halaqah?: {
     id: string;
@@ -71,6 +72,7 @@ export interface DaftarUlangSubmission {
     muallimah_name?: string;
     class_type?: string;
     location?: string;
+    batch?: { name: string };
   };
   registration?: any;
   akad_quiz?: {
