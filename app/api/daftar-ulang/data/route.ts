@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
       .select(`
         id, name, description, class_type, 
         day_of_week, start_time, end_time, location, max_students,
-        muallimah_preferred_juz, muallimah_schedule,
         mentors:halaqah_mentors(
           mentor_id, role, is_primary,
           users:users!halaqah_mentors_mentor_id_fkey(full_name)
