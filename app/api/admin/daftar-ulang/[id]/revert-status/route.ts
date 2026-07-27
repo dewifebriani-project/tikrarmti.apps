@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/rbac';
 
 /**
  * POST /api/admin/daftar-ulang/revert
@@ -14,22 +15,9 @@ export async function POST(
   try {
     const supabase = createServerClient();
     const supabaseAdmin = createSupabaseAdmin();
-
     // Check if user is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData?.roles?.includes('admin')) {
-      return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
-    }
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
     const submission_id = params.id;
 
