@@ -95,9 +95,7 @@ export async function saveDaftarUlangDraft(
       pengabdian_choice: data.pengabdian_choice || null,
       donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
 
-      // DO NOT save halaqah data for draft - halaqah_id will be null
-      ujian_halaqah_id: null,
-      tashih_halaqah_id: null,
+      // DO NOT overwrite halaqah data for draft because Halaqah selection is now handled independently in Pilih Pasangan
       akad_files: data.akad_files || null,
     }
 
