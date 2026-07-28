@@ -8,6 +8,8 @@ export interface DaftarUlangSubmission {
   batch_id: string;
   registration_id: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  akad_status?: 'draft' | 'submitted' | 'approved' | 'rejected';
+  partner_status?: 'draft' | 'submitted' | 'approved' | 'rejected';
 
   // Confirmed data
   confirmed_full_name?: string;

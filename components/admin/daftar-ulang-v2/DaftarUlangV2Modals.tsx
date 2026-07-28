@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { X, FileText, Download, AlertTriangle } from 'lucide-react';
 import { DaftarUlangSubmission } from './types';
 import { cn } from '@/lib/utils';
@@ -7,10 +8,15 @@ import { cn } from '@/lib/utils';
 export function DetailModal({
   submission,
   onClose,
+  onUpdateJuz,
 }: {
   submission: DaftarUlangSubmission;
   onClose: () => void;
+  onUpdateJuz?: (submissionId: string, newJuz: string) => void;
 }) {
+  const [isEditingJuz, setIsEditingJuz] = useState(false);
+  const [newJuz, setNewJuz] = useState(submission.confirmed_chosen_juz || '');
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -65,10 +71,36 @@ export function DetailModal({
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Juz Pilihan</p>
-                <p className="text-sm font-bold text-gray-900">
-                  {submission.confirmed_chosen_juz || '-'}
-                  {submission.registration?.final_juz ? ` (Turun ke: ${submission.registration.final_juz})` : ''}
-                </p>
+                {isEditingJuz ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <select
+                      value={newJuz}
+                      onChange={(e) => setNewJuz(e.target.value)}
+                      className="text-sm font-bold text-gray-900 bg-white border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="1A">Juz 1A (Halaman 1-11)</option>
+                      <option value="1B">Juz 1B (Halaman 12-21)</option>
+                      <option value="27A">Juz 27A (Halaman 522-531)</option>
+                      <option value="27B">Juz 27B (Halaman 532-541)</option>
+                      <option value="28A">Juz 28A (Halaman 542-551)</option>
+                      <option value="28B">Juz 28B (Halaman 552-561)</option>
+                      <option value="29A">Juz 29A (Halaman 562-571)</option>
+                      <option value="29B">Juz 29B (Halaman 572-581)</option>
+                      <option value="30A">Juz 30A (Halaman 582-591)</option>
+                      <option value="30B">Juz 30B (Halaman 592-604)</option>
+                    </select>
+                    <button onClick={() => { onUpdateJuz?.(submission.id, newJuz); setIsEditingJuz(false); }} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 font-bold">Simpan</button>
+                    <button onClick={() => setIsEditingJuz(false)} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200">Batal</button>
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    {submission.confirmed_chosen_juz || '-'}
+                    {submission.registration?.final_juz ? ` (Turun ke: ${submission.registration.final_juz})` : ''}
+                    {onUpdateJuz && (
+                      <button onClick={() => setIsEditingJuz(true)} className="text-[10px] text-blue-600 hover:underline">Edit</button>
+                    )}
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Jadwal</p>

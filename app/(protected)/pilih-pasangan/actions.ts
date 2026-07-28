@@ -161,6 +161,7 @@ export async function submitPilihPasangan(
       partner_relationship: data.partner_relationship || null,
       partner_wa_phone: data.partner_wa_phone || null,
       partner_notes: data.partner_notes || null,
+      partner_status: 'submitted',
       updated_at: new Date().toISOString()
     }
 

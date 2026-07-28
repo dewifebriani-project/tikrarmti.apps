@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
       `)
       .eq('programs.batch_id', batchId)
       .eq('status', 'active')
-      .eq('programs.class_type', 'tikrar_tahfidz')
 
     if (halaqahError) {
       console.error('Error fetching halaqah:', halaqahError)
@@ -79,22 +78,33 @@ export async function GET(request: NextRequest) {
       quotaUrl.searchParams.set('batch_id', batchId || '')
       quotaUrl.searchParams.set('user_id', user.id)
 
-      const quotaResponse = await fetch(quotaUrl.toString(), {
-        headers: {
-          'Cookie': request.headers.get('Cookie') || ''
-        }
-      })
-
       let halaqahWithQuotas = rawHalaqah as any[]
-      if (quotaResponse.ok) {
-        const quotaResult = await quotaResponse.json()
-        if (quotaResult.data && Array.isArray(quotaResult.data.halaqah)) {
-          const quotaMap = new Map(quotaResult.data.halaqah.map((h: any) => [h.id, h]))
-          halaqahWithQuotas = rawHalaqah.map(h => {
-            const quotaInfo = quotaMap.get(h.id)
-            return quotaInfo ? { ...h, ...quotaInfo } : h
-          })
+      try {
+        const quotaResponse = await fetch(quotaUrl.toString(), {
+          headers: {
+            'Cookie': request.headers.get('Cookie') || ''
+          }
+        })
+
+        if (quotaResponse.ok) {
+          const quotaResult = await quotaResponse.json()
+          if (quotaResult.data && Array.isArray(quotaResult.data.halaqah)) {
+            const quotaMap = new Map(quotaResult.data.halaqah.map((h: any) => [h.id, h]))
+            halaqahWithQuotas = rawHalaqah.map(h => {
+              const quotaInfo = quotaMap.get(h.id)
+              return quotaInfo ? { ...h, ...quotaInfo } : h
+            })
+          }
         }
+      } catch (err) {
+        console.error('Error fetching quota, falling back to raw halaqah:', err)
+        // Ensure program_class_type is set even if quota fetch fails
+        halaqahWithQuotas = rawHalaqah.map(h => ({
+          ...h,
+          program_class_type: Array.isArray(h.programs) ? h.programs[0]?.class_type : (h.programs as any)?.class_type,
+          is_full: false,
+          available_slots: h.max_students || 20
+        }))
       }
       
       halaqahData = halaqahWithQuotas.filter((h: any) => {

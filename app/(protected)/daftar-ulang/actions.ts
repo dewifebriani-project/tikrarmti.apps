@@ -312,6 +312,7 @@ export async function submitDaftarUlang(
 
       // Status - submit for admin review
       status: 'submitted' as const,
+      akad_status: 'submitted' as const,
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }

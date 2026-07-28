@@ -324,13 +324,16 @@ export default function PerjalananSaya() {
   const daftarUlangData = Array.isArray(daftarUlangArray) ? daftarUlangArray[0] : daftarUlangArray;
   // Check individual completion of each sub-step from daftar_ulang data
   const hasAkadFiles = !!(daftarUlangData?.akad_files && daftarUlangData.akad_files.length > 0);
-  const isAkadSubmitted = !!(daftarUlangData && (daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  const isAkadSubmitted = !!(daftarUlangData && (daftarUlangData.akad_status === 'submitted' || daftarUlangData.akad_status === 'approved' || daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
   // hasAkad = akad files uploaded AND status is submitted/approved
   const hasAkad = hasAkadFiles && isAkadSubmitted;
+  
   const hasHalaqah = !!(daftarUlangData?.ujian_halaqah_id || daftarUlangData?.tashih_halaqah_id);
   const hasPartnerSelection = !!(daftarUlangData?.partner_type);
-  const hasPhase3 = hasAkad && hasHalaqah;
-  const hasPartner = !!(pairingData) || (hasPhase3 && hasPartnerSelection);
+  const isPartnerSubmitted = !!(daftarUlangData && (daftarUlangData.partner_status === 'submitted' || daftarUlangData.partner_status === 'approved' || daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  
+  const hasPhase3 = hasAkad && hasHalaqah && isPartnerSubmitted;
+  const hasPartner = !!(pairingData) || (hasHalaqah && hasPartnerSelection && isPartnerSubmitted);
   
   const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
   const partnerName = partner ? partner.full_name : pairingData?.partner_details?.partner_name;
@@ -508,7 +511,7 @@ export default function PerjalananSaya() {
             name: 'Upload Akad',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isPraTikrar || hasAkad,
-            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasAkad ? (daftarUlangData?.status === 'approved' ? 'Sudah disetujui' : 'Sudah dikirim') : (hasAkadFiles ? 'Draft (belum dikirim)' : 'Belum ada data')),
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasAkad ? ((daftarUlangData?.akad_status === 'approved' || daftarUlangData?.status === 'approved') ? 'Sudah disetujui' : 'Sudah dikirim') : (hasAkadFiles ? 'Draft (belum dikirim)' : 'Belum ada data')),
             reviewType: hasAkadFiles ? 'akad' : null,
             isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
             isTestAction: !isPraTikrar && !hasAkadFiles && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
@@ -526,9 +529,9 @@ export default function PerjalananSaya() {
           {
             name: 'Pilih Halaqah & Pasangan',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: isPraTikrar || (hasPhase3 && hasPartnerSelection),
+            done: isPraTikrar || (hasHalaqah && hasPartnerSelection && isPartnerSubmitted),
             data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (() => {
-              if (!hasAkad) return 'Belum submit akad';
+              if (!hasAkadFiles) return 'Belum submit akad';
               // Build detailed status showing what's done and what's missing
               const parts: string[] = [];
               parts.push(hasHalaqah ? `Halaqah: ✓` : `Halaqah belum dipilih`);
@@ -537,6 +540,14 @@ export default function PerjalananSaya() {
               } else {
                 parts.push('Pasangan belum dipilih');
               }
+              
+              const pStatus = daftarUlangData?.partner_status || daftarUlangData?.status;
+              if (pStatus === 'draft' && hasHalaqah && hasPartnerSelection) {
+                parts.push('(Perlu Diperbaiki)');
+              } else if (pStatus === 'submitted' || pStatus === 'approved') {
+                parts.push('✓');
+              }
+              
               return parts.join(' · ');
             })(),
             isMutualMatch: pairingData?.partner_details?.is_mutual_match,

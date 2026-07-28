@@ -13,9 +13,7 @@ interface DaftarUlangV2TableProps {
   onSelectOne: (id: string, checked: boolean) => void;
   onViewDetail: (submission: DaftarUlangSubmission) => void;
   onResetHalaqah: (submissionId: string) => void;
-  onRevertToDraft: (submissionId: string) => void;
-  onApprove: (submissionId: string) => void;
-  onUnapprove: (submissionId: string) => void;
+  onUpdateStatus: (submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => void;
   resettingId: string | null;
   sortField: string;
   sortOrder: 'asc' | 'desc';
@@ -30,9 +28,7 @@ export function DaftarUlangV2Table({
   onSelectOne,
   onViewDetail,
   onResetHalaqah,
-  onRevertToDraft,
-  onApprove,
-  onUnapprove,
+  onUpdateStatus,
   resettingId,
   sortField,
   sortOrder,
@@ -50,8 +46,11 @@ export function DaftarUlangV2Table({
     });
   };
 
-  const renderStatusDropdown = (submission: DaftarUlangSubmission) => {
-    const status = submission.status;
+  const renderStatusDropdown = (submission: DaftarUlangSubmission, type: 'akad' | 'partner') => {
+    const status = type === 'akad' 
+      ? (submission.akad_status || submission.status || 'draft') 
+      : (submission.partner_status || submission.status || 'draft');
+      
     const styles = {
       draft: 'bg-gray-100 text-gray-800 border-gray-200',
       submitted: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -60,31 +59,26 @@ export function DaftarUlangV2Table({
     };
 
     return (
-      <div className="relative inline-block">
+      <div className="relative inline-block w-28">
         <select
           value={status}
           disabled={resettingId === submission.id}
           onChange={(e) => {
-            const newStatus = e.target.value;
+            const newStatus = e.target.value as 'draft' | 'submitted' | 'approved';
             if (newStatus === status) return;
             
-            if (newStatus === 'approved' && status === 'submitted') {
-              onApprove(submission.id);
-            } else if (newStatus === 'submitted' && status === 'approved') {
-              onUnapprove(submission.id);
-            } else if (newStatus === 'draft' && (status === 'submitted' || status === 'approved')) {
-              if (window.confirm('Yakin ingin mengembalikan ke Draft?')) {
-                onRevertToDraft(submission.id);
+            if (newStatus === 'draft') {
+              if (window.confirm(`Yakin ingin mengembalikan status ${type === 'akad' ? 'Akad' : 'Pasangan/Halaqah'} ke Draft?`)) {
+                onUpdateStatus(submission.id, type, newStatus);
               } else {
                 e.target.value = status;
               }
             } else {
-              e.target.value = status;
-              window.alert('Transisi status tidak valid.');
+              onUpdateStatus(submission.id, type, newStatus);
             }
           }}
           className={cn(
-            "appearance-none px-2.5 py-1 pr-6 rounded-lg text-[11px] font-bold border shadow-sm cursor-pointer outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50",
+            "w-full appearance-none px-2.5 py-1.5 pr-6 rounded-lg text-[11px] font-bold border shadow-sm cursor-pointer outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50",
             styles[status as keyof typeof styles] || styles.draft
           )}
         >
@@ -93,9 +87,9 @@ export function DaftarUlangV2Table({
           <option value="approved">Approved</option>
         </select>
         {resettingId === submission.id ? (
-          <RefreshCw className="w-3 h-3 animate-spin absolute right-1.5 top-1/2 -translate-y-1/2 text-current opacity-70 pointer-events-none" />
+          <RefreshCw className="w-3 h-3 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-70 pointer-events-none" />
         ) : (
-          <ArrowUpDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-current opacity-50 pointer-events-none" />
+          <ArrowUpDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-50 pointer-events-none" />
         )}
       </div>
     );
@@ -203,7 +197,10 @@ export function DaftarUlangV2Table({
                 className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
                 onClick={() => onSort('status')}
               >
-                <div className="flex items-center gap-2">Status {getSortIcon('status')}</div>
+                <div className="flex items-center gap-2">Status Akad {getSortIcon('status')}</div>
+              </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Status Pasangan
               </th>
               <th 
                 className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
@@ -412,7 +409,10 @@ export function DaftarUlangV2Table({
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {renderStatusDropdown(submission)}
+                    {renderStatusDropdown(submission, 'akad')}
+                  </td>
+                  <td className="px-6 py-4">
+                    {renderStatusDropdown(submission, 'partner')}
                   </td>
                   <td className="px-6 py-4 text-xs font-medium text-gray-600">
                     {formatDate(submission.submitted_at || submission.created_at)}

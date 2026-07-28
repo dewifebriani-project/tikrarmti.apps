@@ -980,82 +980,28 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     setSelectedIds(newSelected);
   };
 
-  const handleRevertToDraft = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin mengubah status pendaftaran ini menjadi DRAFT?')) {
-      return;
-    }
-
+  const handleUpdateStatus = async (submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => {
     setResettingId(submissionId);
     try {
-      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/revert-status`, {
-        method: 'POST'
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/update-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ type, status })
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to revert to draft');
+        throw new Error(result.error || 'Failed to update status');
       }
 
-      toast.success('Pendaftaran berhasil diubah menjadi Draft');
+      toast.success(`Status ${type === 'akad' ? 'Akad' : 'Pasangan/Halaqah'} berhasil diubah menjadi ${status}`);
       setRefreshTrigger(prev => prev + 1);
     } catch (error: any) {
-      console.error('[DaftarUlangTab] Error reverting to draft:', error);
-      toast.error('Gagal revert ke draft: ' + error.message);
-    } finally {
-      setResettingId(null);
-    }
-  };
-
-  const handleUnapprove = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin membatalkan approval (kembali menjadi Submitted)?')) {
-      return;
-    }
-
-    setResettingId(submissionId);
-    try {
-      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/unapprove`, {
-        method: 'POST'
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to unapprove');
-      }
-
-      toast.success('Pendaftaran berhasil diubah kembali menjadi Submitted');
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error: any) {
-      console.error('[DaftarUlangTab] Error unapproving:', error);
-      toast.error('Gagal batal approve: ' + error.message);
-    } finally {
-      setResettingId(null);
-    }
-  };
-
-  const handleApprove = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menyetujui pendaftaran ini?')) {
-      return;
-    }
-
-    setResettingId(submissionId);
-    try {
-      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/approve`, {
-        method: 'POST'
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to approve submission');
-      }
-
-      toast.success('Pendaftaran berhasil disetujui');
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error: any) {
-      console.error('[DaftarUlangTab] Error approving submission:', error);
-      toast.error('Gagal menyetujui pendaftaran: ' + error.message);
+      console.error('[DaftarUlangTab] Error updating status:', error);
+      toast.error('Gagal mengubah status: ' + error.message);
     } finally {
       setResettingId(null);
     }
@@ -1182,9 +1128,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onSelectOne={handleSelectOne}
         onViewDetail={(sub) => setSelectedSubmission(sub)}
         onResetHalaqah={handleResetHalaqah}
-        onRevertToDraft={handleRevertToDraft}
-        onApprove={handleApprove}
-        onUnapprove={handleUnapprove}
+        onUpdateStatus={handleUpdateStatus}
         resettingId={resettingId}
         sortField={sortField}
         sortOrder={sortOrder}
@@ -1260,6 +1204,22 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         <DetailModal 
           submission={selectedSubmission} 
           onClose={() => setSelectedSubmission(null)} 
+          onUpdateJuz={async (submissionId, newJuz) => {
+            try {
+              const res = await fetch('/api/admin/daftar-ulang/update-juz', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ submissionId, newJuz })
+              });
+              if (!res.ok) throw new Error('Failed to update Juz');
+              toast.success('Juz berhasil diubah');
+              loadSubmissions();
+              // Update local state for modal
+              setSelectedSubmission(prev => prev ? { ...prev, confirmed_chosen_juz: newJuz } : null);
+            } catch (err: any) {
+              toast.error(err.message || 'Gagal mengubah Juz');
+            }
+          }}
         />
       )}
 
