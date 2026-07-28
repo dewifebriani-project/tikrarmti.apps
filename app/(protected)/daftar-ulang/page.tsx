@@ -1127,14 +1127,13 @@ function HalaqahSelectionStep({
     }
   }
 
-  // Only "Tashih + Ujian" combo halaqah are offered now — standalone Tashih-only
-  // and Ujian-only packages have been discontinued and should not be shown.
-  const sortedHalaqahData = halaqahData
-    .filter(h => h.class_type === 'tashih_ujian')
+  // Show all halaqah, sorted by day of week
+  const sortedHalaqahData = [...halaqahData]
     .sort((a, b) => {
-      const priorityA = getSortPriority(a.class_type)
-      const priorityB = getSortPriority(b.class_type)
-      return priorityA - priorityB
+      // Sort by day of week first
+      const dayA = a.day_of_week || 0
+      const dayB = b.day_of_week || 0
+      return dayA - dayB
     })
 
   const scheduleQuestion = reregQuestions.find(q => q.field_key === 'schedule_instructions')
