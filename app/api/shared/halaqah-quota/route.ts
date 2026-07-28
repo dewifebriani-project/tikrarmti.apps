@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         zoom_link,
         preferred_juz,
         muallimah_id,
-        programs!inner(batch_id)
+        programs!inner(batch_id, class_type)
       `)
       .eq('status', 'active')
       .eq('programs.batch_id', batchId)
@@ -178,6 +178,7 @@ export async function GET(request: NextRequest) {
         available_slots: availableSlots,
         is_full: isFull,
         class_type: classType,
+        program_class_type: Array.isArray(h.programs) ? h.programs[0]?.class_type : (h.programs as any)?.class_type,
         class_types: classTypes,
         muallimah_preferred_juz: muallimahPreferredJuz,
         muallimah_schedule: halaqahSchedule,

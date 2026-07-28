@@ -39,6 +39,7 @@ interface HalaqahData {
   available_slots: number
   is_full: boolean
   class_type: string // 'tashih_ujian', 'tashih_only', 'ujian_only'
+  program_class_type: string // 'tikrar_tahfidz', 'pra_tahfidz'
   class_types: Array<{
     class_type: string
     label: string
@@ -1127,8 +1128,11 @@ function HalaqahSelectionStep({
     }
   }
 
-  // Show all halaqah, sorted by day of week
+  // Show halaqah matching the user's program class type, sorted by day of week
+  const expectedProgramType = isPraTikrar ? 'pra_tahfidz' : 'tikrar_tahfidz'
+  
   const sortedHalaqahData = [...halaqahData]
+    .filter(h => h.program_class_type === expectedProgramType || !h.program_class_type) // Fallback if no program_class_type is found
     .sort((a, b) => {
       // Sort by day of week first
       const dayA = a.day_of_week || 0

@@ -272,7 +272,12 @@ export default function PilihPasanganPage() {
     }
   }
 
-  const sortedHalaqahData = [...halaqahData].sort((a, b) => (a.day_of_week || 0) - (b.day_of_week || 0))
+  const isPraTikrar = registrationData?.selection_status === 'waitlist'
+  const expectedProgramType = isPraTikrar ? 'pra_tahfidz' : 'tikrar_tahfidz'
+  
+  const sortedHalaqahData = [...halaqahData]
+    .filter(h => h.program_class_type === expectedProgramType || !h.program_class_type)
+    .sort((a, b) => (a.day_of_week || 0) - (b.day_of_week || 0))
   
   const filteredPartners = partners.filter((partner) => {
     const fullName = partner.users?.full_name || ''
