@@ -105,6 +105,7 @@ function DaftarUlangContent() {
     partner_wa_phone: string
     partner_notes: string
     pengabdian_choice: string
+    pengabdian_type: string
     donasi_amount: string
     akad_files: Array<{ url: string; name: string }>
   }>({
@@ -131,6 +132,7 @@ function DaftarUlangContent() {
 
     // Step 2: Pengabdian
     pengabdian_choice: '',
+    pengabdian_type: '',
     donasi_amount: '',
 
     // Step 3: Akad
@@ -381,8 +383,9 @@ function DaftarUlangContent() {
     // Only change step for draft status, and only outside "Edit Upload Akad" mode
     // (where fetchData already forced currentStep to 'akad' — don't clobber that).
     // For submitted/approved status, step is already set in fetchData
+    // For draft: start from confirm (step 1) so user can navigate all steps
     if (isDraft && !isAkadEditMode) {
-      setCurrentStep('pengabdian')
+      setCurrentStep('confirm')
     }
   }, [existingSubmission, isAkadEditMode])
 

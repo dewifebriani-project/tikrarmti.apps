@@ -155,7 +155,7 @@ export default function PerjalananSaya() {
   const [isExamPortalOpen, setIsExamPortalOpen] = useState(false);
 
   // Fetch Akad Quiz status
-  const { data: akadQuizData, isLoading: akadQuizLoading } = useSWR('/api/akad-quiz/attempts', getFetcher);
+  const { data: akadQuizData, isLoading: akadQuizLoading } = useSWR('/api/akad-quiz/attempts', (url: string) => fetch(url).then(r => r.json()));
   const hasPassedAkadQuiz = akadQuizData?.data?.[0]?.passed === true;
 
   // Identify if user is Admin/Staff for preview mode
@@ -322,9 +322,15 @@ export default function PerjalananSaya() {
 
   const daftarUlangArray = registrationStatus?.registration?.daftar_ulang;
   const daftarUlangData = Array.isArray(daftarUlangArray) ? daftarUlangArray[0] : daftarUlangArray;
-  const hasAkad = !!(daftarUlangData && daftarUlangData.status === 'submitted');
-  const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
-  const hasPartner = !!(pairingData) || hasPhase3;
+  // Check individual completion of each sub-step from daftar_ulang data
+  const hasAkadFiles = !!(daftarUlangData?.akad_files && daftarUlangData.akad_files.length > 0);
+  const isAkadSubmitted = !!(daftarUlangData && (daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  // hasAkad = akad files uploaded AND status is submitted/approved
+  const hasAkad = hasAkadFiles && isAkadSubmitted;
+  const hasHalaqah = !!(daftarUlangData?.ujian_halaqah_id || daftarUlangData?.tashih_halaqah_id);
+  const hasPartnerSelection = !!(daftarUlangData?.partner_type);
+  const hasPhase3 = hasAkad && hasHalaqah;
+  const hasPartner = !!(pairingData) || (hasPhase3 && hasPartnerSelection);
   
   const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
   const partnerName = partner ? partner.full_name : pairingData?.partner_details?.partner_name;
@@ -502,33 +508,43 @@ export default function PerjalananSaya() {
             name: 'Upload Akad',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isPraTikrar || hasAkad,
-            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasAkad ? 'Sudah disetujui' : 'Belum ada data'),
-            reviewType: hasAkad ? 'akad' : null,
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasAkad ? (daftarUlangData?.status === 'approved' ? 'Sudah disetujui' : 'Sudah dikirim') : (hasAkadFiles ? 'Draft (belum dikirim)' : 'Belum ada data')),
+            reviewType: hasAkadFiles ? 'akad' : null,
             isLocked: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz,
-            isTestAction: !isPraTikrar && !hasAkad && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
+            isTestAction: !isPraTikrar && !hasAkadFiles && isSelectionDone && isSelectionPassed && hasPassedAkadQuiz,
             isTestDisabled: !isSelectionDone || !isSelectionPassed || !hasPassedAkadQuiz || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/daftar-ulang?batchId=${batchId}`,
             // Once akad is uploaded, let her come back and add a file she missed —
             // but only until Fase 4 (Masa Belajar) actually starts.
-            isEditAction: !isPraTikrar && hasAkad,
+            isEditAction: !isPraTikrar && hasAkadFiles,
             isEditDisabled: isReEnrollmentDoneByDate,
-            editUrl: `/daftar-ulang?editAkad=true`,
+            editUrl: hasAkad ? `/daftar-ulang?editAkad=true` : `/daftar-ulang?batchId=${batchId}`,
             editLabel: 'Edit',
-            editActiveTitle: 'Tambah file akad yang terlewat',
+            editActiveTitle: hasAkad ? 'Tambah file akad yang terlewat' : 'Lanjutkan pengisian daftar ulang',
             editDisabledTitle: 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: isPraTikrar || hasPhase3,
-            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (hasPhase3 ? (partnerName ? partnerName : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad')),
+            done: isPraTikrar || (hasPhase3 && hasPartnerSelection),
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (
+              (hasHalaqah && hasPartnerSelection) 
+                ? (partnerName ? partnerName : 'Menunggu Dipasangkan') 
+                : (!hasAkad 
+                    ? 'Belum submit akad' 
+                    : (!hasHalaqah && !hasPartnerSelection 
+                        ? 'Belum pilih halaqah & pasangan'
+                        : (!hasHalaqah ? 'Belum pilih halaqah' : 'Belum pilih pasangan')
+                      )
+                  )
+            ),
             isMutualMatch: pairingData?.partner_details?.is_mutual_match,
             reviewType: hasPartner ? 'pairing' : null,
             isLocked: !hasAkad,
-            isTestAction: !isPraTikrar && hasAkad && !hasPhase3,
+            isTestAction: !isPraTikrar && hasAkad && !(hasHalaqah && hasPartnerSelection),
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`,
-            isEditAction: !isPraTikrar && hasPhase3,
+            isEditAction: !isPraTikrar && hasHalaqah && hasPartnerSelection,
             isEditDisabled: isReEnrollmentDoneByDate,
             editUrl: `/pilih-pasangan?batchId=${batchId}`,
             editLabel: 'Edit',
@@ -540,7 +556,7 @@ export default function PerjalananSaya() {
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
             done: isEnrollmentDone, 
             data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi', 
-            isLocked: !hasPhase3
+            isLocked: !(hasPhase3 && hasPartnerSelection)
           }
         ]
       },
@@ -566,7 +582,7 @@ export default function PerjalananSaya() {
         ]
       },
     ];
-  }, [user, isLoading, registrationStatus, batch, percentage, pairingData, finalExams, isAdmin]);
+  }, [user, isLoading, registrationStatus, batch, percentage, pairingData, finalExams, isAdmin, hasPassedAkadQuiz, hasAkad, hasAkadFiles, isAkadSubmitted, hasHalaqah, hasPartnerSelection, hasPhase3, hasPartner, isAlumnus, isJuz30, partnerName, daftarUlangData]);
 
   useEffect(() => {
     setIsClient(true);

@@ -60,7 +60,8 @@ export async function GET(request: Request) {
       .select('id, partner_name, partner_relationship, partner_notes, partner_wa_phone, partner_type, partner_user_id, status')
       .eq('user_id', user.id)
       .eq('batch_id', batchId)
-      .in('status', ['submitted', 'approved'])
+      .in('status', ['draft', 'submitted', 'approved'])
+      .order('created_at', { ascending: false })
       .maybeSingle()
 
     if (!pairing) {

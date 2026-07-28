@@ -38,6 +38,8 @@ export async function GET(request: Request) {
           akad_files,
           ujian_halaqah_id,
           tashih_halaqah_id,
+          partner_type,
+          partner_user_id,
           ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(
             id,
             name,
