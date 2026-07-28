@@ -105,7 +105,7 @@ function DaftarUlangContent() {
     partner_wa_phone: string
     partner_notes: string
     pengabdian_choice: string
-    pengabdian_type: string
+    pengabdian_type: string[]
     donasi_amount: string
     akad_files: Array<{ url: string; name: string }>
   }>({
@@ -132,7 +132,7 @@ function DaftarUlangContent() {
 
     // Step 2: Pengabdian
     pengabdian_choice: '',
-    pengabdian_type: '',
+    pengabdian_type: [],
     donasi_amount: '',
 
     // Step 3: Akad
@@ -373,8 +373,8 @@ function DaftarUlangContent() {
         ? (existingSubmission.pengabdian_choice || '').split(' - ')[0] 
         : existingSubmission.pengabdian_choice || '',
       pengabdian_type: (existingSubmission.pengabdian_choice || '').includes(' - ')
-        ? (existingSubmission.pengabdian_choice || '').split(' - ')[1]
-        : '',
+        ? (existingSubmission.pengabdian_choice || '').split(' - ').slice(1).join(' - ').split(', ')
+        : [],
       donasi_amount: existingSubmission.donasi_amount ? String(existingSubmission.donasi_amount) : '',
       // Preserve akad files for both draft and submitted
       akad_files: existingSubmission.akad_files || [],
@@ -417,8 +417,8 @@ function DaftarUlangContent() {
           confirmed_backup_time_slot: formData.confirmed_backup_time_slot,
           confirmed_wa_phone: formData.confirmed_wa_phone,
           confirmed_address: formData.confirmed_address,
-          pengabdian_choice: formData.pengabdian_type 
-            ? `${formData.pengabdian_choice} - ${formData.pengabdian_type}` 
+          pengabdian_choice: formData.pengabdian_type && formData.pengabdian_type.length > 0
+            ? `${formData.pengabdian_choice} - ${formData.pengabdian_type.join(', ')}` 
             : formData.pengabdian_choice,
           donasi_amount: formData.donasi_amount,
           akad_files: formData.akad_files,
@@ -455,16 +455,16 @@ function DaftarUlangContent() {
         return
       }
       
-      // If user chose "Ya, saya bersedia" (yes/no format), require pengabdian_type
+      // If user chose "Ya, saya bersedia" (yes/no format), require at least one pengabdian_type
       const isYesAnswer = formData.pengabdian_choice?.toLowerCase().includes('bersedia')
-      if (isYesAnswer && !formData.pengabdian_type) {
-        toast.error('Pilih bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
+      if (isYesAnswer && (!formData.pengabdian_type || formData.pengabdian_type.length === 0)) {
+        toast.error('Pilih minimal satu bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
         return
       }
 
       // Check donasi amount - handle both formats
       const isDonatur = isYesAnswer 
-        ? (formData.pengabdian_type === 'Donatur' || formData.pengabdian_type?.toLowerCase().includes('donatur'))
+        ? (formData.pengabdian_type?.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur')))
         : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
       
       if (isDonatur && !formData.donasi_amount) {
@@ -1526,7 +1526,7 @@ function PengabdianStep({
 
   // Detect if "Donatur" role selected (handles both modes)
   const isDonatur = isYesNoFormat
-    ? (formData.pengabdian_type === 'Donatur' || formData.pengabdian_type?.toLowerCase().includes('donatur') || formData.pengabdian_type?.toLowerCase().includes('donasi'))
+    ? (Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur') || t.toLowerCase().includes('donasi')))
     : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
 
   // Clean format helper
@@ -1573,7 +1573,7 @@ function PengabdianStep({
                 value={opt}
                 checked={formData.pengabdian_choice === opt}
                 onChange={(e) => {
-                  onChange({ ...formData, pengabdian_choice: e.target.value, pengabdian_type: '', donasi_amount: '' })
+                  onChange({ ...formData, pengabdian_choice: e.target.value, pengabdian_type: [] as string[], donasi_amount: '' })
                 }}
                 className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
               />
@@ -1594,25 +1594,36 @@ function PengabdianStep({
               <p className="text-sm text-gray-500 mb-3">{pengabdianTypeQuestion.description}</p>
             )}
           </div>
+          <p className="text-xs text-gray-500 mb-2 italic">* Boleh pilih lebih dari satu</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {roleOptions.map((opt: string) => (
-              <label
-                key={opt}
-                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${formData.pengabdian_type === opt ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-              >
-                <input
-                  type="radio"
-                  name="pengabdian_type"
-                  value={opt}
-                  checked={formData.pengabdian_type === opt}
-                  onChange={(e) => {
-                    onChange({ ...formData, pengabdian_type: e.target.value, donasi_amount: '' })
-                  }}
-                  className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="ml-3 font-medium text-gray-900">{opt}</span>
-              </label>
-            ))}
+            {roleOptions.map((opt: string) => {
+              const isChecked = Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.includes(opt);
+              return (
+                <label
+                  key={opt}
+                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                >
+                  <input
+                    type="checkbox"
+                    value={opt}
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const currentTypes = Array.isArray(formData.pengabdian_type) ? formData.pengabdian_type : [];
+                      const newTypes = e.target.checked
+                        ? [...currentTypes, opt]
+                        : currentTypes.filter((t: string) => t !== opt);
+                      // Reset donasi_amount if Donatur is unchecked
+                      const donasiAmount = !newTypes.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur'))
+                        ? ''
+                        : formData.donasi_amount;
+                      onChange({ ...formData, pengabdian_type: newTypes, donasi_amount: donasiAmount })
+                    }}
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 rounded"
+                  />
+                  <span className="ml-3 font-medium text-gray-900">{opt}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       )}

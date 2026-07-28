@@ -27,7 +27,7 @@ export interface DaftarUlangFormData {
 
   // Pengabdian & Donasi
   pengabdian_choice?: string
-  pengabdian_type?: string
+  pengabdian_type?: string | string[]
   donasi_amount?: string | number
 
   // Akad - Array of files
@@ -296,9 +296,12 @@ export async function submitDaftarUlang(
       partner_notes: data.partner_notes || null,
 
       // Pengabdian & Donasi
-      pengabdian_choice: data.pengabdian_type 
-        ? `${data.pengabdian_choice} - ${data.pengabdian_type}` 
-        : (data.pengabdian_choice || null),
+      pengabdian_choice: (() => {
+        const types = Array.isArray(data.pengabdian_type) ? data.pengabdian_type : (data.pengabdian_type ? [data.pengabdian_type] : []);
+        return types.length > 0
+          ? `${data.pengabdian_choice} - ${types.join(', ')}`
+          : (data.pengabdian_choice || null);
+      })(),
       donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
 
       // Halaqah selection - Convert empty strings to null for UUID fields

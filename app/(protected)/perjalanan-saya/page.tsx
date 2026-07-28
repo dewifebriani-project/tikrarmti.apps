@@ -527,17 +527,18 @@ export default function PerjalananSaya() {
             name: 'Pilih Halaqah & Pasangan',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isPraTikrar || (hasPhase3 && hasPartnerSelection),
-            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (
-              (hasHalaqah && hasPartnerSelection) 
-                ? (partnerName ? partnerName : 'Menunggu Dipasangkan') 
-                : (!hasAkad 
-                    ? 'Belum submit akad' 
-                    : (!hasHalaqah && !hasPartnerSelection 
-                        ? 'Belum pilih halaqah & pasangan'
-                        : (!hasHalaqah ? 'Belum pilih halaqah' : 'Belum pilih pasangan')
-                      )
-                  )
-            ),
+            data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (() => {
+              if (!hasAkad) return 'Belum submit akad';
+              // Build detailed status showing what's done and what's missing
+              const parts: string[] = [];
+              parts.push(hasHalaqah ? `Halaqah: ✓` : `Halaqah belum dipilih`);
+              if (hasPartnerSelection) {
+                parts.push(partnerName ? partnerName : 'Menunggu Dipasangkan');
+              } else {
+                parts.push('Pasangan belum dipilih');
+              }
+              return parts.join(' · ');
+            })(),
             isMutualMatch: pairingData?.partner_details?.is_mutual_match,
             reviewType: hasPartner ? 'pairing' : null,
             isLocked: !hasAkad,
