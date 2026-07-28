@@ -455,11 +455,21 @@ function DaftarUlangContent() {
         return
       }
       
-      if (formData.pengabdian_choice === 'Donatur') {
-        if (!formData.donasi_amount) {
-          toast.error('Pilih atau masukkan nominal komitmen donasi')
-          return
-        }
+      // If user chose "Ya, saya bersedia" (yes/no format), require pengabdian_type
+      const isYesAnswer = formData.pengabdian_choice?.toLowerCase().includes('bersedia')
+      if (isYesAnswer && !formData.pengabdian_type) {
+        toast.error('Pilih bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
+        return
+      }
+
+      // Check donasi amount - handle both formats
+      const isDonatur = isYesAnswer 
+        ? (formData.pengabdian_type === 'Donatur' || formData.pengabdian_type?.toLowerCase().includes('donatur'))
+        : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
+      
+      if (isDonatur && !formData.donasi_amount) {
+        toast.error('Pilih atau masukkan nominal komitmen donasi')
+        return
       }
 
       setCurrentStep('akad')
