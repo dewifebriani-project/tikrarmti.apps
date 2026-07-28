@@ -815,6 +815,7 @@ function DaftarUlangContent() {
                 formData={formData}
                 onChange={setFormData}
                 reregQuestions={reregQuestions}
+                isPraTikrar={isPraTikrar}
               />
             )}
 
@@ -1063,12 +1064,14 @@ function HalaqahSelectionStep({
   halaqahData,
   formData,
   onChange,
-  reregQuestions
+  reregQuestions,
+  isPraTikrar
 }: {
   halaqahData: HalaqahData[]
   formData: any
   onChange: (data: any) => void
   reregQuestions: any[]
+  isPraTikrar: boolean
 }) {
   const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
 
