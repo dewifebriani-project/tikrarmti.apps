@@ -415,9 +415,17 @@ export function TikrarTab({ user }: { user: any }) {
         onSubmit={async (formData) => {
           if (!selectedRegistration) return;
           try {
+            // Sanitize empty strings to null for integer/numeric fields
+            const cleanedData = { ...formData };
+            ['age', 'oral_total_score', 'written_quiz_score'].forEach(field => {
+              if (cleanedData[field] === '') {
+                cleanedData[field] = null;
+              }
+            });
+
             const { error } = await supabase
               .from('pendaftaran_tikrar_tahfidz')
-              .update(formData)
+              .update(cleanedData)
               .eq('id', selectedRegistration.id);
             
             if (error) throw error;
