@@ -22,6 +22,7 @@ interface HalaqahData {
   available_slots: number
   is_full: boolean
   class_type: string
+  program_class_type?: string
   class_types: Array<{
     class_type: string
     label: string
