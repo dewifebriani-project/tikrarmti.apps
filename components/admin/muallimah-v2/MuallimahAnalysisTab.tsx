@@ -584,8 +584,8 @@ export function MuallimahAnalysisTab() {
             Semua Program
           </button>
           <button
-            onClick={() => setProgramTab("kelas_berbayar")}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "kelas_berbayar" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}
+            onClick={() => setProgramTab("tikrar")}
+            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "tikrar" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}
           >
             Tikrar Tahfidz
           </button>
@@ -596,8 +596,8 @@ export function MuallimahAnalysisTab() {
             Pra Tikrar
           </button>
           <button
-            onClick={() => setProgramTab("tikrar")}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "tikrar" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}
+            onClick={() => setProgramTab("kelas_berbayar")}
+            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "kelas_berbayar" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}
           >
             Kelas Berbayar
           </button>

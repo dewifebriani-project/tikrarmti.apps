@@ -10,7 +10,7 @@ import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, Che
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
-type Step = 'confirm' | 'pengabdian' | 'akad' | 'halaqah' | 'partner' | 'success'
+type Step = 'confirm' | 'akad' | 'halaqah' | 'partner' | 'success'
 
 // Helper function to format time slot value
 const formatTimeSlot = (timeSlot: string): string => {
@@ -449,32 +449,8 @@ function DaftarUlangContent() {
         toast.error('Nama lengkap harus diisi')
         return
       }
-      setCurrentStep('pengabdian')
-    } else if (currentStep === 'pengabdian') {
-      if (!formData.pengabdian_choice) {
-        toast.error('Pilih kesediaan pengabdian')
-        return
-      }
-      
-      // If user chose "Ya, saya bersedia" (yes/no format), require at least one pengabdian_type
-      const isYesNoFormat = formData.pengabdian_choice?.toLowerCase().includes('bersedia') || formData.pengabdian_choice?.toLowerCase().includes('tidak')
-      const isYesAnswer = formData.pengabdian_choice?.toLowerCase().includes('bersedia')
-      if (isYesAnswer && (!formData.pengabdian_type || formData.pengabdian_type.length === 0)) {
-        toast.error('Pilih minimal satu bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
-        return
-      }
-
-      // Check donasi amount - handle both formats
-      const isDonatur = isYesNoFormat 
-        ? (!isYesAnswer || formData.pengabdian_type?.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur')))
-        : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
-      
-      if (isDonatur && !formData.donasi_amount) {
-        toast.error('Pilih atau masukkan nominal komitmen donasi')
-        return
-      }
-
       setCurrentStep('akad')
+    
     } else if (currentStep === 'akad') {
       handleSubmit()
     } else if (currentStep === 'halaqah') {
@@ -501,7 +477,7 @@ function DaftarUlangContent() {
   }
 
   const handleBack = () => {
-    const steps: Step[] = ['confirm', 'pengabdian', 'akad', 'halaqah', 'partner', 'success']
+    const steps: Step[] = ['confirm', 'akad', 'halaqah', 'partner', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
       if (currentStep === 'success' && isPraTikrar) {
@@ -744,10 +720,9 @@ function DaftarUlangContent() {
           <div className="flex items-center justify-between">
             {[
               { key: 'confirm', label: 'Konfirmasi Data' },
-              { key: 'pengabdian', label: 'Pengabdian' },
               { key: 'akad', label: 'Upload Akad' },
             ].map((step, index, arr) => {
-              const steps: Step[] = ['confirm', 'pengabdian', 'akad']
+              const steps: Step[] = ['confirm', 'akad']
               const currentIndex = steps.indexOf(currentStep)
               const stepIndex = steps.indexOf(step.key as Step)
               const isCompleted = stepIndex < currentIndex
@@ -788,13 +763,7 @@ function DaftarUlangContent() {
               />
             )}
 
-            {currentStep === 'pengabdian' && (
-              <PengabdianStep
-                formData={formData}
-                onChange={setFormData}
-                reregQuestions={reregQuestions}
-              />
-            )}
+            
 
             {currentStep === 'akad' && (
               <AkadUploadStep
@@ -1476,224 +1445,6 @@ function HalaqahSelectionStep({
   )
 }
 
-
-function PengabdianStep({
-  formData,
-  onChange,
-  reregQuestions
-}: {
-  formData: any
-  onChange: (data: any) => void
-  reregQuestions: any[]
-}) {
-  const pengabdianQuestion = reregQuestions.find(q => q.field_key === 'pengabdian_choice')
-  const donasiQuestion = reregQuestions.find(q => q.field_key === 'donasi_amount')
-  const pengabdianTypeQuestion = reregQuestions.find(q => q.field_key === 'pengabdian_type')
-
-  // Normalize options: DB may store as string[], [{label,value}], or raw JSON string
-  const normalizeOptions = (opts: any): string[] => {
-    if (typeof opts === 'string') {
-      try {
-        const parsed = JSON.parse(opts)
-        return normalizeOptions(parsed)
-      } catch {
-        return []
-      }
-    }
-    if (!Array.isArray(opts)) return []
-    return opts.map((o: any) => {
-      if (typeof o === 'string') return o
-      if (typeof o === 'object' && o !== null) return String(o.label ?? o.value ?? o.text ?? '')
-      return String(o)
-    }).filter(Boolean)
-  }
-
-  const pengabdianOptions = normalizeOptions(pengabdianQuestion?.options).length > 0
-    ? normalizeOptions(pengabdianQuestion?.options)
-    : ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
-
-  const donasiOptions = normalizeOptions(donasiQuestion?.options).length > 0
-    ? normalizeOptions(donasiQuestion?.options)
-    : ['Rp 25.000', 'Rp 50.000', 'Rp 75.000', 'Rp 100.000', 'Lainnya']
-
-  // Detect if DB is using a simple yes/no format for pengabdian_choice
-  const isYesNoFormat = pengabdianOptions.some(o =>
-    o.toLowerCase().includes('bersedia') || o.toLowerCase().includes('tidak, qadar')
-  )
-
-  // Role options shown when user answers "yes"
-  const roleOptions = normalizeOptions(pengabdianTypeQuestion?.options).length > 0
-    ? normalizeOptions(pengabdianTypeQuestion?.options)
-    : ['Muallimah', 'Musyrifah', 'Admin', 'Donatur', 'Tidak untuk saat ini']
-
-  // Is user willing to serve?
-  const isWilling = isYesNoFormat
-    ? formData.pengabdian_choice?.toLowerCase().includes('bersedia')
-    : true // non-yes/no mode: always show role selection
-
-  // Detect if "Donatur" role selected (handles both modes)
-  const isDonatur = isYesNoFormat
-    ? (!isWilling || (Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur') || t.toLowerCase().includes('donasi'))))
-    : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
-
-  // Clean format helper
-  const cleanNumber = (val: string) => val.replace(/\D/g, '')
-  const formatRupiah = (val: string) => {
-    if (!val) return ''
-    return 'Rp ' + parseInt(val, 10).toLocaleString('id-ID')
-  }
-
-  // Handle custom donasi logic
-  const handleDonasiSelection = (opt: string) => {
-    if (opt === 'Lainnya') {
-      onChange({ ...formData, donasi_amount: '' })
-    } else {
-      onChange({ ...formData, donasi_amount: cleanNumber(opt) })
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-6 text-white mb-6">
-        <h2 className="text-2xl font-bold mb-2">
-          {pengabdianQuestion?.label || "Pengabdian & Kontribusi"}
-        </h2>
-        <p className="text-blue-50">
-          {pengabdianQuestion?.description || "Program Tikrar Tahfidz membuka kesempatan bagi thalibah yang ingin berkhidmat."}
-        </p>
-      </div>
-
-      {/* Step 1: Yes/No question (or direct role selection in old format) */}
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700">
-          {isYesNoFormat ? (pengabdianQuestion?.label || 'Pilih jawaban Anda') : 'Pilih Bentuk Pengabdian'}
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {pengabdianOptions.map((opt: string) => (
-            <label
-              key={opt}
-              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${formData.pengabdian_choice === opt ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-            >
-              <input
-                type="radio"
-                name="pengabdian_choice"
-                value={opt}
-                checked={formData.pengabdian_choice === opt}
-                onChange={(e) => {
-                  onChange({ ...formData, pengabdian_choice: e.target.value, pengabdian_type: [] as string[], donasi_amount: '' })
-                }}
-                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="ml-3 font-medium text-gray-900">{opt}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Step 2: Role sub-question (shown only when yes/no format and user said yes) */}
-      {isYesNoFormat && isWilling && (
-        <div className="mt-6 pt-6 border-t border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {pengabdianTypeQuestion?.label || 'Pilih Bentuk Pengabdian'}
-            </label>
-            {pengabdianTypeQuestion?.description && (
-              <p className="text-sm text-gray-500 mb-3">{pengabdianTypeQuestion.description}</p>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mb-2 italic">* Boleh pilih lebih dari satu</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {roleOptions.map((opt: string) => {
-              const isChecked = Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.includes(opt);
-              return (
-                <label
-                  key={opt}
-                  className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${isChecked ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                >
-                  <input
-                    type="checkbox"
-                    value={opt}
-                    checked={isChecked}
-                    onChange={(e) => {
-                      const currentTypes = Array.isArray(formData.pengabdian_type) ? formData.pengabdian_type : [];
-                      const newTypes = e.target.checked
-                        ? [...currentTypes, opt]
-                        : currentTypes.filter((t: string) => t !== opt);
-                      // Reset donasi_amount if Donatur is unchecked
-                      const donasiAmount = !newTypes.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur'))
-                        ? ''
-                        : formData.donasi_amount;
-                      onChange({ ...formData, pengabdian_type: newTypes, donasi_amount: donasiAmount })
-                    }}
-                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 rounded"
-                  />
-                  <span className="ml-3 font-medium text-gray-900">{opt}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Donasi amount (shown when Donatur is selected) */}
-      {isDonatur && (
-        <div className="mt-8 pt-6 border-t border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {donasiQuestion?.label || "Komitmen Infaq / Donasi"}
-            </label>
-            <p className="text-sm text-gray-500 mb-4">
-              {donasiQuestion?.description || "Silakan pilih nominal komitmen infaq per bulan/batch."}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mb-4">
-            {donasiOptions.filter((opt: string) => opt !== 'Lainnya').map((opt: string) => {
-              const numVal = cleanNumber(opt)
-              const isSelected = formData.donasi_amount === numVal
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => handleDonasiSelection(opt)}
-                  className={`px-4 py-2 text-sm font-medium rounded-full border transition-colors ${isSelected ? 'bg-emerald-100 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                >
-                  {opt}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              onClick={() => handleDonasiSelection('Lainnya')}
-              className={`px-4 py-2 text-sm font-medium rounded-full border transition-colors ${!donasiOptions.map(cleanNumber).includes(formData.donasi_amount) && formData.donasi_amount !== '' ? 'bg-emerald-100 border-emerald-500 text-emerald-800 ring-1 ring-emerald-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-            >
-              Lainnya
-            </button>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <span className="text-gray-500 sm:text-sm">Rp</span>
-              </div>
-              <input
-                type="text"
-                placeholder="0"
-                value={formatRupiah(formData.donasi_amount).replace('Rp ', '')}
-                onChange={(e) => {
-                  const raw = cleanNumber(e.target.value)
-                  onChange({ ...formData, donasi_amount: raw })
-                }}
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function PartnerSelectionStep({
   formData,

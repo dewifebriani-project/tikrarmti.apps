@@ -106,15 +106,24 @@ export async function GET(request: NextRequest) {
       const pendaftarPerJuz = new Map<string, number>();
       const { data: pendaftarList } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('chosen_juz')
+        .select('chosen_juz, programs!inner(class_type)')
         .eq('batch_id', batchId)
         .in('status', ['pending', 'approved']);
       
       if (pendaftarList) {
         pendaftarList.forEach(p => {
-          const juz = (p.chosen_juz || 'Unknown').trim();
-          const baseJuz = getBaseJuz(juz);
-          pendaftarPerJuz.set(baseJuz, (pendaftarPerJuz.get(baseJuz) || 0) + 1);
+          const cType = (p as any).programs?.class_type;
+          
+          let matches = true;
+          if (programTab === 'tikrar') matches = cType === 'tikrar_tahfidz';
+          else if (programTab === 'pra_tikrar') matches = cType === 'pra_tahfidz';
+          else if (programTab === 'kelas_berbayar') matches = false;
+          
+          if (matches) {
+            const juz = (p.chosen_juz || 'Unknown').trim();
+            const baseJuz = getBaseJuz(juz);
+            pendaftarPerJuz.set(baseJuz, (pendaftarPerJuz.get(baseJuz) || 0) + 1);
+          }
         });
       }
 
