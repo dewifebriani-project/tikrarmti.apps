@@ -13,6 +13,7 @@
  */
 
 export const ROLE_RANKS: Record<string, number> = {
+  'super_admin': 100,
   'admin': 100,
   'musyrifah': 80,
   'muallimah': 60,

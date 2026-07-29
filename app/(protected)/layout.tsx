@@ -69,7 +69,10 @@ export default async function ProtectedLayout({
   // 3. ROLE SYNTHESIS: Rank-based primary role detection from DATABASE ONLY
   // Consolidate roles from database with owner fallback (from environment)
   const ownerEmails = getOwnerEmails()
-  const dbRoles = extractRoles(userData?.roles || [])
+  // Include both the new 'roles' array and the legacy 'role' string
+  const rawRoles = [...(userData?.roles || [])];
+  if (userData?.role) rawRoles.push(userData.role);
+  const dbRoles = extractRoles(rawRoles)
 
   // Consolidate all roles with owner fallback
   // Note: Deprecated 'role' field is no longer used - only 'roles' array
