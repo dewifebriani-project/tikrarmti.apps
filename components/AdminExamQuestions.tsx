@@ -101,7 +101,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
         filterActive={filterActive}
         setFilterActive={setFilterActive}
         juzOptions={juzOptions}
-        sections={Array.from(new Set(questions.map(q => q.section_number))).sort()}
+        sections={Array.from(new Set(questions.map(q => q.section_number).filter((n): n is number => n !== undefined))).sort()}
         totalQuestions={questions.length}
       />
 

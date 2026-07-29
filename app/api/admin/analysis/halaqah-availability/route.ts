@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch_id');
     const mode = searchParams.get('mode') || 'daftar_ulang';
+    const programTab = searchParams.get('program_tab') || 'semua';
 
     if (!batchId) {
       return NextResponse.json(
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
         backup_schedule,
         preferred_max_thalibah,
         exclude_from_capacity,
+        paid_class_scheme,
         user:users!muallimah_akads_user_id_fkey(full_name, whatsapp)
       `)
       .eq('batch_id', batchId)
@@ -117,7 +119,21 @@ export async function GET(request: NextRequest) {
       }
 
       const displayGroups = Array.from(new Set<string>(pendaftarPerJuz.keys()));
-      const muallimahRegsFiltered = muallimahRegs.filter(m => !m.exclude_from_capacity);
+      const muallimahRegsFiltered = muallimahRegs.filter(m => {
+        if (m.exclude_from_capacity) return false;
+        
+        if (programTab !== 'semua') {
+          let pSched = m.preferred_schedule;
+          if (typeof pSched === 'string') {
+            try { pSched = JSON.parse(pSched); } catch(e) { pSched = null; }
+          }
+          if (programTab === 'tikrar') return pSched?.tikrar;
+          if (programTab === 'pra_tikrar') return pSched?.pra_tahfidz;
+          if (programTab === 'kelas_berbayar') return pSched?.berbayar || ((m as any).paid_class_scheme && (m as any).paid_class_scheme !== 'none');
+          return true;
+        }
+        return true;
+      });
 
       const availability: any[] = [];
 
@@ -427,7 +443,7 @@ export async function GET(request: NextRequest) {
         zoom_link,
         preferred_juz,
         muallimah_id,
-        programs!inner(batch_id)
+        programs!inner(batch_id, class_type)
       `)
       .eq('status', 'active')
       .eq('programs.batch_id', batchId)
@@ -441,10 +457,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Filter halaqah by muallimah from this batch
-    const batchHalaqahs = (halaqahData || []).filter(h =>
-      h.muallimah_id && approvedMuallimahIds.includes(h.muallimah_id)
-    );
+    // Filter halaqah by muallimah from this batch and program tab
+    const batchHalaqahs = (halaqahData || []).filter(h => {
+      if (!h.muallimah_id || !approvedMuallimahIds.includes(h.muallimah_id)) return false;
+      
+      if (programTab !== 'semua') {
+        const cType = (h.programs as any)?.class_type;
+        if (programTab === 'tikrar') return cType === 'tikrar_tahfidz';
+        if (programTab === 'pra_tikrar') return cType === 'pra_tahfidz';
+        if (programTab === 'kelas_berbayar') return cType === 'kelas_berbayar' || cType === 'paid_class';
+      }
+      return true;
+    });
 
     console.log('[Halaqah Availability API] Filtered halaqahs:', {
       total: halaqahData?.length,

@@ -24,7 +24,7 @@ export interface ExamQuestion {
   id: string;
   juz_number: JuzNumber;
   juz_code?: string;
-  section_number: number;
+  section_number?: number;
   section_title: string;
   question_number: number;
   question_text: string;
@@ -32,6 +32,7 @@ export interface ExamQuestion {
   options?: ExamOption[]; // JSONB array
   correct_answer?: string;
   points: number;
+  question_package?: string; // 'A' | 'B' | 'Both'
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -174,6 +175,7 @@ export interface AdminQuestionEditForm {
   options: ExamOption[];
   points: number;
   is_active: boolean;
+  question_package?: string;
 }
 
 // Exam eligibility checker
@@ -229,6 +231,7 @@ export interface ExamConfiguration {
   show_results: boolean;
   auto_submit_on_timeout: boolean;
   is_active: boolean;
+  exam_type?: string; // 'selection' | 'final'
   created_at: string;
   updated_at: string;
   created_by?: string;

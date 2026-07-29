@@ -267,8 +267,13 @@ export async function GET(request: NextRequest) {
       .eq('juz_number', requiredJuzNumber)
       .eq('is_active', true);
 
-    if (isFinalExam && chosenJuz) {
-      query = query.eq('juz_code', chosenJuz);
+    if (isFinalExam) {
+      if (chosenJuz) {
+        query = query.eq('juz_code', chosenJuz);
+      }
+      query = query.in('question_package', ['A', 'B', 'Both']);
+    } else {
+      query = query.in('question_package', ['B', 'Both']);
     }
 
     let { data: questions, error: questionsError } = await query
@@ -282,6 +287,7 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('juz_number', requiredJuzNumber)
         .eq('is_active', true)
+        .in('question_package', ['A', 'B', 'Both'])
         .order('section_number', { ascending: true })
         .order('question_number', { ascending: true });
       questions = fallbackResult.data;
@@ -320,13 +326,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Shuffle options within each question
-    if (isFinalExam || config?.randomize_order) {
-      processedQuestions = processedQuestions.map(q => ({
-        ...q,
-        options: shuffleArray(q.options || [])
+    // Shuffle options within each question and remove correct answer data to prevent cheating
+    processedQuestions = processedQuestions.map(q => {
+      let currentOptions = q.options || [];
+      if (isFinalExam || config?.randomize_order) {
+        currentOptions = shuffleArray(currentOptions);
+      }
+      
+      // Remove isCorrect to prevent cheating on the frontend
+      const sanitizedOptions = currentOptions.map((opt: any) => ({
+        text: opt.text,
       }));
-    }
+
+      // Return question without sensitive data
+      const sanitizedQuestion = { ...q, options: sanitizedOptions };
+      delete sanitizedQuestion.correct_answer;
+      return sanitizedQuestion;
+    });
 
     // Final exam defaults: 120 min, passing threshold, 1 attempt
     const getFinalPassingScore = (b?: { name?: string; min_final_exam_score?: number | null } | null): number => {

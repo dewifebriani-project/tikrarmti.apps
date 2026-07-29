@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       correct_answer: q.correct_answer || q.options?.find((opt: any) => opt.isCorrect)?.text || '',
       points: q.points || 1,
       is_active: q.is_active !== false,
+      question_package: q.question_package || 'B',
       created_by: user.id
     }));
 

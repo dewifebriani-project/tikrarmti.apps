@@ -299,7 +299,7 @@ function EditQuestionForm({ question, juzOptions, onSave, onCancel, isSaving }: 
 }) {
   const [formData, setFormData] = useState<AdminQuestionEditForm>({
     juz_number: question.juz_number,
-    section_number: question.section_number,
+    section_number: question.section_number || 1,
     section_title: question.section_title || '',
     question_number: question.question_number,
     question_text: question.question_text,

@@ -10,7 +10,7 @@ interface AdminExamImportProps {
   onImportSuccess: () => void;
 }
 
-type ImportMode = 'json' | 'paste' | 'excel';
+type ImportMode = 'json' | 'paste' | 'excel' | 'link';
 
 interface ImportQuestion {
   section_number: number;
@@ -20,6 +20,7 @@ interface ImportQuestion {
   question_type: string;
   options: Array<{ text: string; isCorrect: boolean }>;
   points: number;
+  question_package?: string;
 }
 
 interface ImportData {
@@ -39,9 +40,55 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
   const [replaceExisting, setReplaceExisting] = useState(true);
   const [preview, setPreview] = useState<ImportData | null>(null);
   const [pastedText, setPastedText] = useState('');
+  const [pastedLink, setPastedLink] = useState('');
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber>(30);
   const [showDetailedPreview, setShowDetailedPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleParseLink = async () => {
+    if (!pastedLink.trim() || !pastedLink.startsWith('http')) {
+      toast.error('Masukkan link Google Form yang valid');
+      return;
+    }
+
+    try {
+      setParsing(true);
+      const response = await fetch('/api/exam/parse-google-form-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pastedLink.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        // Group into section 1
+        const previewData: ImportData = {
+          juz_number: selectedJuz,
+          sections: [
+            {
+              section_number: 1,
+              section_title: 'Imported from Google Form',
+              questions: result.data.map((q: any) => ({
+                ...q,
+                question_type: 'multiple_choice',
+                points: q.points || 10
+              }))
+            }
+          ]
+        };
+        setPreview(previewData);
+        toast.success(`Berhasil mengambil ${result.data.length} soal dari Google Form`);
+      } else {
+        toast.error(result.error || 'Gagal mem-parsing link');
+      }
+    } catch (error) {
+      console.error('Error parsing link:', error);
+      toast.error('Gagal mengambil data dari link');
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const handleParsePaste = async () => {
     if (!pastedText.trim()) {
@@ -219,6 +266,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
             question_type: q.question_type || 'multiple_choice',
             options: q.options,
             points: q.points || 1,
+            question_package: q.question_package || 'B',
           });
         });
       });
@@ -337,60 +385,89 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Mode Selector */}
-          <div className="flex gap-2 border-b border-gray-200">
+          <div className="flex border-b border-gray-200 mb-6">
             <button
-              onClick={() => {
-                setMode('paste');
-                setPreview(null);
-                setSelectedFile(null);
-              }}
-              className={`px-4 py-2 font-medium border-b-2 transition ${
-                mode === 'paste'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              onClick={() => { setMode('link'); setPreview(null); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                mode === 'link' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <ClipboardPaste className="w-4 h-4" />
-                Paste from Google Form
-              </div>
+              Link GForm
             </button>
             <button
-              onClick={() => {
-                setMode('excel');
-                setPreview(null);
-                setSelectedFile(null);
-              }}
-              className={`px-4 py-2 font-medium border-b-2 transition ${
-                mode === 'excel'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              onClick={() => { setMode('paste'); setPreview(null); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                mode === 'paste' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4" />
-                Upload Excel/CSV
-              </div>
+              <ClipboardPaste className="w-4 h-4" />
+              Text/AI
             </button>
             <button
-              onClick={() => {
-                setMode('json');
-                setPreview(null);
-                setPastedText('');
-              }}
-              className={`px-4 py-2 font-medium border-b-2 transition ${
-                mode === 'json'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              onClick={() => { setMode('excel'); setPreview(null); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                mode === 'excel' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <FileUp className="w-4 h-4" />
-                Upload JSON
-              </div>
+              <FileSpreadsheet className="w-4 h-4" />
+              Excel
+            </button>
+            <button
+              onClick={() => { setMode('json'); setPreview(null); }}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors flex items-center justify-center gap-2 ${
+                mode === 'json' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <FileUp className="w-4 h-4" />
+              JSON File
             </button>
           </div>
+
+          {/* Link Mode */}
+          {mode === 'link' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3 text-blue-700 mb-4 text-sm">
+                <Info className="w-5 h-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold mb-1">Import via Google Form Link</p>
+                  <p>
+                    Paste link Google Form publik yang berisi soal-soal (Pilihan Ganda). Sistem akan mengekstrak otomatis.
+                  </p>
+                </div>
+              </div>
+              <input
+                type="url"
+                value={pastedLink}
+                onChange={(e) => setPastedLink(e.target.value)}
+                placeholder="https://docs.google.com/forms/d/e/.../viewform"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500"
+              />
+              <div className="flex justify-end gap-3">
+                {preview && (
+                  <button
+                    onClick={() => {
+                      setPreview(null);
+                      setPastedLink('');
+                    }}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={handleParseLink}
+                  disabled={parsing || !pastedLink.trim()}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {parsing ? (
+                    <>Parsing...</>
+                  ) : (
+                    <>Preview Data</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Paste Mode */}
           {mode === 'paste' && (

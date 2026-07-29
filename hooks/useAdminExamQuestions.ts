@@ -276,8 +276,9 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
     questions.forEach(q => {
       const juzKey = `Juz ${q.juz_number}`;
       if (!stats[juzKey]) stats[juzKey] = {};
-      if (!stats[juzKey][q.section_number]) stats[juzKey][q.section_number] = 0;
-      stats[juzKey][q.section_number]++;
+      const secNum = q.section_number || 1;
+      if (!stats[juzKey][secNum]) stats[juzKey][secNum] = 0;
+      stats[juzKey][secNum]++;
     });
     return stats;
   }, [questions]);

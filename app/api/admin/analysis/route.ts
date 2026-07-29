@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     console.log('[Analysis API] Querying muallimah for batch_id:', batchId);
     const { data: muallimahs, error: muallimaError } = await supabaseAdmin
       .from('muallimah_akads')
-      .select('id, status, preferred_max_thalibah, user_id, exclude_from_capacity')
+      .select('id, status, preferred_max_thalibah, user_id, exclude_from_capacity, preferred_schedule, backup_schedule, paid_class_scheme')
       .eq('batch_id', batchId);
 
     if (muallimaError) {
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     console.log('[Analysis API] Querying thalibah for batch_id:', batchId);
     const { data: thalibahs, error: thalibahError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, status, selection_status')
+      .select('id, status, selection_status, program_id, programs!inner(class_type)')
       .eq('batch_id', batchId);
 
     if (thalibahError) {
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     console.log('[Analysis API] Querying halaqah for batch');
     const { data: halaqahs, error: halaqahError } = await supabaseAdmin
       .from('halaqah')
-      .select('id, program_id, max_students, muallimah_id, programs!inner(batch_id)')
+      .select('id, program_id, max_students, muallimah_id, programs!inner(batch_id, class_type)')
       .eq('status', 'active')
       .eq('programs.batch_id', batchId);
 
