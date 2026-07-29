@@ -457,6 +457,7 @@ function DaftarUlangContent() {
       }
       
       // If user chose "Ya, saya bersedia" (yes/no format), require at least one pengabdian_type
+      const isYesNoFormat = formData.pengabdian_choice?.toLowerCase().includes('bersedia') || formData.pengabdian_choice?.toLowerCase().includes('tidak')
       const isYesAnswer = formData.pengabdian_choice?.toLowerCase().includes('bersedia')
       if (isYesAnswer && (!formData.pengabdian_type || formData.pengabdian_type.length === 0)) {
         toast.error('Pilih minimal satu bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
@@ -464,8 +465,8 @@ function DaftarUlangContent() {
       }
 
       // Check donasi amount - handle both formats
-      const isDonatur = isYesAnswer 
-        ? (formData.pengabdian_type?.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur')))
+      const isDonatur = isYesNoFormat 
+        ? (!isYesAnswer || formData.pengabdian_type?.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur')))
         : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
       
       if (isDonatur && !formData.donasi_amount) {
@@ -1532,7 +1533,7 @@ function PengabdianStep({
 
   // Detect if "Donatur" role selected (handles both modes)
   const isDonatur = isYesNoFormat
-    ? (Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur') || t.toLowerCase().includes('donasi')))
+    ? (!isWilling || (Array.isArray(formData.pengabdian_type) && formData.pengabdian_type.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur') || t.toLowerCase().includes('donasi'))))
     : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
 
   // Clean format helper
