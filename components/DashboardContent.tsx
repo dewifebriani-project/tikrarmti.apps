@@ -96,7 +96,7 @@ export default function DashboardContent() {
   const [hasMuallimahReg, setHasMuallimahReg] = useState(false)
   const [isFrozen, setIsFrozen] = useState<boolean>(false)
   const isSuperadmin = (user?.roles as string[] | undefined)?.includes('super_admin') || 
-                       user?.primaryRole === 'super_admin' || 
+                       (user?.primaryRole as string | undefined) === 'super_admin' || 
                        (user as any)?.role === 'super_admin' ||
                        (user?.roles as string[] | undefined)?.includes('admin') || 
                        user?.primaryRole === 'admin' || 
