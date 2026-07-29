@@ -29,8 +29,10 @@ import {
   MapPin,
   UserX,
   AlertTriangle,
-  Lock
+  Lock,
+  Snowflake
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -92,6 +94,25 @@ export default function DashboardContent() {
   const activitiesPerPage = 5
 
   const [hasMuallimahReg, setHasMuallimahReg] = useState(false)
+  const [isFrozen, setIsFrozen] = useState<boolean>(false)
+  const isSuperadmin = (user?.roles as string[] | undefined)?.includes('superadmin') || false;
+
+  useEffect(() => {
+    if (isSuperadmin) {
+      const fetchSettings = async () => {
+        try {
+          const res = await fetch('/api/admin/settings');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              setIsFrozen(data.is_frozen);
+            }
+          }
+        } catch (e) {}
+      };
+      fetchSettings();
+    }
+  }, [isSuperadmin]);
 
   useEffect(() => {
     async function checkMuallimah() {
@@ -794,6 +815,36 @@ export default function DashboardContent() {
             <LayoutGrid className="w-5 h-5 text-green-700" />
             Menu Layanan
           </h2>
+          {isSuperadmin && (
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_frozen: !isFrozen })
+                  });
+                  if (res.ok) {
+                    setIsFrozen(!isFrozen);
+                    toast.success(!isFrozen ? "Aplikasi berhasil dibekukan" : "Aplikasi dibuka kembali");
+                  }
+                } catch (e) {
+                  toast.error("Gagal mengubah status aplikasi");
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className={cn(
+                "flex items-center gap-2 transition-all",
+                isFrozen 
+                  ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700" 
+                  : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700"
+              )}
+            >
+              <Snowflake className="w-4 h-4" />
+              {isFrozen ? 'Buka Aplikasi (Unfreeze)' : 'Freeze Aplikasi'}
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-4 gap-1.5 sm:gap-6 w-full">
