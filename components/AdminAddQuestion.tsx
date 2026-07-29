@@ -71,6 +71,7 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
     { text: '', isCorrect: false },
   ]);
   const [points, setPoints] = useState(1);
+  const [selectedPackage, setSelectedPackage] = useState<'A' | 'B'>('A');
   const [saving, setSaving] = useState(false);
 
   const sectionOptions = [
@@ -157,6 +158,7 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
           question_type: 'multiple_choice',
           options: options.filter(opt => opt.text.trim()),
           points,
+          question_package: selectedPackage,
           is_active: true,
         }),
       });
@@ -236,6 +238,20 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Grup / Paket Soal *
+            </label>
+            <select
+              value={selectedPackage}
+              onChange={(e) => setSelectedPackage(e.target.value as 'A' | 'B')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="A">Paket A (Grup A)</option>
+              <option value="B">Paket B (Grup B)</option>
+            </select>
           </div>
           
           <div>

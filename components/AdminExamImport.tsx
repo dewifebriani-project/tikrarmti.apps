@@ -42,6 +42,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
   const [pastedText, setPastedText] = useState('');
   const [pastedLink, setPastedLink] = useState('');
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber>(30);
+  const [selectedPackage, setSelectedPackage] = useState<'A' | 'B'>('A');
   const [showDetailedPreview, setShowDetailedPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -266,7 +267,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
             question_type: q.question_type || 'multiple_choice',
             options: q.options,
             points: q.points || 1,
-            question_package: q.question_package || 'B',
+            question_package: q.question_package || selectedPackage,
           });
         });
       });
@@ -435,6 +436,43 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Common Selectors for All Modes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Juz Number
+              </label>
+              <select
+                value={selectedJuz}
+                onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              >
+                {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
+                  <option key={juz} value={juz}>Juz {juz}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Grup / Paket Soal
+              </label>
+              <select
+                value={selectedPackage}
+                onChange={(e) => setSelectedPackage(e.target.value as 'A' | 'B')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="A">Paket A (Grup A)</option>
+                <option value="B">Paket B (Grup B)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Link Mode Input */}
+          {mode === 'link' && (
+            <div className="space-y-4">
               <input
                 type="url"
                 value={pastedLink}
@@ -499,22 +537,6 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                     </ol>
                   </div>
                 </div>
-              </div>
-
-              {/* Juz Selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Juz Number
-                </label>
-                <select
-                  value={selectedJuz}
-                  onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
-                    <option key={juz} value={juz}>Juz {juz}</option>
-                  ))}
-                </select>
               </div>
 
               {/* Paste Area */}
@@ -584,22 +606,6 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                     </ol>
                   </div>
                 </div>
-              </div>
-
-              {/* Juz Selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Juz Number
-                </label>
-                <select
-                  value={selectedJuz}
-                  onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
-                    <option key={juz} value={juz}>Juz {juz}</option>
-                  ))}
-                </select>
               </div>
 
               {/* Template Download */}
@@ -758,6 +764,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                     <h3 className="font-medium text-green-900 mb-2">Preview Summary</h3>
                     <div className="space-y-1 text-sm text-green-800">
                       <p><strong>Juz Number:</strong> {preview.juz_number}</p>
+                      <p><strong>Paket/Grup:</strong> {selectedPackage}</p>
                       <p><strong>Total Sections:</strong> {preview.sections.length}</p>
                       <p><strong>Total Questions:</strong> {preview.sections.reduce((sum, s) => sum + s.questions.length, 0)}</p>
                       <div className="mt-2">

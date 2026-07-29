@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
       correct_answer: correctAnswer,
       points: body.points || 1,
       is_active: body.is_active !== false,
+      question_package: body.question_package || 'A',
       created_by: user.id
     };
 
