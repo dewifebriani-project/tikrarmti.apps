@@ -36,7 +36,8 @@ import {
   HeartHandshake,
   Info,
   Shield,
-  MessageSquare
+  MessageSquare,
+  Snowflake
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -328,6 +329,23 @@ function AdminContent() {
   const [dataLoading, setDataLoading] = useState(false);
 
   // Initialize activeTab from localStorage or default to 'overview'
+  const [isFrozen, setIsFrozen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setIsFrozen(data.is_frozen);
+          }
+        }
+      } catch (e) {}
+    };
+    fetchSettings();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // Handle tab from URL search parameters or localStorage
@@ -611,6 +629,34 @@ function AdminContent() {
                 <LayoutGrid className="w-4 h-4" />
                 <span>Dashboard Thalibah</span>
                 <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              {/* Freeze Application Button */}
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ is_frozen: !isFrozen })
+                    });
+                    if (res.ok) {
+                      setIsFrozen(!isFrozen);
+                      toast.success(!isFrozen ? "Aplikasi berhasil dibekukan" : "Aplikasi dibuka kembali");
+                    }
+                  } catch (e) {
+                    toast.error("Gagal mengubah status aplikasi");
+                  }
+                }}
+                className={cn(
+                  "mt-3 ml-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl backdrop-blur-md border text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95",
+                  isFrozen 
+                    ? "bg-red-500/20 border-red-500/50 text-white hover:bg-red-500/30" 
+                    : "bg-white/15 border-white/20 text-white hover:bg-white/25"
+                )}
+              >
+                <Snowflake className={cn("w-4 h-4", isFrozen ? 'text-red-400' : 'text-blue-300')} />
+                <span>{isFrozen ? 'Buka Aplikasi (Unfreeze)' : 'Freeze Aplikasi'}</span>
               </button>
             </div>
             <div className="hidden lg:block">

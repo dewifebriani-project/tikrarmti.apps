@@ -370,11 +370,11 @@ function DaftarUlangContent() {
       partner_relationship: existingSubmission.partner_relationship || '',
       partner_wa_phone: existingSubmission.partner_wa_phone || '',
       partner_notes: existingSubmission.partner_notes || '',
-      pengabdian_choice: (existingSubmission.pengabdian_choice || '').includes(' - ') 
-        ? (existingSubmission.pengabdian_choice || '').split(' - ')[0] 
-        : existingSubmission.pengabdian_choice || '',
-      pengabdian_type: (existingSubmission.pengabdian_choice || '').includes(' - ')
-        ? (existingSubmission.pengabdian_choice || '').split(' - ').slice(1).join(' - ').split(', ')
+      pengabdian_choice: existingSubmission.pengabdian_choice 
+        ? (existingSubmission.pengabdian_choice.includes(' - ') ? existingSubmission.pengabdian_choice.split(' - ')[0] : existingSubmission.pengabdian_choice)
+        : '',
+      pengabdian_type: existingSubmission.pengabdian_choice && existingSubmission.pengabdian_choice.includes(' - ')
+        ? existingSubmission.pengabdian_choice.split(' - ').slice(1).join(' - ').split(', ')
         : [],
       donasi_amount: existingSubmission.donasi_amount ? String(existingSubmission.donasi_amount) : '',
       // Preserve akad files for both draft and submitted
@@ -449,9 +449,24 @@ function DaftarUlangContent() {
         toast.error('Nama lengkap harus diisi')
         return
       }
+      // Initialize pengabdian_choice from registration data if it hasn't been set by existingSubmission
+      if (!formData.pengabdian_choice && registrationData?.ready_for_team) {
+        setFormData(prev => ({
+          ...prev,
+          pengabdian_choice: registrationData.ready_for_team === 'infaq' ? 'donasi' : 'mengabdi'
+        }))
+      }
       setCurrentStep('akad')
     
     } else if (currentStep === 'akad') {
+      if (!formData.pengabdian_choice) {
+        toast.error('Pilih jenis pengabdian/donasi terlebih dahulu')
+        return
+      }
+      if (formData.pengabdian_choice === 'donasi' && !formData.donasi_amount) {
+        toast.error('Pilih nominal infaq terlebih dahulu')
+        return
+      }
       handleSubmit()
     } else if (currentStep === 'halaqah') {
       if (!formData.ujian_halaqah_id) {
@@ -768,6 +783,7 @@ function DaftarUlangContent() {
             {currentStep === 'akad' && (
               <AkadUploadStep
                 formData={formData}
+                setFormData={setFormData}
                 halaqahData={halaqahData}
                 registrationData={registrationData}
                 onUpload={handleAkadUpload}
@@ -1962,6 +1978,7 @@ function ReviewStep({
 
 function AkadUploadStep({
   formData,
+  setFormData,
   halaqahData,
   registrationData,
   onUpload,
@@ -1972,6 +1989,7 @@ function AkadUploadStep({
   batchId
 }: {
   formData: any
+  setFormData: React.Dispatch<React.SetStateAction<any>>
   halaqahData: any[]
   registrationData: any
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -2042,15 +2060,78 @@ function AkadUploadStep({
         </p>
       </div>
 
-      {/* Review Data Again - Minimal */}
+      {/* Form Pengabdian / Donasi */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
-            <h3 className="font-semibold text-gray-800">Ringkasan Data & Pilihan</h3>
+            <h3 className="font-semibold text-gray-800">Pilihan Pengabdian / Donasi</h3>
          </div>
          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="block text-gray-500 mb-1">Pengabdian / Donasi</span>
-              <span className="font-medium">{formData.pengabdian_type === 'donasi' ? `Donasi (Rp ${formData.donasi_amount || 0})` : (formData.pengabdian_type || '-')}</span>
+            <div className="md:col-span-2 space-y-4">
+              <div className="space-y-3">
+                <label className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pengabdian_choice"
+                    value="mengabdi"
+                    checked={formData.pengabdian_choice === 'mengabdi' || formData.pengabdian_choice === 'muallimah' || formData.pengabdian_choice === 'musyrifah'}
+                    onChange={() => setFormData((prev: any) => ({ ...prev, pengabdian_choice: 'mengabdi' }))}
+                    className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <div className="flex-1">
+                    <span className="block font-medium text-gray-900">Bersedia Mengabdi (Khidmat)</span>
+                    <span className="block text-sm text-gray-500">Menjadi Mu'allimah, Musyrifah, atau Tim lainnya di MTI.</span>
+                  </div>
+                </label>
+                
+                <label className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pengabdian_choice"
+                    value="donasi"
+                    checked={formData.pengabdian_choice === 'donasi'}
+                    onChange={() => setFormData((prev: any) => ({ ...prev, pengabdian_choice: 'donasi' }))}
+                    className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <div className="flex-1">
+                    <span className="block font-medium text-gray-900">Infaq / Donasi Bulanan</span>
+                    <span className="block text-sm text-gray-500">Berpartisipasi dalam program melalui donasi wajib bulanan.</span>
+                  </div>
+                </label>
+              </div>
+              
+              {formData.pengabdian_choice === 'donasi' && (
+                <div className="mt-3 p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg space-y-3">
+                  <label className="block text-sm font-medium text-emerald-950">
+                    Nominal Infaq Per Bulan
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {['25.000', '50.000', '100.000'].map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setFormData((prev: any) => ({ ...prev, donasi_amount: amount }))}
+                        className={`py-2 px-3 text-sm rounded-md border ${
+                          formData.donasi_amount === amount
+                            ? 'bg-emerald-500 text-white border-emerald-600 font-medium'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400 hover:bg-emerald-50'
+                        }`}
+                      >
+                        Rp {amount}
+                      </button>
+                    ))}
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">Rp</span>
+                      <input
+                        type="text"
+                        placeholder="Lainnya"
+                        value={!['25.000', '50.000', '100.000'].includes(formData.donasi_amount || '') ? formData.donasi_amount : ''}
+                        onChange={(e) => setFormData((prev: any) => ({ ...prev, donasi_amount: e.target.value }))}
+                        className="pl-9 h-full w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
          </div>
       </div>

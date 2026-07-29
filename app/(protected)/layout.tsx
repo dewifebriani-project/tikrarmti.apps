@@ -83,6 +83,21 @@ export default async function ProtectedLayout({
   // Map to the actual primary role from the 5-tier system
   const normalizedRole = distinctRoles.includes(primaryRole) ? primaryRole : 'calon_thalibah'
 
+  // FREEZE APPLICATION GUARD:
+  // Check if the app is frozen (maintenance mode)
+  const { data: freezeSetting } = await supabase
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'app_is_frozen')
+    .maybeSingle()
+    
+  if (freezeSetting && freezeSetting.value?.frozen) {
+    if (primaryRank < ADMIN_RANK) {
+      console.log('[ProtectedLayout] App is frozen. Redirecting non-admin to /maintenance')
+      redirect('/maintenance')
+    }
+  }
+
   // 4. PROFILE COMPLETION GUARD:
   // If no database record exists, redirect to profile completion (unless Admin/Staff)
   // We check primaryRank >= STAFF_RANK_THRESHOLD to allow Admin/Staff to bypass

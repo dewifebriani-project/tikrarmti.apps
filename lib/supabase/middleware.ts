@@ -1,11 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-/** Allowed origins for state-changing API requests (CSRF protection). */
-const ALLOWED_ORIGINS =
-  process.env.NODE_ENV === 'production'
-    ? ['https://markaztikrar.id', 'https://www.markaztikrar.id']
-    : ['http://localhost:3000', 'http://localhost:3001']
+/** Allowed origins for state-changing API requests (CSRF protection) in Production. */
+const ALLOWED_ORIGINS_PROD = ['https://markaztikrar.id', 'https://www.markaztikrar.id']
 
 /**
  * Validates the Origin header for mutating API requests to prevent CSRF.
@@ -20,7 +17,21 @@ function isCsrfViolation(request: NextRequest): boolean {
   // Requests from same-origin (no Origin header, e.g. server actions) are allowed
   if (!origin) return false
 
-  return !ALLOWED_ORIGINS.includes(origin)
+  // Dynamically check if the Origin matches the Host (same-origin request)
+  const host = request.headers.get('host')
+  const protocol = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '')
+  const expectedOrigin = `${protocol}://${host}`
+  
+  if (origin === expectedOrigin || origin === `http://${host}` || origin === `https://${host}`) {
+    return false
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return !ALLOWED_ORIGINS_PROD.includes(origin)
+  } else {
+    // In dev mode, allow any localhost origin
+    return !origin.startsWith('http://localhost:') && !origin.startsWith('http://127.0.0.1:');
+  }
 }
 
 /**
