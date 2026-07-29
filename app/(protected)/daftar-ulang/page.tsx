@@ -370,8 +370,12 @@ function DaftarUlangContent() {
       partner_relationship: existingSubmission.partner_relationship || '',
       partner_wa_phone: existingSubmission.partner_wa_phone || '',
       partner_notes: existingSubmission.partner_notes || '',
-      pengabdian_choice: (existingSubmission.pengabdian_choice || '').toLowerCase().includes('infaq') || (existingSubmission.pengabdian_choice || '').toLowerCase().includes('donasi') || (existingSubmission.pengabdian_choice || '').toLowerCase().includes('donatur') || existingSubmission.donasi_amount ? 'infaq' : ((existingSubmission.pengabdian_choice || '') ? 'ready' : ''),
-      pengabdian_type: [],
+      pengabdian_choice: (existingSubmission.pengabdian_choice || '').includes(' - ') 
+        ? (existingSubmission.pengabdian_choice || '').split(' - ')[0] 
+        : existingSubmission.pengabdian_choice || '',
+      pengabdian_type: (existingSubmission.pengabdian_choice || '').includes(' - ')
+        ? (existingSubmission.pengabdian_choice || '').split(' - ').slice(1).join(' - ').split(', ')
+        : [],
       donasi_amount: existingSubmission.donasi_amount ? String(existingSubmission.donasi_amount) : '',
       // Preserve akad files for both draft and submitted
       akad_files: existingSubmission.akad_files || [],
@@ -414,7 +418,9 @@ function DaftarUlangContent() {
           confirmed_backup_time_slot: formData.confirmed_backup_time_slot,
           confirmed_wa_phone: formData.confirmed_wa_phone,
           confirmed_address: formData.confirmed_address,
-          pengabdian_choice: formData.pengabdian_choice,
+          pengabdian_choice: formData.pengabdian_type && formData.pengabdian_type.length > 0
+            ? `${formData.pengabdian_choice} - ${formData.pengabdian_type.join(', ')}` 
+            : formData.pengabdian_choice,
           donasi_amount: formData.donasi_amount,
           akad_files: formData.akad_files,
         }
@@ -450,8 +456,20 @@ function DaftarUlangContent() {
         return
       }
       
-      if (formData.pengabdian_choice === 'infaq' && !formData.donasi_amount) {
-        toast.error('Pilih atau isi nominal komitmen infaq')
+      // If user chose "Ya, saya bersedia" (yes/no format), require at least one pengabdian_type
+      const isYesAnswer = formData.pengabdian_choice?.toLowerCase().includes('bersedia')
+      if (isYesAnswer && (!formData.pengabdian_type || formData.pengabdian_type.length === 0)) {
+        toast.error('Pilih minimal satu bentuk pengabdian (Muallimah, Musyrifah, Admin, atau Donatur)')
+        return
+      }
+
+      // Check donasi amount - handle both formats
+      const isDonatur = isYesAnswer 
+        ? (formData.pengabdian_type?.some((t: string) => t === 'Donatur' || t.toLowerCase().includes('donatur')))
+        : (formData.pengabdian_choice === 'Donatur' || formData.pengabdian_choice?.toLowerCase().includes('donatur'))
+      
+      if (isDonatur && !formData.donasi_amount) {
+        toast.error('Pilih atau masukkan nominal komitmen donasi')
         return
       }
 
