@@ -1,6 +1,7 @@
 'use client';
 
-import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart, CheckCircle, XCircle, MoreVertical, Edit, Trash2, Undo2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { DaftarUlangSubmission } from './types';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 import { cn } from '@/lib/utils';
@@ -12,12 +13,96 @@ interface DaftarUlangV2TableProps {
   onSelectAll: (checked: boolean) => void;
   onSelectOne: (id: string, checked: boolean) => void;
   onViewDetail: (submission: DaftarUlangSubmission) => void;
+  onEdit: (submission: DaftarUlangSubmission) => void;
+  onDelete: (submissionId: string) => void;
   onResetHalaqah: (submissionId: string) => void;
   onUpdateStatus: (submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => void;
   resettingId: string | null;
   sortField: string;
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
+}
+
+
+function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onResetHalaqah, resettingId }: any) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+      >
+        <MoreVertical className="w-5 h-5" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 overflow-hidden">
+          <button
+            onClick={() => { setIsOpen(false); onView(submission); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4 text-gray-400" /> View Detail
+          </button>
+          
+          <button
+            onClick={() => { setIsOpen(false); onEdit(submission); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4 text-blue-500" /> Edit Data
+          </button>
+
+          <div className="h-px bg-gray-100 my-1"></div>
+
+          <button
+            onClick={() => { setIsOpen(false); onUpdateStatus(submission.id, 'akad', 'draft'); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            title="Ubah status Akad menjadi Draft"
+          >
+            <Undo2 className="w-4 h-4 text-orange-500" /> Revert Akad
+          </button>
+
+          <button
+            onClick={() => { setIsOpen(false); onUpdateStatus(submission.id, 'partner', 'draft'); }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            title="Ubah status Pasangan menjadi Draft"
+          >
+            <Undo2 className="w-4 h-4 text-orange-500" /> Revert Pasangan
+          </button>
+
+          {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
+            <button
+              onClick={() => { setIsOpen(false); onResetHalaqah(submission.id); }}
+              disabled={resettingId === submission.id}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+            >
+              <RotateCcw className="w-4 h-4 text-amber-500" /> Reset Halaqah
+            </button>
+          )}
+
+          <div className="h-px bg-gray-100 my-1"></div>
+
+          <button
+            onClick={() => { setIsOpen(false); onDelete(submission.id); }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Hapus Data
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DaftarUlangV2Table({
@@ -27,6 +112,8 @@ export function DaftarUlangV2Table({
   onSelectAll,
   onSelectOne,
   onViewDetail,
+  onEdit,
+  onDelete,
   onResetHalaqah,
   onUpdateStatus,
   resettingId,
@@ -177,38 +264,24 @@ export function DaftarUlangV2Table({
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-600 w-4 h-4 cursor-pointer"
                 />
               </th>
-              <th 
-                className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => onSort('name')}
-              >
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('name')}>
                 <div className="flex items-center gap-2">Thalibah {getSortIcon('name')}</div>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Partner</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Score Test</th>
-              <th 
-                className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => onSort('halaqah')}
-              >
-                <div className="flex items-center gap-2">Halaqah {getSortIcon('halaqah')}</div>
-              </th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pengabdian</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Akad Files</th>
-              <th 
-                className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => onSort('status')}
-              >
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('status')}>
                 <div className="flex items-center gap-2">Status Akad {getSortIcon('status')}</div>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Status Pasangan
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('submitted_at')}>
+                <div className="flex items-center gap-2">Submitted At (Akad) {getSortIcon('submitted_at')}</div>
               </th>
-              <th 
-                className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
-                onClick={() => onSort('submitted_at')}
-              >
-                <div className="flex items-center gap-2">Submitted {getSortIcon('submitted_at')}</div>
+              <th className="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[250px] cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('halaqah')}>
+                <div className="flex items-center gap-2">Halaqah {getSortIcon('halaqah')}</div>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kontak</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Partner</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status Pasangan</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Submitted At</th>
               <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
@@ -268,14 +341,6 @@ export function DaftarUlangV2Table({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-gray-900">
-                      {getPartnerLabel(submission)}
-                    </div>
-                    <div className="text-[11px] text-gray-500 uppercase tracking-wide font-medium mt-0.5">
-                      {submission.partner_type ? submission.partner_type.replace('_', ' ') : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
                     <div className="flex gap-3">
                       {/* Kuis Akad (Fase 3) */}
                       <div className="flex flex-col">
@@ -315,25 +380,6 @@ export function DaftarUlangV2Table({
                           <span className="text-[9px] text-gray-400 font-medium mt-0.5">LISAN</span>
                         </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-xs font-medium text-gray-700">
-                      <div className="flex flex-col gap-0.5">
-                        <span className={cn("font-bold text-sm", submission.ujian_halaqah?.name ? "text-blue-700" : "text-gray-900")}>
-                          {submission.ujian_halaqah?.name || 'Belum pilih'}
-                        </span>
-                        {submission.ujian_halaqah?.program?.batch?.name && (
-                          <span className="text-orange-600 font-semibold text-[10px] bg-orange-50 w-fit px-1.5 py-0.5 rounded border border-orange-100">
-                            {submission.ujian_halaqah.program.batch.name}
-                          </span>
-                        )}
-                        {submission.ujian_halaqah?.muallimah_name && (
-                          <span className="text-gray-500 text-[11px] mt-0.5">
-                            {submission.ujian_halaqah.muallimah_name}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -413,42 +459,52 @@ export function DaftarUlangV2Table({
                   <td className="px-6 py-4">
                     {renderStatusDropdown(submission, 'akad')}
                   </td>
+                  <td className="px-6 py-4 text-xs font-medium text-gray-600">
+                    {formatDate(submission.submitted_at || submission.created_at)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-medium text-gray-700">
+                      <div className="flex flex-col gap-0.5">
+                        <span className={cn("font-bold text-sm", submission.ujian_halaqah?.name ? "text-blue-700" : "text-gray-900")}>
+                          {submission.ujian_halaqah?.name || 'Belum pilih'}
+                        </span>
+                        {submission.ujian_halaqah?.program?.batch?.name && (
+                          <span className="text-orange-600 font-semibold text-[10px] bg-orange-50 w-fit px-1.5 py-0.5 rounded border border-orange-100">
+                            {submission.ujian_halaqah.program.batch.name}
+                          </span>
+                        )}
+                        {submission.ujian_halaqah?.muallimah_name && (
+                          <span className="text-gray-500 text-[11px] mt-0.5">
+                            {submission.ujian_halaqah.muallimah_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-bold text-gray-900">
+                      {getPartnerLabel(submission)}
+                    </div>
+                    <div className="text-[11px] text-gray-500 uppercase tracking-wide font-medium mt-0.5">
+                      {submission.partner_type ? submission.partner_type.replace('_', ' ') : '-'}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     {renderStatusDropdown(submission, 'partner')}
                   </td>
                   <td className="px-6 py-4 text-xs font-medium text-gray-600">
                     {formatDate(submission.submitted_at || submission.created_at)}
                   </td>
-                  <td className="px-6 py-4">
-                    {getWhatsAppButton(
-                      submission.user?.whatsapp,
-                      submission.confirmed_full_name || submission.user?.full_name
-                    )}
-                  </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => onViewDetail(submission)}
-                        className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
-                        title="Detail"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
-                        <button
-                          onClick={() => onResetHalaqah(submission.id)}
-                          disabled={resettingId === submission.id}
-                          className="p-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 transition-colors disabled:opacity-50"
-                          title="Reset Halaqah"
-                        >
-                          {resettingId === submission.id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                    </div>
+                    <ActionMenu 
+                      submission={submission}
+                      onView={onViewDetail}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onUpdateStatus={onUpdateStatus}
+                      onResetHalaqah={onResetHalaqah}
+                      resettingId={resettingId}
+                    />
                   </td>
                 </tr>
               );

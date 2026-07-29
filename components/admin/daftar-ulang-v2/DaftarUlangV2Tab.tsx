@@ -980,7 +980,33 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     setSelectedIds(newSelected);
   };
 
-  const handleUpdateStatus = async (submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => {
+
+  const handleEdit = (submission: DaftarUlangSubmission) => {
+    toast.info('Fitur edit sedang dikembangkan.');
+    // TODO: setEditingSubmission(submission);
+  };
+
+  const handleDelete = async (submissionId: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data daftar ulang ini secara permanen?')) return;
+    
+    try {
+      const { error } = await createClient()
+        .from('daftar_ulang_submissions')
+        .delete()
+        .eq('id', submissionId);
+        
+      if (error) throw error;
+      toast.success('Data berhasil dihapus');
+      loadSubmissions();
+      loadStats();
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Gagal menghapus data: ' + err.message);
+    }
+  };
+
+  const handleUpdateStatus = async (
+submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => {
     setResettingId(submissionId);
     try {
       const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/update-status`, {
@@ -1127,6 +1153,8 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onSelectAll={handleSelectAll}
         onSelectOne={handleSelectOne}
         onViewDetail={(sub) => setSelectedSubmission(sub)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         onResetHalaqah={handleResetHalaqah}
         onUpdateStatus={handleUpdateStatus}
         resettingId={resettingId}
