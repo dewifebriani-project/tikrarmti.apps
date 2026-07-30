@@ -29,18 +29,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { juz_number, questions, replace_existing } = body;
+    const { juz_number, questions, replace_existing, question_package } = body;
 
     if (!juz_number || !questions || !Array.isArray(questions)) {
       return NextResponse.json({ error: 'Invalid import data' }, { status: 400 });
     }
 
-    // If replace_existing, delete all existing questions for this juz
+    // If replace_existing, archive all existing questions for this juz (and specific package if provided) by setting is_active = false
     if (replace_existing) {
-      const { error: deleteError } = await supabaseAdmin
+      let archiveQuery = supabaseAdmin
         .from('exam_questions')
-        .delete()
+        .update({ is_active: false })
         .eq('juz_number', juz_number);
+        
+      if (question_package) {
+        archiveQuery = archiveQuery.eq('question_package', question_package);
+      }
+
+      const { error: deleteError } = await archiveQuery;
 
       if (deleteError) {
         // If table doesn't exist yet, that's okay - just continue

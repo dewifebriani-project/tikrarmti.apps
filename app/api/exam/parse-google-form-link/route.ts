@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   try {
     const { url } = await req.json();
 
-    if (!url || typeof url !== 'string' || !url.startsWith('https://docs.google.com/forms/')) {
+    if (!url || typeof url !== 'string' || (!url.startsWith('https://docs.google.com/forms/') && !url.startsWith('https://forms.gle/'))) {
       return NextResponse.json({ success: false, error: 'URL tidak valid. Harus berupa link Google Form.' }, { status: 400 });
     }
 
@@ -23,6 +23,7 @@ export async function POST(req: Request) {
 
     const parsedQuestions = [];
     let currentSection = 1;
+    let currentSectionTitle = 'Bagian 1';
 
     for (const item of items) {
       const type = item[3];
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
       if (type === 8) {
         // Section Header
         currentSection++;
+        currentSectionTitle = title || `Bagian ${currentSection}`;
       } else if (type === 2 || type === 3 || type === 4) {
         // Multiple choice (2), Dropdown (3), Checkboxes (4)
         const optionsData = item[4]?.[0]?.[1] || [];
@@ -45,6 +47,7 @@ export async function POST(req: Request) {
           question_type: 'multiple_choice',
           options,
           section_number: currentSection,
+          section_title: currentSectionTitle,
           points: 10,
           question_package: 'B' // default
         });

@@ -11,7 +11,8 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  Send
+  Send,
+  GraduationCap
 } from 'lucide-react';
 import { ExamQuestion, ExamAnswer, JuzNumber } from '@/types/exam';
 
@@ -36,6 +37,7 @@ export default function ExamPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     checkEligibilityAndLoadExam();
@@ -92,12 +94,13 @@ export default function ExamPage() {
         setQuestions(questionsResult.data || []);
 
         // Restore previous answers if resuming
-        if (startResult.attempt.answers && Array.isArray(startResult.attempt.answers)) {
+        if (startResult.attempt.answers && Array.isArray(startResult.attempt.answers) && startResult.attempt.answers.length > 0) {
           const existingAnswers: Record<string, string> = {};
           startResult.attempt.answers.forEach((ans: ExamAnswer) => {
             existingAnswers[ans.questionId] = ans.answer;
           });
           setAnswers(existingAnswers);
+          setShowIntro(false);
         }
       } else {
         toast.error('Failed to load questions');
@@ -226,6 +229,48 @@ export default function ExamPage() {
     );
   }
 
+  if (showIntro) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8 space-y-6">
+          <div className="flex justify-center mb-4">
+             <GraduationCap className="w-16 h-16 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-center text-gray-900">Ketentuan Ujian Akhir Juz {attempt.juz_number}</h2>
+          <div className="bg-green-50 text-green-900 p-6 rounded-xl space-y-4 text-sm leading-relaxed border border-green-100">
+            <p><strong>Bismillah..</strong> Apakah habibaty siap mengerjakan soal Ujian Akhir Juz {attempt.juz_number} dengan jujur karena Allah tanpa melihat Al Quran, HP, Google atau nanya ke teman, saudara, Mama, Papa, chat GPT, Gemini, Siri atau siapapun yang akan membuat hasil dari ujian muroja'ah ini tidak valid?</p>
+            <p>Perlu diketahui hasil ujian bukanlah ajang tinggi-tinggian nilai, yang dapat nilai Mumtaz Murtafi juga ga akan mendapat hadiah apapun dari Akademi, tapi ini sangat berarti buat kami untuk memperbaiki kekurangan program pada angkatan yang akan datang.</p>
+            <div className="bg-white/60 p-4 rounded-lg my-4">
+               <p className="font-bold mb-2">Kisi-kisi soal:</p>
+               <ol className="list-decimal list-inside space-y-1">
+                 <li>Sambung ayat</li>
+                 <li>Tebak Halaman</li>
+               </ol>
+            </div>
+            <p>Tafaddhol, silakan muroja'ah terlebih dahulu.. Kami serahkan persaksian kejujuran menjawab soal-soal ini kepada Allah Asy-Syahid yang Maha Menyaksikan.</p>
+            <p className="font-medium text-green-700">Semoga Allah mudahkan, Baarakallahu Fiikunn</p>
+            
+            <hr className="border-green-200" />
+            
+            <p className="italic text-xs">"Tak ada gading yang tak retak."<br/>Jika antum menemukan kesalahan dalam kunci jawaban atau pengetikan, silakan japri Kak Mara melalui WA di: 0813-1365-0842</p>
+            <div className="bg-red-50 text-red-800 p-3 rounded border border-red-100 text-xs flex gap-2 items-start mt-2">
+               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+               <p><strong>TANBIH:</strong> Protes kesalahan kunci jawaban hanya jika antunna punya bukti Screenshot saja, setelah selesai submit dan cek Al Quran. Mohon maaf kami tidak melayani protes saat mengerjakan soal atau setelah mengerjakan soal tanpa bukti kesalahan kami.</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setShowIntro(false)}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-green-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <CheckCircle className="w-5 h-5" />
+            Bismillah saya siap dan paham semua ketentuan di atas
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / questions.length) * 100;
@@ -297,11 +342,12 @@ export default function ExamPage() {
           {/* Options */}
           <div className="space-y-3">
             {currentQuestion.options?.map((option, index) => {
-              const isSelected = answers[currentQuestion.id] === option.text;
+              const optText = (option as any).option_text || option.text;
+              const isSelected = answers[currentQuestion.id] === optText;
               return (
                 <button
                   key={index}
-                  onClick={() => handleAnswerSelect(currentQuestion.id, option.text)}
+                  onClick={() => handleAnswerSelect(currentQuestion.id, optText)}
                   className={`w-full p-4 rounded-lg border-2 text-left transition ${
                     isSelected
                       ? 'border-green-600 bg-green-50'
@@ -319,7 +365,7 @@ export default function ExamPage() {
                       {isSelected && <CheckCircle className="w-4 h-4 text-white" />}
                     </div>
                     <span className={`flex-1 ${isSelected ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
-                      {option.text}
+                      {optText}
                     </span>
                   </div>
                 </button>

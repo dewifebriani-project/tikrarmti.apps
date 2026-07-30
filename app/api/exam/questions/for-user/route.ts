@@ -260,6 +260,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Determine which package to fetch based on chosen_juz suffix
+    // "Paket A" is used for Half Juz (e.g., 1A)
+    // "Paket B" is used for Full Juz (e.g., 1B or just 1)
+    const targetPackage = chosenJuz?.toUpperCase().endsWith('A') ? 'A' : 'B';
+
     // Fetch active questions for the required juz
     let query = supabaseAdmin
       .from('exam_questions')
@@ -268,31 +273,16 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (isFinalExam) {
-      if (chosenJuz) {
-        query = query.eq('juz_code', chosenJuz);
-      }
-      query = query.in('question_package', ['A', 'B', 'Both']);
+      // For final exams, fetch the specific package based on registration
+      query = query.in('question_package', [targetPackage, 'Both']);
     } else {
+      // For selection exams, always test the full juz (Paket B)
       query = query.in('question_package', ['B', 'Both']);
     }
 
     let { data: questions, error: questionsError } = await query
       .order('section_number', { ascending: true })
       .order('question_number', { ascending: true });
-
-    // Fallback if no questions found with specific juz_code
-    if (!questionsError && (!questions || questions.length === 0) && isFinalExam && chosenJuz) {
-      const fallbackResult = await supabaseAdmin
-        .from('exam_questions')
-        .select('*')
-        .eq('juz_number', requiredJuzNumber)
-        .eq('is_active', true)
-        .in('question_package', ['A', 'B', 'Both'])
-        .order('section_number', { ascending: true })
-        .order('question_number', { ascending: true });
-      questions = fallbackResult.data;
-      questionsError = fallbackResult.error;
-    }
 
     if (questionsError) {
       console.error('Error fetching exam questions:', questionsError);
@@ -329,9 +319,8 @@ export async function GET(request: NextRequest) {
     // Shuffle options within each question and remove correct answer data to prevent cheating
     processedQuestions = processedQuestions.map(q => {
       let currentOptions = q.options || [];
-      if (isFinalExam || config?.randomize_order) {
-        currentOptions = shuffleArray(currentOptions);
-      }
+      // ALWAYS shuffle options so that correct answer (inserted at index 0) is not always 'A'
+      currentOptions = shuffleArray(currentOptions);
       
       // Remove isCorrect to prevent cheating on the frontend
       const sanitizedOptions = currentOptions.map((opt: any) => ({
@@ -373,6 +362,7 @@ export async function GET(request: NextRequest) {
       data: processedQuestions,
       total: processedQuestions.length,
       examJuzNumber: requiredJuzNumber,
+      chosenJuz: chosenJuz,
       registrationId: registration.id,
       existingAttemptId: registration.exam_attempt_id,
       source,

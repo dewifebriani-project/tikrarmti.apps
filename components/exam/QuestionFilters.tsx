@@ -14,6 +14,8 @@ interface QuestionFiltersProps {
   setFilterType: (val: 'all' | 'multiple_choice' | 'introduction') => void;
   filterActive: 'all' | 'active' | 'inactive';
   setFilterActive: (val: 'all' | 'active' | 'inactive') => void;
+  filterPackage: 'all' | 'A' | 'B';
+  setFilterPackage: (val: 'all' | 'A' | 'B') => void;
   juzOptions: any[];
   sections: number[];
   totalQuestions: number;
@@ -30,16 +32,19 @@ export function QuestionFilters({
   setFilterType,
   filterActive,
   setFilterActive,
+  filterPackage,
+  setFilterPackage,
   juzOptions,
   sections,
   totalQuestions,
 }: QuestionFiltersProps) {
-  const hasFilters = searchQuery || filterType !== 'all' || filterActive !== 'all' || selectedJuz !== 'all' || selectedSection !== 'all';
+  const hasFilters = searchQuery || filterType !== 'all' || filterActive !== 'all' || selectedJuz !== 'all' || selectedSection !== 'all' || filterPackage !== 'all';
 
   const clearAllFilters = () => {
     setSearchQuery('');
     setFilterType('all');
     setFilterActive('all');
+    setFilterPackage('all');
     setSelectedJuz('all');
     setSelectedSection('all');
   };
@@ -119,6 +124,22 @@ export function QuestionFilters({
             <option value="all">All Types</option>
             <option value="multiple_choice">Multiple Choice</option>
             <option value="introduction">Introduction</option>
+          </select>
+        </div>
+
+        {/* Package Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Paket Soal
+          </label>
+          <select
+            value={filterPackage}
+            onChange={(e) => setFilterPackage(e.target.value as any)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">Semua Paket</option>
+            <option value="A">Paket A</option>
+            <option value="B">Paket B</option>
           </select>
         </div>
 

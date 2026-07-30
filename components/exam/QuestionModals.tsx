@@ -213,15 +213,20 @@ export function QuestionModals({
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-700">Options:</h4>
                   <div className="space-y-2">
-                    {previewQuestion.options.map((option, idx) => (
-                      <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${option.isCorrect ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${option.isCorrect ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-700'}`}>
-                          {String.fromCharCode(65 + idx)}
+                    {previewQuestion.options.map((option: any, idx: number) => {
+                      const text = option.option_text || option.text;
+                      const isCorrect = option.is_correct || option.isCorrect;
+                      
+                      return (
+                        <div key={idx} className={`flex items-center gap-3 p-3 rounded-lg border ${isCorrect ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCorrect ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-700'}`}>
+                            {String.fromCharCode(65 + idx)}
+                          </div>
+                          <span className={`flex-1 ${isCorrect ? 'text-green-900 font-medium' : 'text-gray-700'}`}>{text}</span>
+                          {isCorrect && <span className="text-xs font-semibold text-green-700 bg-green-200 px-2 py-1 rounded">Correct Answer</span>}
                         </div>
-                        <span className={`flex-1 ${option.isCorrect ? 'text-green-900 font-medium' : 'text-gray-700'}`}>{option.text}</span>
-                        {option.isCorrect && <span className="text-xs font-semibold text-green-700 bg-green-200 px-2 py-1 rounded">Correct Answer</span>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -304,7 +309,10 @@ function EditQuestionForm({ question, juzOptions, onSave, onCancel, isSaving }: 
     question_number: question.question_number,
     question_text: question.question_text,
     question_type: question.question_type || 'multiple_choice',
-    options: question.options || [],
+    options: (question.options || []).map((opt: any) => ({
+      text: opt.option_text || opt.text || '',
+      isCorrect: opt.is_correct || opt.isCorrect || false
+    })),
     points: question.points || 1,
     is_active: question.is_active !== false,
   });

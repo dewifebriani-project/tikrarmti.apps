@@ -63,20 +63,27 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
       const result = await response.json();
 
       if (response.ok && result.data) {
-        // Group into section 1
+        // Group questions by section
+        const sectionMap = new Map<number, { section_number: number, section_title: string, questions: any[] }>();
+        
+        result.data.forEach((q: any) => {
+          if (!sectionMap.has(q.section_number)) {
+            sectionMap.set(q.section_number, {
+              section_number: q.section_number,
+              section_title: q.section_title || `Bagian ${q.section_number}`,
+              questions: []
+            });
+          }
+          sectionMap.get(q.section_number)!.questions.push({
+            ...q,
+            question_type: 'multiple_choice',
+            points: q.points || 10
+          });
+        });
+
         const previewData: ImportData = {
           juz_number: selectedJuz,
-          sections: [
-            {
-              section_number: 1,
-              section_title: 'Imported from Google Form',
-              questions: result.data.map((q: any) => ({
-                ...q,
-                question_type: 'multiple_choice',
-                points: q.points || 10
-              }))
-            }
-          ]
+          sections: Array.from(sectionMap.values()).sort((a, b) => a.section_number - b.section_number)
         };
         setPreview(previewData);
         toast.success(`Berhasil mengambil ${result.data.length} soal dari Google Form`);
@@ -281,6 +288,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
           juz_number: preview.juz_number,
           questions,
           replace_existing: replaceExisting,
+          question_package: selectedPackage,
         }),
       });
 
@@ -839,9 +847,9 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
               className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
             />
             <label htmlFor="replace-existing" className="flex-1 text-sm">
-              <span className="font-medium text-gray-900">Replace existing questions</span>
+              <span className="font-medium text-gray-900">Arsipkan soal yang sudah ada (Paket {selectedPackage})</span>
               <p className="text-gray-600 mt-0.5">
-                This will delete all existing questions for this juz before importing
+                Jika dicentang, semua soal lama untuk Juz {selectedJuz} khusus pada Paket {selectedPackage} akan diarsipkan (is_active = false) dan diganti dengan yang baru. Nilai dan riwayat ujian lama akan tetap aman.
               </p>
             </label>
           </div>

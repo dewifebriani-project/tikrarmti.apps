@@ -39,19 +39,24 @@ export async function GET(
       return NextResponse.json({ error: 'Exam not yet submitted' }, { status: 400 });
     }
 
-    // Get all questions for this juz
+    // Get all questions that were part of this attempt
+    const answeredQuestionIds = attempt.answers?.map((a: any) => a.questionId) || [];
+    
+    if (answeredQuestionIds.length === 0) {
+      return NextResponse.json({ error: 'No answers found for this attempt' }, { status: 400 });
+    }
+
     const { data: questions, error: questionsError } = await supabaseAdmin
       .from('exam_questions')
       .select('*')
-      .eq('juz_number', attempt.juz_number)
-      .eq('is_active', true);
+      .in('id', answeredQuestionIds);
 
     if (questionsError || !questions) {
       logger.error('Error fetching questions for results', { error: questionsError });
       return NextResponse.json({ error: 'Failed to load questions' }, { status: 500 });
     }
 
-    // Calculate section results
+    // Calculate section results based only on the questions in this attempt
     const sectionResults = new Map<number, { total: number; correct: number; title: string }>();
 
     questions.forEach(q => {

@@ -45,23 +45,25 @@ export default async function ProtectedLayout({
   }
 
   // 2. PROFILE FETCH: Get user data from database
-  // Use maybeSingle() to prevent crash on data integrity issues (duplicates)
-  let { data: userData, error: userError } = await supabase
+  // Use limit(1) instead of maybeSingle() to prevent crash on data integrity issues (duplicates)
+  let { data: usersData, error: userError } = await supabase
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .maybeSingle()
+    .limit(1)
+    
+  let userData = usersData?.[0] || null;
 
   // Fallback: If not found by ID, try fetching by email (robustness for ID mismatches)
   if (!userData && user.email) {
-    const { data: emailData } = await supabase
+    const { data: emailUsers } = await supabase
       .from('users')
       .select('*')
       .eq('email', user.email)
-      .maybeSingle()
+      .limit(1)
 
-    if (emailData) {
-      userData = emailData
+    if (emailUsers && emailUsers.length > 0) {
+      userData = emailUsers[0]
       console.log(`[ProtectedLayout] User found by email fallback: ${user.email}`)
     }
   }

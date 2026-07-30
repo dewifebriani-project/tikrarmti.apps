@@ -31,10 +31,10 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
     currentPage, setCurrentPage, showEditModal, setShowEditModal, editingQuestion, setEditingQuestion,
     showDeleteModal, setShowDeleteModal, deletingQuestionId, setDeletingQuestionId, isSaving, juzOptions, searchQuery,
     setSearchQuery, sortField, sortOrder, handleSort, filterType, setFilterType,
-    filterActive, setFilterActive, showPreviewModal, setShowPreviewModal, previewQuestion,
+    filterActive, setFilterActive, filterPackage, setFilterPackage, showPreviewModal, setShowPreviewModal, previewQuestion,
     setPreviewQuestion, showAnalytics, setShowAnalytics, analytics, analyticsLoading,
     analyticsSummary, loadAnalytics, showAIModal, setShowAIModal, aiGenerating, aiForm,
-    setAiForm, handleDelete, handleUpdate, handleAIGenerate, statistics
+    setAiForm, handleDelete, handleUpdate, handleAIGenerate, statistics, handleToggleArchivePackage
   } = useAdminExamQuestions(onSuccess);
 
   // Pagination calculations
@@ -85,25 +85,44 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
         </div>
       </div>
 
-      {/* Statistics */}
-      <QuestionStats statistics={statistics} />
+      {/* Statistics Table */}
+      <QuestionStats 
+        statistics={statistics} 
+        onToggleArchive={handleToggleArchivePackage}
+        onStatClick={(juz, pkg, active, section) => {
+          setSelectedJuz(juz as any);
+          setFilterPackage(pkg as any);
+          setFilterActive(active ? 'active' : 'inactive');
+          setSelectedSection(section ?? 'all');
+          
+          // Scroll to the table
+          window.scrollTo({
+            top: document.getElementById('filters-section')?.offsetTop || 500,
+            behavior: 'smooth'
+          });
+        }}
+      />
 
       {/* Filters */}
-      <QuestionFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedJuz={selectedJuz}
-        setSelectedJuz={setSelectedJuz}
-        selectedSection={selectedSection}
-        setSelectedSection={setSelectedSection}
-        filterType={filterType}
-        setFilterType={setFilterType}
-        filterActive={filterActive}
-        setFilterActive={setFilterActive}
-        juzOptions={juzOptions}
-        sections={Array.from(new Set(questions.map(q => q.section_number).filter((n): n is number => n !== undefined))).sort()}
-        totalQuestions={questions.length}
-      />
+      <div id="filters-section">
+        <QuestionFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedJuz={selectedJuz}
+          setSelectedJuz={setSelectedJuz}
+          selectedSection={selectedSection}
+          setSelectedSection={setSelectedSection}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterActive={filterActive}
+          setFilterActive={setFilterActive}
+          filterPackage={filterPackage}
+          setFilterPackage={setFilterPackage}
+          juzOptions={juzOptions}
+          sections={Array.from(new Set(questions.map(q => q.section_number).filter((n): n is number => n !== undefined))).sort()}
+          totalQuestions={questions.length}
+        />
+      </div>
 
       {/* Table */}
       <QuestionTable

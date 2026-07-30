@@ -59,6 +59,10 @@ function PilihanGandaContent() {
   const [noExamRequired, setNoExamRequired] = useState(false);
   const [examConfig, setExamConfig] = useState<ExamConfig | null>(null);
 
+  const [chosenJuz, setChosenJuz] = useState<string>('');
+  const [examJuzNumber, setExamJuzNumber] = useState<number | null>(null);
+  const [isChangingTarget, setIsChangingTarget] = useState(false);
+
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,6 +165,8 @@ function PilihanGandaContent() {
 
       const result = await response.json();
       setQuestions(result.data || []);
+      setChosenJuz(result.chosenJuz || '');
+      setExamJuzNumber(result.examJuzNumber || null);
 
       // Set exam configuration
       if (result.config) {
@@ -286,6 +292,50 @@ function PilihanGandaContent() {
     }
   };
 
+  const handleChangeTargetJuz = async (newTarget: string) => {
+    setIsChangingTarget(true);
+    try {
+      const res = await fetch('/api/exam/change-target', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetJuz: newTarget })
+      });
+      if (res.ok) {
+        // re-fetch questions
+        await fetchQuestions();
+      } else {
+        alert("Gagal merubah target juz");
+      }
+    } catch (e) {
+      alert("Error merubah target juz");
+    } finally {
+      setIsChangingTarget(false);
+    }
+  };
+
+  const handleSkipExam = async () => {
+    if (confirm("Apakah ukhti yakin tidak ingin mengikuti ujian? Target hafalan ukhti akan otomatis diturunkan menjadi Juz 30A.")) {
+      setIsChangingTarget(true);
+      try {
+        const res = await fetch('/api/exam/change-target', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ skipExam: true })
+        });
+        if (res.ok) {
+          alert("Target hafalan telah diubah ke Juz 30A. Halaman akan dialihkan.");
+          router.push('/perjalanan-saya');
+        } else {
+          alert("Gagal memproses aksi");
+        }
+      } catch (e) {
+        alert("Error memproses aksi");
+      } finally {
+        setIsChangingTarget(false);
+      }
+    }
+  };
+
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
@@ -342,13 +392,18 @@ function PilihanGandaContent() {
 
       // Show results immediately with alert
       const passed = result.score >= (examConfig?.passingScore || 70);
-      alert(
-        `✅ Ujian Berhasil Dikirim!\n\n` +
+      let alertMsg = `✅ Ujian Berhasil Dikirim!\n\n` +
         `Skor ukhti: ${result.score}/100\n` +
         `Jawaban benar: ${result.correctAnswers}/${result.totalQuestions}\n\n` +
-        `${passed ? '🎉 Alhamdulillah! Ukhti LULUS.' : 'Mohon maaf, ukhti belum lulus.'}\n\n` +
-        `Halaman akan dialihkan...`
-      );
+        `${passed ? '🎉 Alhamdulillah! Ukhti LULUS.' : 'Mohon maaf, ukhti belum lulus.'}\n\n`;
+        
+      if (result.downgradedTo30A) {
+        alertMsg += `⚠️ PERHATIAN: Karena kesempatan ujian telah habis dan ukhti belum mencapai nilai kelulusan, target hafalan ukhti disesuaikan menjadi Juz 30A.\n\n`;
+      }
+        
+      alertMsg += `Halaman akan dialihkan...`;
+      
+      alert(alertMsg);
 
       // Redirect after showing the alert
       setTimeout(() => {
@@ -588,6 +643,71 @@ function PilihanGandaContent() {
               </div>
 
               <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Ubah Target Hafalan (Opsional):</h3>
+                <div className="bg-gray-50 border p-4 rounded-lg space-y-3">
+                  <p className="text-sm text-gray-700">
+                    Target hafalan Ukhti saat ini adalah <strong>Juz {chosenJuz}</strong>. 
+                    Maka soal ujian yang harus dikerjakan adalah soal <strong>Juz {examJuzNumber}</strong>.
+                  </p>
+                  {!isFinalExam && (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <select 
+                        className="p-2 border rounded-md text-sm bg-white focus:ring-2 focus:ring-green-500 flex-grow"
+                        value={chosenJuz}
+                        onChange={(e) => handleChangeTargetJuz(e.target.value)}
+                        disabled={isChangingTarget}
+                      >
+                        <option value="1">Juz 1</option>
+                        <option value="2">Juz 2</option>
+                        <option value="3">Juz 3</option>
+                        <option value="4">Juz 4</option>
+                        <option value="5">Juz 5</option>
+                        <option value="6">Juz 6</option>
+                        <option value="7">Juz 7</option>
+                        <option value="8">Juz 8</option>
+                        <option value="9">Juz 9</option>
+                        <option value="10">Juz 10</option>
+                        <option value="11">Juz 11</option>
+                        <option value="12">Juz 12</option>
+                        <option value="13">Juz 13</option>
+                        <option value="14">Juz 14</option>
+                        <option value="15">Juz 15</option>
+                        <option value="16">Juz 16</option>
+                        <option value="17">Juz 17</option>
+                        <option value="18">Juz 18</option>
+                        <option value="19">Juz 19</option>
+                        <option value="20">Juz 20</option>
+                        <option value="21">Juz 21</option>
+                        <option value="22">Juz 22</option>
+                        <option value="23">Juz 23</option>
+                        <option value="24">Juz 24</option>
+                        <option value="25">Juz 25</option>
+                        <option value="26">Juz 26</option>
+                        <option value="27">Juz 27</option>
+                        <option value="28">Juz 28</option>
+                        <option value="29">Juz 29</option>
+                        <option value="30A">Juz 30A</option>
+                        <option value="30B">Juz 30B</option>
+                      </select>
+                      {isChangingTarget && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                    </div>
+                  )}
+                  {!isFinalExam && (
+                    <div className="pt-2 border-t mt-2">
+                      <Button 
+                        onClick={handleSkipExam}
+                        variant="destructive" 
+                        className="w-full sm:w-auto"
+                        disabled={isChangingTarget}
+                      >
+                        Saya Tidak Ingin Ikut Ujian (Turun ke Juz 30A)
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Petunjuk Pengerjaan:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-700">
                   <li>Bacalah <strong>basmalah</strong> dan <strong>doa</strong> sebelum memulai ujian</li>
@@ -714,12 +834,14 @@ function PilihanGandaContent() {
 
                 {/* Options with custom radio style like tikrar-tahfidz */}
                 <div className="space-y-3">
-                  {questions[currentQuestion].options.map((option, index) => {
-                    const isSelected = answers[questions[currentQuestion].id] === option.text;
+                  {questions[currentQuestion].options?.map((option, idx) => {
+                    const optText = (option as any).option_text || option.text;
+                    const isSelected = answers[questions[currentQuestion].id] === optText;
+                    
                     return (
                       <div
-                        key={index}
-                        onClick={() => handleAnswerChange(questions[currentQuestion].id, option.text)}
+                        key={idx}
+                        onClick={() => handleAnswerChange(questions[currentQuestion].id, optText)}
                         className={`flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer ${
                           isSelected
                             ? 'border-green-500 bg-green-50'
@@ -729,17 +851,17 @@ function PilihanGandaContent() {
                         <input
                           type="radio"
                           name={`question-${questions[currentQuestion].id}`}
-                          id={`option-${index}`}
-                          value={option.text}
+                          id={`option-${idx}`}
+                          value={optText}
                           checked={isSelected}
-                          onChange={() => handleAnswerChange(questions[currentQuestion].id, option.text)}
+                          onChange={() => handleAnswerChange(questions[currentQuestion].id, optText)}
                           className="mt-1"
                         />
                         <Label
-                          htmlFor={`option-${index}`}
+                          htmlFor={`option-${idx}`}
                           className="flex-grow cursor-pointer text-gray-700"
                         >
-                          {option.text}
+                          {optText}
                         </Label>
                       </div>
                     );

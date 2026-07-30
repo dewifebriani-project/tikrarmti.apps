@@ -10,7 +10,7 @@ import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, Che
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
-type Step = 'confirm' | 'akad' | 'halaqah' | 'partner' | 'success'
+type Step = 'confirm' | 'pengabdian' | 'akad' | 'halaqah' | 'partner' | 'success'
 
 // Helper function to format time slot value
 const formatTimeSlot = (timeSlot: string): string => {
@@ -453,12 +453,12 @@ function DaftarUlangContent() {
       if (!formData.pengabdian_choice && registrationData?.ready_for_team) {
         setFormData(prev => ({
           ...prev,
-          pengabdian_choice: registrationData.ready_for_team === 'infaq' ? 'donasi' : 'mengabdi'
+          pengabdian_choice: registrationData.ready_for_team === 'infaq' ? 'donasi' : 'mengabdi',
+          donasi_amount: registrationData.infaq_amount || ''
         }))
       }
-      setCurrentStep('akad')
-    
-    } else if (currentStep === 'akad') {
+      setCurrentStep('pengabdian')
+    } else if (currentStep === 'pengabdian') {
       if (!formData.pengabdian_choice) {
         toast.error('Pilih jenis pengabdian/donasi terlebih dahulu')
         return
@@ -467,6 +467,8 @@ function DaftarUlangContent() {
         toast.error('Pilih nominal infaq terlebih dahulu')
         return
       }
+      setCurrentStep('akad')
+    } else if (currentStep === 'akad') {
       handleSubmit()
     } else if (currentStep === 'halaqah') {
       if (!formData.ujian_halaqah_id) {
@@ -492,7 +494,7 @@ function DaftarUlangContent() {
   }
 
   const handleBack = () => {
-    const steps: Step[] = ['confirm', 'akad', 'halaqah', 'partner', 'success']
+    const steps: Step[] = ['confirm', 'pengabdian', 'akad', 'halaqah', 'partner', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
       if (currentStep === 'success' && isPraTikrar) {
@@ -735,9 +737,10 @@ function DaftarUlangContent() {
           <div className="flex items-center justify-between">
             {[
               { key: 'confirm', label: 'Konfirmasi Data' },
+              { key: 'pengabdian', label: 'Pilihan Pengabdian' },
               { key: 'akad', label: 'Upload Akad' },
             ].map((step, index, arr) => {
-              const steps: Step[] = ['confirm', 'akad']
+              const steps: Step[] = ['confirm', 'pengabdian', 'akad']
               const currentIndex = steps.indexOf(currentStep)
               const stepIndex = steps.indexOf(step.key as Step)
               const isCompleted = stepIndex < currentIndex
@@ -779,6 +782,13 @@ function DaftarUlangContent() {
             )}
 
             
+
+            {currentStep === 'pengabdian' && (
+              <PengabdianStep
+                formData={formData}
+                setFormData={setFormData}
+              />
+            )}
 
             {currentStep === 'akad' && (
               <AkadUploadStep
@@ -2381,6 +2391,133 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
             Ke Dashboard
           </Button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function PengabdianStep({
+  formData,
+  setFormData,
+}: {
+  formData: any
+  setFormData: React.Dispatch<React.SetStateAction<any>>
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+
+  const handleEditClick = () => {
+    setIsEditing(true)
+  }
+
+  // Find out what is selected based on formData
+  const isDonasi = formData.pengabdian_choice === 'donasi'
+  const isMengabdi = formData.pengabdian_choice === 'mengabdi' || formData.pengabdian_choice === 'muallimah' || formData.pengabdian_choice === 'musyrifah'
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Pilihan Pengabdian / Donasi
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Berikut adalah pilihan komitmen pengabdian atau donasi bulanan Anda.
+        </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+         <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
+            <h3 className="font-semibold text-gray-800">Komitmen Anda</h3>
+            {!isEditing && (
+              <Button variant="outline" size="sm" onClick={handleEditClick}>
+                Edit Pilihan
+              </Button>
+            )}
+         </div>
+         
+         {!isEditing ? (
+           <div className="p-6 text-sm">
+             <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                <p className="font-medium text-emerald-900 mb-1">
+                  {isDonasi ? 'Infaq / Donasi Bulanan' : 'Bersedia Mengabdi (Khidmat)'}
+                </p>
+                <p className="text-emerald-700">
+                  {isDonasi 
+                    ? `Nominal: Rp ${formData.donasi_amount || '-'}` 
+                    : "Menjadi Mu'allimah, Musyrifah, atau Tim lainnya di MTI."}
+                </p>
+             </div>
+           </div>
+         ) : (
+           <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="md:col-span-2 space-y-4">
+                <div className="space-y-3">
+                  <label className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="pengabdian_choice"
+                      value="mengabdi"
+                      checked={isMengabdi}
+                      onChange={() => setFormData((prev: any) => ({ ...prev, pengabdian_choice: 'mengabdi' }))}
+                      className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="flex-1">
+                      <span className="block font-medium text-gray-900">Bersedia Mengabdi (Khidmat)</span>
+                      <span className="block text-sm text-gray-500">Menjadi Mu'allimah, Musyrifah, atau Tim lainnya di MTI.</span>
+                    </div>
+                  </label>
+                  
+                  <label className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="pengabdian_choice"
+                      value="donasi"
+                      checked={isDonasi}
+                      onChange={() => setFormData((prev: any) => ({ ...prev, pengabdian_choice: 'donasi' }))}
+                      className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="flex-1">
+                      <span className="block font-medium text-gray-900">Infaq / Donasi Bulanan</span>
+                      <span className="block text-sm text-gray-500">Berpartisipasi dalam program melalui donasi wajib bulanan.</span>
+                    </div>
+                  </label>
+                </div>
+                
+                {isDonasi && (
+                  <div className="mt-3 p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg space-y-3">
+                    <label className="block text-sm font-medium text-emerald-950">
+                      Nominal Infaq Per Bulan
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['25.000', '50.000', '100.000'].map((amount) => (
+                        <button
+                          key={amount}
+                          type="button"
+                          onClick={() => setFormData((prev: any) => ({ ...prev, donasi_amount: amount }))}
+                          className={`py-2 px-3 text-sm rounded-md border ${
+                            formData.donasi_amount === amount
+                              ? 'bg-emerald-500 text-white border-emerald-600 font-medium'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400 hover:bg-emerald-50'
+                          }`}
+                        >
+                          Rp {amount}
+                        </button>
+                      ))}
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">Rp</span>
+                        <input
+                          type="text"
+                          placeholder="Lainnya"
+                          value={!['25.000', '50.000', '100.000'].includes(formData.donasi_amount || '') ? formData.donasi_amount : ''}
+                          onChange={(e) => setFormData((prev: any) => ({ ...prev, donasi_amount: e.target.value }))}
+                          className="pl-9 h-full w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+           </div>
+         )}
       </div>
     </div>
   )

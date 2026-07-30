@@ -18,6 +18,7 @@ interface JuzOption {
 }
 
 export function useAdminExamQuestions(onSuccess?: () => void) {
+  const [allQuestions, setAllQuestions] = useState<ExamQuestion[]>([]);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber | 'all'>('all');
@@ -33,7 +34,8 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
   const [sortField, setSortField] = useState<'juz_number' | 'section_number' | 'question_number' | 'created_at' | 'updated_at'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'introduction'>('all');
-  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('active');
+  const [filterPackage, setFilterPackage] = useState<'all' | 'A' | 'B'>('all');
 
   // Preview state
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -73,7 +75,6 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
       let url = '/api/exam/questions';
 
       const params = new URLSearchParams();
-      params.append('active', 'true');
 
       if (selectedJuz !== 'all') {
         params.append('juz', selectedJuz.toString());
@@ -87,7 +88,10 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
       const result = await response.json();
 
       if (response.ok) {
-        let filteredQuestions = result.data || [];
+        const rawData = result.data || [];
+        setAllQuestions(rawData);
+        
+        let filteredQuestions = rawData;
 
         // Apply search filter
         if (searchQuery) {
@@ -102,6 +106,11 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
         // Apply type filter
         if (filterType !== 'all') {
           filteredQuestions = filteredQuestions.filter((q: ExamQuestion) => q.question_type === filterType);
+        }
+
+        // Apply package filter
+        if (filterPackage !== 'all') {
+          filteredQuestions = filteredQuestions.filter((q: ExamQuestion) => (q.question_package || 'B') === filterPackage);
         }
 
         // Apply active filter
@@ -134,7 +143,7 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
     } finally {
       setLoading(false);
     }
-  }, [selectedJuz, selectedSection, sortField, sortOrder, searchQuery, filterType, filterActive]);
+  }, [selectedJuz, selectedSection, sortField, sortOrder, searchQuery, filterType, filterActive, filterPackage]);
 
   useEffect(() => {
     loadQuestions();
@@ -149,7 +158,7 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedJuz, selectedSection, searchQuery, filterType, filterActive]);
+  }, [selectedJuz, selectedSection, searchQuery, filterType, filterActive, filterPackage]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -272,16 +281,71 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
   };
 
   const statistics = useMemo(() => {
-    const stats: Record<string, Record<number, number>> = {};
-    questions.forEach(q => {
-      const juzKey = `Juz ${q.juz_number}`;
-      if (!stats[juzKey]) stats[juzKey] = {};
-      const secNum = q.section_number || 1;
-      if (!stats[juzKey][secNum]) stats[juzKey][secNum] = 0;
-      stats[juzKey][secNum]++;
+    const stats: Record<string, any> = {};
+    allQuestions.forEach(q => {
+      const pkg = q.question_package || 'B';
+      const activeState = q.is_active !== false;
+      const key = `${q.juz_number}-${pkg}-${activeState}`;
+      
+      if (!stats[key]) {
+        stats[key] = {
+          juz_number: q.juz_number,
+          question_package: pkg,
+          is_active: activeState,
+          total: 0,
+          sections: {} // e.g. { "1": { title: "Tebak Nama Surat", count: 10 } }
+        };
+      }
+      stats[key].total++;
+      
+      if (q.section_number) {
+        if (!stats[key].sections[q.section_number]) {
+          stats[key].sections[q.section_number] = {
+            title: q.section_title || `Section ${q.section_number}`,
+            count: 0
+          };
+        }
+        stats[key].sections[q.section_number].count++;
+      }
     });
-    return stats;
-  }, [questions]);
+    
+    return Object.values(stats).sort((a: any, b: any) => {
+      if (a.juz_number !== b.juz_number) return a.juz_number - b.juz_number;
+      if (a.question_package !== b.question_package) return a.question_package.localeCompare(b.question_package);
+      return a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1;
+    });
+  }, [allQuestions]);
+
+  const handleToggleArchivePackage = async (juz_number: number, question_package: string, current_active: boolean) => {
+    try {
+      setLoading(true);
+      const newActiveState = !current_active;
+      
+      const response = await fetch('/api/exam/questions/bulk-archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          juz_number,
+          question_package,
+          is_active: newActiveState
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(`Berhasil ${newActiveState ? 'mengaktifkan' : 'mengarsipkan'} soal Juz ${juz_number} Paket ${question_package}`);
+        loadQuestions();
+      } else {
+        toast.error(result.error || 'Failed to update questions');
+      }
+    } catch (error) {
+      console.error('Error toggling package archive status:', error);
+      toast.error('Terjadi kesalahan sistem');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     questions,
@@ -311,6 +375,8 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
     setFilterType,
     filterActive,
     setFilterActive,
+    filterPackage,
+    setFilterPackage,
     showPreviewModal,
     setShowPreviewModal,
     previewQuestion,
@@ -329,6 +395,7 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
     handleDelete,
     handleUpdate,
     handleAIGenerate,
+    handleToggleArchivePackage,
     statistics,
   };
 }

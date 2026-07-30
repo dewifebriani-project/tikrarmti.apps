@@ -253,10 +253,32 @@ export async function POST(request: NextRequest) {
       attemptId = newAttempt.id;
     }
 
+    const isPassed = score >= passingScore;
+    
+    // Check total attempts to apply downgrade logic if max attempts reached and failed
+    const { data: allAttempts } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('registration_id', registration.id)
+        .eq('status', 'submitted');
+    
+    const attemptsCount = allAttempts?.length || 1;
+    const maxAttempts = config?.max_attempts || 3;
+    let downgradedTo30A = false;
+    let newChosenJuz = registration.chosen_juz;
+
+    if (!isPassed && attemptsCount >= maxAttempts) {
+        // Failed max attempts
+        newChosenJuz = '30A';
+        downgradedTo30A = true;
+    }
+
     // Update registration with exam results
     const { error: updateRegError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .update({
+        chosen_juz: newChosenJuz,
         exam_juz_number: examJuzNumber,
         exam_attempt_id: attemptId,
         exam_score: score,
@@ -274,7 +296,8 @@ export async function POST(request: NextRequest) {
       attemptId,
       score,
       correctAnswers,
-      totalQuestions: questions.length
+      totalQuestions: questions.length,
+      downgradedTo30A
     });
 
     return NextResponse.json({
@@ -282,7 +305,8 @@ export async function POST(request: NextRequest) {
       attemptId,
       score,
       correctAnswers,
-      totalQuestions: questions.length
+      totalQuestions: questions.length,
+      downgradedTo30A
     });
 
   } catch (error) {

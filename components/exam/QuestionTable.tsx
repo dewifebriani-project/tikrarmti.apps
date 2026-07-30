@@ -101,7 +101,7 @@ export function QuestionTable({
               <tr key={question.id} className={`hover:bg-blue-50/50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                    {question.juz_code || `Juz ${question.juz_number}`}
+                    {question.juz_code || `Juz ${question.juz_number}${question.question_package || ''}`}
                   </span>
                 </td>
                 <td className="px-4 py-3">
