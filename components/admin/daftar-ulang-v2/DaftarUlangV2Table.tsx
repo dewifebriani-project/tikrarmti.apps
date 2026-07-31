@@ -124,13 +124,11 @@ export function DaftarUlangV2Table({
   
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit', timeZone: 'Asia/Jakarta' });
   };
 
   const renderStatusDropdown = (submission: DaftarUlangSubmission, type: 'akad' | 'partner') => {
@@ -389,38 +387,14 @@ export function DaftarUlangV2Table({
                         if (!val || val === '-' || val === 'tidak, qadarullah belum bisa.') {
                           return <span className="text-gray-400 italic">-</span>;
                         }
-                        
-                        const badges = [];
-                        
-                        if (val.includes('muallimah')) {
-                          badges.push(
-                            <span key="muallimah" className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 w-fit">
-                              Muallimah
-                            </span>
-                          );
-                        }
-                        if (val.includes('musyrifah')) {
-                          badges.push(
-                            <span key="musyrifah" className="text-purple-700 font-semibold bg-purple-50 px-2 py-1 rounded-md border border-purple-100 w-fit">
-                              Musyrifah
-                            </span>
-                          );
-                        }
-                        if (val.includes('admin')) {
-                          badges.push(
-                            <span key="admin" className="text-blue-700 font-semibold bg-blue-50 px-2 py-1 rounded-md border border-blue-100 w-fit">
-                              Admin
-                            </span>
-                          );
-                        }
                         if (val.includes('donasi') || val.includes('donatur')) {
-                          badges.push(
-                            <div key="donasi" className="flex flex-col gap-0.5">
+                          return (
+                            <div className="flex flex-col gap-0.5">
                               <span className="text-amber-700 font-semibold bg-amber-50 px-2 py-1 rounded-md border border-amber-100 w-fit">
-                                Donatur
+                                Donasi
                               </span>
                               {submission.donasi_amount && (
-                                <span className="text-[11px] text-gray-600 font-medium">
+                                <span className="text-[11px] text-gray-600 font-medium mt-0.5">
                                   Rp {Number(submission.donasi_amount).toLocaleString('id-ID')}
                                 </span>
                               )}
@@ -428,11 +402,24 @@ export function DaftarUlangV2Table({
                           );
                         }
                         
-                        if (badges.length === 0) {
-                          return <span className="text-gray-600 font-medium">{submission.pengabdian_type || submission.pengabdian_choice}</span>;
-                        }
+                        // Otherwise it's Mengabdi
+                        const roles = [];
+                        if (val.includes('muallimah')) roles.push('Muallimah');
+                        if (val.includes('musyrifah')) roles.push('Musyrifah');
+                        if (val.includes('admin')) roles.push('Admin');
                         
-                        return <div className="flex flex-col gap-1">{badges}</div>;
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-teal-700 font-semibold bg-teal-50 px-2 py-1 rounded-md border border-teal-100 w-fit">
+                              Mengabdi
+                            </span>
+                            {roles.length > 0 && (
+                              <span className="text-[11px] text-gray-600 font-medium mt-0.5">
+                                {roles.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        );
                       })()}
                     </div>
                   </td>

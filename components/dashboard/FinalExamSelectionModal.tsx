@@ -165,7 +165,7 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
                   </div>
                 ) : (
                   <div className="text-sm text-gray-600 font-medium bg-white rounded-2xl p-4 border border-gray-100">
-                    <p>Jadwal: <span className="text-gray-900 font-bold">{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(existingRegistration.schedule.exam_date))}</span></p>
+                    <p>Jadwal: <span className="text-gray-900 font-bold">{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeZone: 'Asia/Jakarta' }).format(new Date(existingRegistration.schedule.exam_date))}</span></p>
                     <p>Waktu: <span className="text-gray-900 font-bold">{existingRegistration.schedule.start_time} - {existingRegistration.schedule.end_time} WIB</span></p>
                     <p>Penguji: <span className="text-gray-900 font-bold">{formatExaminerName(existingRegistration.schedule.examiner?.full_name)}</span></p>
                   </div>
@@ -211,7 +211,7 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-gray-900 font-black">
                             <Calendar className="w-4 h-4 text-green-600" />
-                            <span>{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(schedule.exam_date))}</span>
+                            <span>{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeZone: 'Asia/Jakarta' }).format(new Date(schedule.exam_date))}</span>
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-gray-500 uppercase tracking-tighter">
                             <div className="flex items-center gap-1.5">

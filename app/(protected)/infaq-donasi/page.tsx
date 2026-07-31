@@ -385,7 +385,7 @@ export default function InfaqDonasiPage() {
                           <p className="text-xs text-gray-450 mt-1 flex items-center gap-1.5">
                             <span>Atas nama: {don.donor_name}</span>
                             <span className="w-1 h-1 rounded-full bg-gray-300" />
-                            <span>{new Date(don.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                            <span>{new Date(don.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</span>
                           </p>
                           {don.notes && (
                             <p className="text-xs text-gray-550 mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100 max-w-lg">

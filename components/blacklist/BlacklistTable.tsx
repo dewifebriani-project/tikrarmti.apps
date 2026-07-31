@@ -79,11 +79,9 @@ export function BlacklistTable({
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm text-gray-600">
-                      {new Date(user.blacklisted_at).toLocaleDateString('id-ID', {
-                        day: 'numeric',
+                      {new Date(user.blacklisted_at).toLocaleDateString('id-ID', { day: 'numeric',
                         month: 'short',
-                        year: 'numeric'
-                      })}
+                        year: 'numeric', timeZone: 'Asia/Jakarta' })}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-right">

@@ -338,7 +338,7 @@ export default function AdminApprovalModalFixed({ isOpen, onClose, application, 
                   <div className="text-gray-600">Tanggal Lahir:</div>
                   <div className="font-medium">
                     {application?.tanggal_lahir
-                      ? new Date(application.tanggal_lahir).toLocaleDateString('id-ID')
+                      ? new Date(application.tanggal_lahir).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })
                       : '-'}
                   </div>
 
@@ -391,8 +391,8 @@ export default function AdminApprovalModalFixed({ isOpen, onClose, application, 
                     <>
                       <div className="text-gray-600">Batch Period:</div>
                       <div className="font-medium">
-                        {new Date(detailedData.batch.start_date).toLocaleDateString('id-ID')} -
-                        {detailedData.batch.end_date ? new Date(detailedData.batch.end_date).toLocaleDateString('id-ID') : 'Ongoing'}
+                        {new Date(detailedData.batch.start_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} -
+                        {detailedData.batch.end_date ? new Date(detailedData.batch.end_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : 'Ongoing'}
                       </div>
                     </>
                   )}
@@ -418,7 +418,7 @@ export default function AdminApprovalModalFixed({ isOpen, onClose, application, 
 
                   <div className="text-gray-600">Tgl Pengajuan:</div>
                   <div className="font-medium">
-                    {new Date(detailedData?.submission_date || application?.submission_date).toLocaleDateString('id-ID')}
+                    {new Date(detailedData?.submission_date || application?.submission_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                   </div>
 
                   {detailedData?.approved_at && (

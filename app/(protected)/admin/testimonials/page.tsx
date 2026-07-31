@@ -393,7 +393,7 @@ export default function AdminTestimonialsPage() {
 
                   {/* Date */}
                   <p className="text-[11px] text-gray-400 mb-4">
-                    Dikirim: {new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    Dikirim: {new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                     {t.updated_at && t.updated_at !== t.created_at && (
                       <span className="ml-1 text-gray-300">• Diubah</span>
                     )}

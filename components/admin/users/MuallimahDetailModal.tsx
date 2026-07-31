@@ -149,7 +149,7 @@ export function MuallimahDetailModal({ registration, isOpen, onClose }: Muallima
                    <div>
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-1">TTL</div>
                       <div className="text-xs font-black text-gray-800 leading-relaxed">
-                        {registration.birth_place}, {new Date(registration.birth_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {registration.birth_place}, {new Date(registration.birth_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })}
                       </div>
                    </div>
                    <div>
@@ -273,7 +273,7 @@ export function MuallimahDetailModal({ registration, isOpen, onClose }: Muallima
         <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-tighter">
             <CheckCircle className="h-3 w-3 text-emerald-500" />
-            {new Date(registration.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {new Date(registration.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
           </div>
           <button
             onClick={onClose}

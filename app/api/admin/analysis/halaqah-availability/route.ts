@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     console.log('[Halaqah Availability API] Loading halaqah availability for batch:', batchId);
 
     // Fetch muallimah akads for this batch (approved only)
-    const { data: muallimahRegsRaw } = await supabaseAdmin
+    const { data: muallimahRegsRaw, error: muallimahError } = await supabaseAdmin
       .from('muallimah_akads')
       .select(`
         user_id, 
@@ -65,10 +65,17 @@ export async function GET(request: NextRequest) {
         preferred_max_thalibah,
         exclude_from_capacity,
         paid_class_scheme,
+        final_assigned_juz,
         user:users!muallimah_akads_user_id_fkey(full_name, whatsapp)
       `)
       .eq('batch_id', batchId)
       .eq('status', 'approved');
+
+    if (muallimahError) {
+      console.error("[DEBUG_DB] DB ERROR fetching muallimah_akads:", muallimahError);
+    } else {
+      console.log(`[DEBUG_DB] fetched ${muallimahRegsRaw?.length} muallimahs!`);
+    }
 
     // Fetch memorized_juz from muallimah_registrations
     const { data: muallimahProfiles } = await supabaseAdmin
@@ -84,7 +91,8 @@ export async function GET(request: NextRequest) {
       wa_phone: (reg.user as any)?.whatsapp || '',
       memorized_juz: profileMap.get(reg.user_id)?.memorized_juz || '',
       exclude_from_capacity: reg.exclude_from_capacity,
-      preferred_max_thalibah: reg.preferred_max_thalibah
+      preferred_max_thalibah: reg.preferred_max_thalibah,
+      final_assigned_juz: reg.final_assigned_juz
     }));
 
     // Create muallimah map for quick lookup
@@ -97,16 +105,16 @@ export async function GET(request: NextRequest) {
       .map(reg => reg.user_id);
 
     if (mode === 'pendaftar') {
-      // Helper function to extract base juz, e.g. "30A" -> "30", "1" -> "1"
+      // Helper function to extract base juz, e.g. "30A" -> "30", "1" -> "1", "Juz 30" -> "30"
       const getBaseJuz = (juz: string): string => {
-        const match = juz.trim().match(/^\d+/);
+        const match = juz.trim().match(/\d+/);
         return match ? match[0] : juz.trim();
       };
 
       const pendaftarPerJuz = new Map<string, number>();
       const { data: pendaftarList } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('chosen_juz, programs!inner(class_type)')
+        .select('chosen_juz, selection_status, programs!inner(class_type)')
         .eq('batch_id', batchId)
         .in('status', ['pending', 'approved']);
       
@@ -115,9 +123,16 @@ export async function GET(request: NextRequest) {
           const cType = (p as any).programs?.class_type;
           
           let matches = true;
-          if (programTab === 'tikrar') matches = cType === 'tikrar_tahfidz';
-          else if (programTab === 'pra_tikrar') matches = cType === 'pra_tahfidz';
-          else if (programTab === 'kelas_berbayar') matches = false;
+          if (programTab === 'tikrar') {
+            matches = cType === 'tikrar_tahfidz' && ['selected', 'waitlist', 'passed'].includes(p.selection_status);
+          } else if (programTab === 'pra_tikrar') {
+            matches = cType === 'pra_tahfidz' || (cType === 'tikrar_tahfidz' && p.selection_status === 'not_selected');
+          } else if (programTab === 'kelas_berbayar') {
+            matches = false;
+          } else if (programTab === 'semua') {
+            // Exclude pending if they want only those who took oral test
+            matches = ['selected', 'waitlist', 'passed', 'not_selected'].includes(p.selection_status) || cType === 'pra_tahfidz';
+          }
           
           if (matches) {
             const juz = (p.chosen_juz || 'Unknown').trim();
@@ -268,11 +283,74 @@ export async function GET(request: NextRequest) {
           preferred_max_thalibah: m.preferred_max_thalibah || 10,
           preferred_juz: preferredJuzs,
           raw_preferred_juz: m.preferred_juz,
-          schedules: schedulesList
+          schedules: schedulesList,
+          final_assigned_juz: m.final_assigned_juz,
+          allocated_juz: null as string | null
         };
       });
 
-      // 3. Create schedule slots flat list
+      // 3 & 4. Greedy Allocation algorithm (Muallimah level):
+      for (const m of muallimahsWithSchedules) {
+        let assignedJuz = m.final_assigned_juz; // Override manual
+
+        if (assignedJuz) {
+          const curAlloc = juzAllocatedCapacity.get(assignedJuz) || 0;
+          juzAllocatedCapacity.set(assignedJuz, curAlloc + m.preferred_max_thalibah);
+        } else if (m.preferred_juz.length === 1) {
+          assignedJuz = m.preferred_juz[0];
+          const curAlloc = juzAllocatedCapacity.get(assignedJuz) || 0;
+          juzAllocatedCapacity.set(assignedJuz, curAlloc + m.preferred_max_thalibah);
+        }
+        
+        m.allocated_juz = assignedJuz || null;
+      }
+
+      // Phase 4b: Allocate remaining Muallimahs to the Juz among their preferred list that needs it most
+      let allocationChanged = true;
+      while (allocationChanged) {
+        allocationChanged = false;
+        let bestMuallimah = null;
+        let bestJuz = null;
+        let maxShortage = -Infinity;
+
+        const unallocatedMuallimahs = muallimahsWithSchedules.filter(m => !m.allocated_juz);
+        if (unallocatedMuallimahs.length === 0) break;
+
+        for (const m of unallocatedMuallimahs) {
+          for (const j of m.preferred_juz) {
+            const demanded = juzThalibahMap.get(j) || 0;
+            const allocated = juzAllocatedCapacity.get(j) || 0;
+            const shortage = demanded - allocated;
+            if (shortage > maxShortage) {
+              maxShortage = shortage;
+              bestMuallimah = m;
+              bestJuz = j;
+            }
+          }
+        }
+
+        if (bestMuallimah && bestJuz) {
+          bestMuallimah.allocated_juz = bestJuz;
+          const curAlloc = juzAllocatedCapacity.get(bestJuz) || 0;
+          juzAllocatedCapacity.set(bestJuz, curAlloc + bestMuallimah.preferred_max_thalibah);
+          allocationChanged = true;
+        } else {
+          break;
+        }
+      }
+
+      // Phase 4c: Fallback - allocate any remaining Muallimahs to the first preferred Juz
+      for (const m of muallimahsWithSchedules) {
+        if (!m.allocated_juz && m.preferred_juz.length > 0) {
+          m.allocated_juz = m.preferred_juz[0];
+        }
+      }
+
+      console.log("[DEBUG_ALLOCATION] First 3 muallimahs:", JSON.stringify(muallimahsWithSchedules.slice(0, 3), null, 2));
+      console.log("[DEBUG_ALLOCATION] Unallocated count:", muallimahsWithSchedules.filter(m => !m.allocated_juz).length);
+      console.log("[DEBUG_ALLOCATION] Total capacity:", juzAllocatedCapacity);
+
+      // Build schedule slots for Phase 5 structure consistency
       const slots: any[] = [];
       for (const m of muallimahsWithSchedules) {
         for (let i = 0; i < m.schedules.length; i++) {
@@ -281,60 +359,8 @@ export async function GET(request: NextRequest) {
             schedule_index: i,
             preferred_juz: m.preferred_juz,
             capacity: m.preferred_max_thalibah,
-            allocated_juz: null as string | null
+            allocated_juz: m.allocated_juz
           });
-        }
-      }
-
-      // 4. Greedy Allocation algorithm:
-      // Phase 4a: Allocate slots for Muallimahs who only have 1 preferred Juz (non-flexible)
-      for (const slot of slots) {
-        if (slot.preferred_juz.length === 1) {
-          const targetJuz = slot.preferred_juz[0];
-          slot.allocated_juz = targetJuz;
-          const curAlloc = juzAllocatedCapacity.get(targetJuz) || 0;
-          juzAllocatedCapacity.set(targetJuz, curAlloc + slot.capacity);
-        }
-      }
-
-      // Phase 4b: Allocate remaining slots to the Juz among their preferred list that needs it most (highest shortage)
-      let allocationChanged = true;
-      while (allocationChanged) {
-        allocationChanged = false;
-        let bestSlot = null;
-        let bestJuz = null;
-        let maxShortage = -Infinity;
-
-        const unallocatedSlots = slots.filter(s => !s.allocated_juz);
-        if (unallocatedSlots.length === 0) break;
-
-        for (const slot of unallocatedSlots) {
-          for (const j of slot.preferred_juz) {
-            const demanded = juzThalibahMap.get(j) || 0;
-            const allocated = juzAllocatedCapacity.get(j) || 0;
-            const shortage = demanded - allocated;
-            if (shortage > maxShortage) {
-              maxShortage = shortage;
-              bestSlot = slot;
-              bestJuz = j;
-            }
-          }
-        }
-
-        if (bestSlot && bestJuz) {
-          bestSlot.allocated_juz = bestJuz;
-          const curAlloc = juzAllocatedCapacity.get(bestJuz) || 0;
-          juzAllocatedCapacity.set(bestJuz, curAlloc + bestSlot.capacity);
-          allocationChanged = true;
-        } else {
-          break;
-        }
-      }
-
-      // Phase 4c: Fallback - allocate any remaining slots to the first preferred Juz
-      for (const slot of slots) {
-        if (!slot.allocated_juz && slot.preferred_juz.length > 0) {
-          slot.allocated_juz = slot.preferred_juz[0];
         }
       }
 
@@ -342,9 +368,9 @@ export async function GET(request: NextRequest) {
       for (const juz of displayGroups) {
         const totalThalibah = pendaftarPerJuz.get(juz) || 0;
         
-        // Find all muallimahs that match this base group
+        // Find all muallimahs that match this base group AND are allocated to it
         const matchedMuallimahs = muallimahsWithSchedules.filter(m => 
-          m.preferred_juz.includes(juz)
+          m.allocated_juz === juz
         );
 
         const totalMuallimah = matchedMuallimahs.length;

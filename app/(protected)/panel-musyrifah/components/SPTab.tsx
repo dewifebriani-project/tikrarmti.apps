@@ -303,7 +303,7 @@ export function SPTab({
                     {getSPReasonLabel(sp.reason)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {new Date(sp.issued_at).toLocaleDateString('id-ID')}
+                    {new Date(sp.issued_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
@@ -426,7 +426,7 @@ export function SPTab({
                     )}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {new Date(history.action_taken_at).toLocaleDateString('id-ID')}
+                    {new Date(history.action_taken_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900">
                     {history.udzur_type && (
@@ -491,11 +491,9 @@ export function SPTab({
             <div>
               <label className="text-sm font-medium text-gray-500">Tanggal Diterbitkan</label>
               <p className="text-gray-900">
-                {new Date(selectedItem.issued_at).toLocaleDateString('id-ID', {
-                  day: 'numeric',
+                {new Date(selectedItem.issued_at).toLocaleDateString('id-ID', { day: 'numeric',
                   month: 'long',
-                  year: 'numeric',
-                })}
+                  year: 'numeric', timeZone: 'Asia/Jakarta' })}
               </p>
             </div>
 

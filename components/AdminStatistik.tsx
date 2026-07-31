@@ -98,7 +98,7 @@ export function AdminStatistik() {
     labels: data.registrationTrend.map((t) => {
       // Format date nicely (e.g. "12 Jul")
       const d = new Date(t.date);
-      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' });
     }),
     datasets: [
       {

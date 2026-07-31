@@ -348,11 +348,9 @@ export default function DashboardContent() {
 
   const toGregorianLabel = () => {
     if (gregorianDate) return `${gregorianDate.day} ${gregorianDate.month} ${gregorianDate.year}`
-    return new Intl.DateTimeFormat('id-ID', {
-      year: 'numeric',
+    return new Intl.DateTimeFormat('id-ID', { year: 'numeric',
       month: 'long',
-      day: 'numeric'
-    }).format(new Date())
+      day: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date())
   }
 
   const toHijriLabel = () => {
@@ -966,7 +964,7 @@ export default function DashboardContent() {
                         <div>
                           <p className="text-xs font-bold text-gray-900">{activity.title}</p>
                           <p className="text-[10px] text-gray-400">
-                            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(activity.date)}
+                            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).format(activity.date)}
                           </p>
                         </div>
                       </div>

@@ -204,10 +204,10 @@ export default function AdminOrphanedUsers() {
                       <div className="text-xs text-gray-500">{user.id.slice(0, 8)}...</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(user.created_at).toLocaleDateString('id-ID')}
+                      {new Date(user.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID') : 'Never'}
+                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : 'Never'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -285,10 +285,10 @@ export default function AdminOrphanedUsers() {
                       <div className="text-xs text-gray-500">{user.id.slice(0, 8)}...</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(user.created_at).toLocaleDateString('id-ID')}
+                      {new Date(user.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID') : 'Never'}
+                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : 'Never'}
                     </td>
                   </tr>
                 ))

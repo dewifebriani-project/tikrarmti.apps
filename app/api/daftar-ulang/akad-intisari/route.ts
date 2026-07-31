@@ -112,7 +112,7 @@ function buildAkadIntisari(registration: any): {
   const domicile = registration.domicile || '________________'
   const mainTimeSlot = registration.main_time_slot || '________________'
   const backupTimeSlot = registration.backup_time_slot || '________________'
-  const timezone = registration.timezone || 'WIB/WITA/WIT'
+  const timezone = 'WIB' // Diseragamkan menjadi WIB
   
   const batchName = registration.batches?.name || '________________'
 

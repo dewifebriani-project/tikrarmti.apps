@@ -552,11 +552,9 @@ function RegistrationTab({ registration, isLoading }: { registration: MuallimahR
             )}
             <DetailItem
               label="Tanggal Daftar"
-              value={new Date(registration.submitted_at).toLocaleDateString('id-ID', {
-                day: 'numeric',
+              value={new Date(registration.submitted_at).toLocaleDateString('id-ID', { day: 'numeric',
                 month: 'long',
-                year: 'numeric',
-              })}
+                year: 'numeric', timeZone: 'Asia/Jakarta' })}
             />
           </dl>
         </div>

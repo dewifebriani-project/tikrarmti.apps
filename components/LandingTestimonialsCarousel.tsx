@@ -240,7 +240,7 @@ export function LandingTestimonialsCarousel({ testimonials }: { testimonials: Te
               </p>
 
               <div className="text-[10px] sm:text-xs text-gray-400">
-                Dikirim pada: {new Date(selectedTestimonial.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                Dikirim pada: {new Date(selectedTestimonial.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}
               </div>
             </div>
 

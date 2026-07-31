@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 
         if (today < startDate || today > endDate) {
           const formatDate = (date: Date) => {
-            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
           };
           return NextResponse.json({
             error: 'Exam period closed',

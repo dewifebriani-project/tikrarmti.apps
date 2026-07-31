@@ -51,13 +51,11 @@ export default function UserDetailsModal({
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '-';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('id-ID', {
-      year: 'numeric',
+    return date.toLocaleDateString('id-ID', { year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit', timeZone: 'Asia/Jakarta' });
   };
 
   const getRoleBadgeVariant = (role: string) => {

@@ -531,7 +531,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                         formData.holiday_dates.map((date) => (
                           <div key={date} className="flex items-center gap-2 bg-white border border-red-200 px-2.5 py-1 rounded-full text-xs font-semibold text-red-800 shadow-sm">
                             <Clock className="w-3 h-3" />
-                            {new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                             <button
                               type="button"
                               onClick={() => setFormData({ ...formData, holiday_dates: formData.holiday_dates.filter(d => d !== date) })}

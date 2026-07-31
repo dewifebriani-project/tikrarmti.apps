@@ -578,7 +578,7 @@ export function FinalExamSchedules() {
 
               <div className="space-y-3">
                 <h3 className="text-base font-black text-gray-900 tracking-tight leading-snug">
-                  {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(schedule.exam_date))}
+                  {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeZone: 'Asia/Jakarta' }).format(new Date(schedule.exam_date))}
                 </h3>
                 
                 <div className="space-y-2 text-xs font-semibold text-gray-600">
@@ -650,7 +650,7 @@ export function FinalExamSchedules() {
                     Daftar Pendaftar Ujian
                   </DialogTitle>
                   <DialogDescription className="text-white/95 font-medium leading-relaxed">
-                    {viewingParticipantsSchedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(viewingParticipantsSchedule.exam_date))}
+                    {viewingParticipantsSchedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeZone: 'Asia/Jakarta' }).format(new Date(viewingParticipantsSchedule.exam_date))}
                     <div className="text-xs text-white/80 mt-1 font-bold">
                       Waktu: {viewingParticipantsSchedule.start_time} - {viewingParticipantsSchedule.end_time} WIB | Penguji: {viewingParticipantsSchedule.examiner?.full_name || '-'}
                     </div>

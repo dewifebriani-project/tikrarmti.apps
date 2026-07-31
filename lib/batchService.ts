@@ -394,7 +394,7 @@ export class BatchService {
         }).length || 0;
 
         monthlyTrends.push({
-          month: monthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+          month: monthDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }),
           enrollments: monthEnrollments,
           completions: monthCompletions
         });

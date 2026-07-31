@@ -262,7 +262,7 @@ function renderItemDescription(
   // Description for Registration Phase
   if (item.id === 1 && registrationStatus?.hasRegistered) {
     const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
-    const formattedRegDate = regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
+    const formattedRegDate = regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }) : 'Tanggal tidak tersedia';
     
     const isRegistrationStarted = getIsDateStarted(batch?.registration_start_date);
     const oralCard = (

@@ -926,9 +926,7 @@ function PresensiJurnalContent() {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3 h-3 text-green-700" />
                           <span className="text-xs font-bold text-gray-900">
-                             {new Date(record.tanggal_setor || record.waktu_tashih || record.created_at).toLocaleDateString('id-ID', {
-                               day: 'numeric', month: 'long', year: 'numeric'
-                             })}
+                             {new Date(record.tanggal_setor || record.waktu_tashih || record.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                           </span>
                         </div>
                         {selectedBlockRecords.type === 'presensi' ? (
@@ -2174,7 +2172,7 @@ function IssueSPModal({ target, onClose, onSuccess }: { target: any, onClose: ()
                   </div>
                   
                   <div className="flex justify-end items-center gap-1 mt-1 opacity-50">
-                    <span className="text-[9px] font-bold uppercase">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-[9px] font-bold uppercase">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}</span>
                     <CheckCheck className="w-3 h-3 text-blue-500" />
                   </div>
                 </div>

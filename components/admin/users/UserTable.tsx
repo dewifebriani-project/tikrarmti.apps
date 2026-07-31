@@ -103,13 +103,11 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                                 <Clock className="h-2.5 w-2.5 text-gray-400" />
                                 <span>
                                   {user.activity_meta.latest_jurnal_date 
-                                    ? new Date(user.activity_meta.latest_jurnal_date).toLocaleDateString('id-ID', { 
-                                        day: 'numeric', 
+                                    ? new Date(user.activity_meta.latest_jurnal_date).toLocaleDateString('id-ID', { day: 'numeric', 
                                         month: 'short', 
                                         year: '2-digit',
                                         hour: '2-digit',
-                                        minute: '2-digit'
-                                      }) 
+                                        minute: '2-digit', timeZone: 'Asia/Jakarta' }) 
                                     : 'Belum pernah lapor'}
                                 </span>
                               </div>

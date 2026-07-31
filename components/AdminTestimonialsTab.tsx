@@ -201,7 +201,7 @@ export function AdminTestimonialsTab() {
                   )}
                 </div>
                 <div className="text-xs text-gray-400">
-                  Dikirim pada: {new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  Dikirim pada: {new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                 </div>
                 <div className="pt-2 border-t border-gray-50 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">

@@ -97,11 +97,9 @@ export async function GET(request: NextRequest) {
       now.setHours(0, 0, 0, 0)
 
       if (now < reEnrollDate) {
-        const formattedDate = reEnrollDate.toLocaleDateString('id-ID', {
-          day: 'numeric',
+        const formattedDate = reEnrollDate.toLocaleDateString('id-ID', { day: 'numeric',
           month: 'long',
-          year: 'numeric'
-        })
+          year: 'numeric', timeZone: 'Asia/Jakarta' })
         return NextResponse.json(
           {
             error: 'Daftar ulang belum dibuka',

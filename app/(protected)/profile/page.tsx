@@ -471,7 +471,7 @@ export default function ProfilePage() {
                 <InfoItem
                   icon={<Calendar className="h-4 w-4" />}
                   label="Tanggal Lahir"
-                  value={formData.tanggalLahir ? new Date(formData.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  value={formData.tanggalLahir ? new Date(formData.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '-'}
                 />
                 <InfoItem
                   icon={<MapPin className="h-4 w-4" />}

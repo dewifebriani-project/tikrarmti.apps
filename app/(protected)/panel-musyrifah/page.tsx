@@ -1126,7 +1126,7 @@ Tim Markaz Tikrar Indonesia`;
         <div className="flex flex-col items-center gap-0.5">
           <span
             className={`inline-flex items-center justify-center w-7 h-5 rounded-full border-2 ${bgColors[spLevel as keyof typeof bgColors]} ${textColors[spLevel as keyof typeof textColors]} ${borderColors[spLevel as keyof typeof borderColors]} text-[10px] font-bold`}
-            title={`SP${spLevel} - ${week.sp_info.reason} (${new Date(week.sp_info.issued_at).toLocaleDateString('id-ID')})`}
+            title={`SP${spLevel} - ${week.sp_info.reason} (${new Date(week.sp_info.issued_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })})`}
           >
             SP{spLevel}
           </span>
@@ -1474,7 +1474,7 @@ Tim Markaz Tikrar Indonesia`;
                                                       key={record.id}
                                                       onClick={async (e) => {
                                                         e.stopPropagation();
-                                                        const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID');
+                                                        const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
                                                         if (confirm(`Hapus record jurnal untuk blok ${block.block_code}?\n\nTanggal: ${entryDate}\nBlok: ${block.block_code}`)) {
                                                           try {
                                                             const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
@@ -1495,7 +1495,7 @@ Tim Markaz Tikrar Indonesia`;
                                                         }
                                                       }}
                                                       className="text-red-600 hover:text-red-800 text-[9px] underline w-full"
-                                                      title={`Hapus record ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`}
+                                                      title={`Hapus record ${new Date(record.tanggal_setor).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}`}
                                                     >
                                                       Hapus
                                                     </button>
@@ -1523,7 +1523,7 @@ Tim Markaz Tikrar Indonesia`;
                                                   <div className="flex-1">
                                                     <div className="flex items-center gap-2 text-xs">
                                                       <span className="text-gray-500">
-                                                        {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
+                                                        {new Date(entry.tanggal_setor).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                                                       </span>
                                                       {entry.blok && (
                                                         <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-100 text-purple-800">
@@ -2323,7 +2323,7 @@ Tim Markaz Tikrar Indonesia`;
                                                 <button
                                                   onClick={async (e) => {
                                                     e.stopPropagation();
-                                                    if (confirm(`Hapus blok ${block.block_code} dari record tashih ini?\n\nTanggal: ${new Date(recordForBlock.waktu_tashih).toLocaleDateString('id-ID')}\nBlok dalam record ini: ${typeof recordForBlock.blok === 'string' ? recordForBlock.blok : recordForBlock.blok?.join(', ')}`)) {
+                                                    if (confirm(`Hapus blok ${block.block_code} dari record tashih ini?\n\nTanggal: ${new Date(recordForBlock.waktu_tashih).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}\nBlok dalam record ini: ${typeof recordForBlock.blok === 'string' ? recordForBlock.blok : recordForBlock.blok?.join(', ')}`)) {
                                                       try {
                                                         // If record has multiple blocks, remove only this block
                                                         const bloks = typeof recordForBlock.blok === 'string'
@@ -2417,7 +2417,7 @@ Tim Markaz Tikrar Indonesia`;
                                     <span className="text-gray-500">Terakhir Tashih:</span>
                                     <span className="ml-2 font-medium text-gray-900">
                                       {entry.latest_tashih
-                                        ? new Date(entry.latest_tashih.waktu_tashih).toLocaleDateString('id-ID')
+                                        ? new Date(entry.latest_tashih.waktu_tashih).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })
                                         : '-'
                                       }
                                     </span>
@@ -2444,11 +2444,9 @@ Tim Markaz Tikrar Indonesia`;
                                         >
                                           <div className="flex-1 min-w-0">
                                             <div className="text-xs text-gray-900">
-                                              {new Date(record.waktu_tashih).toLocaleDateString('id-ID', {
-                                                day: 'numeric',
+                                              {new Date(record.waktu_tashih).toLocaleDateString('id-ID', { day: 'numeric',
                                                 month: 'short',
-                                                year: 'numeric'
-                                              })}
+                                                year: 'numeric', timeZone: 'Asia/Jakarta' })}
                                             </div>
                                             <div className="text-xs text-gray-500 truncate">
                                               Blok: {bloks.join(', ') || '-'} | {record.nama_pemeriksa || '-'}
@@ -2462,7 +2460,7 @@ Tim Markaz Tikrar Indonesia`;
                                             )}
                                             <button
                                               onClick={async () => {
-                                                if (confirm(`Hapus record tashih ini?\n\nBlok: ${bloks.join(', ')}\nTanggal: ${new Date(record.waktu_tashih).toLocaleDateString('id-ID')}`)) {
+                                                if (confirm(`Hapus record tashih ini?\n\nBlok: ${bloks.join(', ')}\nTanggal: ${new Date(record.waktu_tashih).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}`)) {
                                                   try {
                                                     const response = await fetch(`/api/musyrifah/tashih?id=${record.id}`, {
                                                       method: 'DELETE',
@@ -2815,7 +2813,7 @@ function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: (
                                       </span>
                                     </td>
                                     <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
-                                      {new Date(attempt.submitted_at || attempt.created_at).toLocaleDateString('id-ID')}
+                                      {new Date(attempt.submitted_at || attempt.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
                                     </td>
                                   </tr>
                                 ))}

@@ -204,7 +204,7 @@ export function MuallimahV2Table({
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-700">
-                        {t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                        {t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">

@@ -82,7 +82,7 @@ new_akad_component = """function AkadUploadStep({
         partnerName = 'Dipilih dari Marketplace'
       }
 
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })
       
       let pengabdian = formData.pengabdian_type || formData.infaq_type || '-'
       if (formData.pengabdian_type === 'donasi') {

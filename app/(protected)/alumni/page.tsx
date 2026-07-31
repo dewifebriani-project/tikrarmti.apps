@@ -247,7 +247,7 @@ export default function AlumniPage() {
                         "{testimonial.content}"
                       </p>
                       <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-550">
-                        <span>Dikirim pada: {new Date(testimonial.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        <span>Dikirim pada: {new Date(testimonial.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</span>
                         <span className="font-semibold text-emerald-700">
                           {testimonial.is_approved ? 'Ditampilkan di Landing Page' : 'Sedang direview admin'}
                         </span>
@@ -425,7 +425,7 @@ export default function AlumniPage() {
                               <div>
                                 <h4 className="font-bold text-gray-900 text-sm">{t.user?.full_name || 'Hamba Allah'}</h4>
                                 <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
-                                  <span>{new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                  <span>{new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</span>
                                   {locationName && (
                                     <>
                                       <span>•</span>

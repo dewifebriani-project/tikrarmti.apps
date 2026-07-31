@@ -37,11 +37,9 @@ function getSPLetterTemplate(sp: any, thalibah: any, batch: any) {
   const spLevelText = spLabels[sp.sp_level as keyof typeof spLabels] || 'SATU (1)';
   const isSP3 = sp.sp_level === 3;
 
-  const today = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
+  const today = new Date().toLocaleDateString('id-ID', { day: 'numeric',
     month: 'long',
-    year: 'numeric',
-  });
+    year: 'numeric', timeZone: 'Asia/Jakarta' });
 
   // Generate SP number: SP/BATCH/NO
   const spNumber = `SP/${batch.name.toUpperCase()}/${new Date().getFullYear()}/${sp.id.substring(0, 6).toUpperCase()}`;
@@ -234,7 +232,7 @@ function getSPLetterTemplate(sp: any, thalibah: any, batch: any) {
 
   <div class="footer">
     <p><em>Dokumen ini diterbitkan secara elektronik oleh Markaz Tikrar Indonesia.</em></p>
-    <p><em>ID: ${sp.id} | Diterbitkan: ${new Date(sp.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</em></p>
+    <p><em>ID: ${sp.id} | Diterbitkan: ${new Date(sp.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</em></p>
   </div>
 
   <script>

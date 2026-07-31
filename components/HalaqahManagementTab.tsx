@@ -151,14 +151,13 @@ export function HalaqahManagementTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'tikrar_tahfidz' | 'pra_tahfidz' | 'tikrar_berbayar'>('tikrar_tahfidz');
 
   // Sort - default to day_of_week then start_time
   const [sortColumn, setSortColumn] = useState<keyof Halaqah>('day_of_week');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+
 
   // Modals
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
@@ -345,7 +344,7 @@ export function HalaqahManagementTab() {
           h.quota_details?.active || 0,
           h.quota_details?.waitlist || 0,
           h.status,
-          new Date(h.created_at).toLocaleDateString('id-ID')
+          new Date(h.created_at).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })
         ].join(',');
       });
 
@@ -402,7 +401,7 @@ export function HalaqahManagementTab() {
         </head>
         <body>
           <h1>Halaqah Data Report</h1>
-          <div class="meta">Generated on ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div class="meta">Generated on ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })}</div>
           <div class="meta">Total Halaqahs: ${dataToExport.length}</div>
 
           <table>
@@ -586,9 +585,17 @@ export function HalaqahManagementTab() {
     }
   };
 
+  // Tab filtered halaqahs
+  const tabHalaqahs = useMemo(() => {
+    return halaqahs.filter(h => {
+      const type = h.class_type || h.program?.class_type;
+      return type === activeTab;
+    });
+  }, [halaqahs, activeTab]);
+
   // Filter and sort halaqahs
   const filteredAndSortedHalaqahs = useMemo(() => {
-    let filtered = [...halaqahs];
+    let filtered = [...tabHalaqahs];
 
     // Search filter
     if (searchQuery) {
@@ -606,81 +613,70 @@ export function HalaqahManagementTab() {
       filtered = filtered.filter(h => h.day_of_week === parseInt(selectedDay));
     }
 
-    // Sort - first by day_of_week, then by start_time, then by selected column
+    // Sort
     filtered.sort((a, b) => {
-      // Primary sort: always by day_of_week first
-      const aDay = a.day_of_week ?? 999;
-      const bDay = b.day_of_week ?? 999;
-      if (aDay !== bDay) {
-        return sortDirection === 'asc' ? aDay - bDay : bDay - aDay;
+      let aVal: any;
+      let bVal: any;
+
+      // Determine values for the primary sort column
+      if (sortColumn === 'name') {
+        aVal = formatHalaqahName(a).toLowerCase();
+        bVal = formatHalaqahName(b).toLowerCase();
+      } else if (sortColumn === 'muallimah_id') {
+        aVal = a.muallimah?.full_name?.toLowerCase() || '';
+        bVal = b.muallimah?.full_name?.toLowerCase() || '';
+      } else if (sortColumn === '_count') {
+        aVal = a._count?.students || 0;
+        bVal = b._count?.students || 0;
+      } else if (sortColumn === 'status') {
+        const statusOrder = { active: 1, inactive: 2, suspended: 3 };
+        aVal = statusOrder[a.status as keyof typeof statusOrder] || 999;
+        bVal = statusOrder[b.status as keyof typeof statusOrder] || 999;
+      } else {
+        aVal = a[sortColumn];
+        bVal = b[sortColumn];
       }
 
-      // Secondary sort: by start_time
+      // Compare primary sort column
+      if (aVal !== bVal) {
+        if (aVal === null || aVal === undefined) return 1;
+        if (bVal === null || bVal === undefined) return -1;
+        
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortDirection === 'asc'
+            ? aVal.localeCompare(bVal, undefined, { numeric: true })
+            : bVal.localeCompare(aVal, undefined, { numeric: true });
+        }
+        
+        return sortDirection === 'asc'
+          ? (aVal > bVal ? 1 : -1)
+          : (bVal > aVal ? 1 : -1);
+      }
+
+      // If primary columns are equal (or if sortColumn is day_of_week and equal),
+      // fallback to day_of_week and start_time
+      if (sortColumn !== 'day_of_week') {
+        const aDay = a.day_of_week ?? 999;
+        const bDay = b.day_of_week ?? 999;
+        if (aDay !== bDay) {
+          // Fallback uses the same sortDirection, or always asc? Usually always asc for fallback
+          return aDay - bDay;
+        }
+      }
+      
       const aTime = a.start_time ?? '23:59';
       const bTime = b.start_time ?? '23:59';
       if (aTime !== bTime) {
-        return sortDirection === 'asc' ? aTime.localeCompare(bTime) : bTime.localeCompare(aTime);
-      }
-
-      // Tertiary sort: by selected column (if not day_of_week)
-      if (sortColumn !== 'day_of_week') {
-        let aVal: any;
-        let bVal: any;
-
-        // Handle nested properties
-        if (sortColumn === 'name') {
-          aVal = formatHalaqahName(a).toLowerCase();
-          bVal = formatHalaqahName(b).toLowerCase();
-        } else if (sortColumn === 'muallimah_id') {
-          // Sort by muallimah name
-          aVal = a.muallimah?.full_name?.toLowerCase() || '';
-          bVal = b.muallimah?.full_name?.toLowerCase() || '';
-        } else if (sortColumn === '_count') {
-          // Sort by student count
-          aVal = a._count?.students || 0;
-          bVal = b._count?.students || 0;
-        } else if (sortColumn === 'status') {
-          // Custom status order
-          const statusOrder = { active: 1, inactive: 2, suspended: 3 };
-          aVal = statusOrder[a.status as keyof typeof statusOrder] || 999;
-          bVal = statusOrder[b.status as keyof typeof statusOrder] || 999;
-        } else {
-          aVal = a[sortColumn];
-          bVal = b[sortColumn];
-        }
-
-        if (aVal === bVal) return 0;
-        if (aVal === null || aVal === undefined) return 1;
-        if (bVal === null || bVal === undefined) return -1;
-
-        if (typeof aVal === 'string' && typeof bVal === 'string') {
-          return sortDirection === 'asc'
-            ? aVal.localeCompare(bVal)
-            : bVal.localeCompare(aVal);
-        }
-
-        return sortDirection === 'asc'
-          ? aVal > bVal ? 1 : -1
-          : aVal < bVal ? 1 : -1;
+        return aTime.localeCompare(bTime);
       }
 
       return 0;
     });
 
     return filtered;
-  }, [halaqahs, searchQuery, sortColumn, sortDirection, selectedDay]);
+  }, [tabHalaqahs, searchQuery, sortColumn, sortDirection, selectedDay]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage);
-  const paginatedHalaqahs = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredAndSortedHalaqahs.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAndSortedHalaqahs, currentPage, itemsPerPage]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedBatch, selectedProgram, selectedStatus, selectedDay]);
 
   return (
     <div className="space-y-6">
@@ -719,17 +715,53 @@ export function HalaqahManagementTab() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200 mb-6 px-2 rounded-2xl shadow-sm">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('tikrar_tahfidz')}
+            className={`${
+              activeTab === 'tikrar_tahfidz'
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors`}
+          >
+            Halaqah Tikrar Per Juz
+          </button>
+          <button
+            onClick={() => setActiveTab('pra_tahfidz')}
+            className={`${
+              activeTab === 'pra_tahfidz'
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors`}
+          >
+            Pra Tikrar
+          </button>
+          <button
+            onClick={() => setActiveTab('tikrar_berbayar')}
+            className={`${
+              activeTab === 'tikrar_berbayar'
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors`}
+          >
+            Berbayar
+          </button>
+        </nav>
+      </div>
+
       {/* Stats Section */}
       <HalaqahStats
         isLoading={loading}
         stats={
-          halaqahs.length > 0
+          tabHalaqahs.length > 0
             ? {
-                total: halaqahs.length,
-                active: halaqahs.filter(h => h.status === 'active').length,
-                muallimah: new Set(halaqahs.map(h => h.muallimah_id).filter(Boolean)).size,
-                capacity: halaqahs.reduce((sum, h) => sum + (h.max_students || 0), 0),
-                used: halaqahs.reduce((sum, h) => sum + (h.quota_details?.total_used || 0), 0)
+                total: tabHalaqahs.length,
+                active: tabHalaqahs.filter(h => h.status === 'active').length,
+                muallimah: new Set(tabHalaqahs.map(h => h.muallimah_id).filter(Boolean)).size,
+                capacity: tabHalaqahs.reduce((sum, h) => sum + (h.max_students || 0), 0),
+                used: tabHalaqahs.reduce((sum, h) => sum + (h.quota_details?.total_used || 0), 0)
               }
             : null
         }
@@ -853,8 +885,8 @@ export function HalaqahManagementTab() {
 
         {/* Results count */}
         <div className="mt-3 text-xs font-semibold text-gray-500">
-          Showing {paginatedHalaqahs.length} of {filteredAndSortedHalaqahs.length} halaqahs
-          {filteredAndSortedHalaqahs.length !== halaqahs.length && ` (filtered from ${halaqahs.length} total)`}
+          Showing {filteredAndSortedHalaqahs.length} halaqahs
+          {filteredAndSortedHalaqahs.length !== tabHalaqahs.length && ` (filtered from ${tabHalaqahs.length} total)`}
         </div>
       </div>
 
@@ -1014,7 +1046,7 @@ export function HalaqahManagementTab() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedHalaqahs.map((halaqah) => (
+                    {filteredAndSortedHalaqahs.map((halaqah) => (
                       <tr key={halaqah.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div>
@@ -1142,62 +1174,6 @@ export function HalaqahManagementTab() {
                 </table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-white">
-                  <div className="text-xs font-semibold text-gray-500">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 font-bold text-xs transition-all duration-200"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Previous
-                    </button>
-
-                    <div className="flex items-center gap-1.5">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`w-9 h-9 rounded-xl border text-xs font-bold transition-all duration-300 ${
-                              currentPage === pageNum
-                                ? 'bg-green-900 text-white border-green-900 shadow-sm'
-                                : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 font-bold text-xs transition-all duration-200"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

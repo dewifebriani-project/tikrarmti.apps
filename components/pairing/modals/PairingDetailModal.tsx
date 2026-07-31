@@ -75,13 +75,11 @@ export function PairingDetailModal({
                     <span className="text-green-700">Tanggal Dibuat:</span>{' '}
                     <span className="font-medium">
                       {detail.pairing.paired_at
-                        ? new Date(detail.pairing.paired_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
+                        ? new Date(detail.pairing.paired_at).toLocaleDateString('id-ID', { day: 'numeric',
                             month: 'long',
                             year: 'numeric',
                             hour: '2-digit',
-                            minute: '2-digit'
-                          })
+                            minute: '2-digit', timeZone: 'Asia/Jakarta' })
                         : '-'}
                     </span>
                   </div>

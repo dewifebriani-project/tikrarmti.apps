@@ -246,7 +246,7 @@ export function AdminDonationsTab() {
                 {filteredDonations.map((d) => (
                   <tr key={d.id} className="hover:bg-gray-50/30 transition-colors">
                     <td className="py-4 px-6 text-gray-500 whitespace-nowrap">
-                      {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric' })}
+                      {new Date(d.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                     </td>
                     <td className="py-4 px-6 font-semibold text-gray-900">
                       <div>

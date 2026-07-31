@@ -146,8 +146,8 @@ export function TikrarTable({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 font-bold">{t.submission_date ? new Date(t.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</div>
-                      <div className="text-[10px] text-gray-400 font-medium">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+                      <div className="text-sm text-gray-900 font-bold">{t.submission_date ? new Date(t.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '-'}</div>
+                      <div className="text-[10px] text-gray-400 font-medium">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-'}</div>
                     </td>
                     <td className="px-6 py-4">
                       {readiness.isReady ? (

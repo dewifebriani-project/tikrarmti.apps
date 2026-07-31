@@ -53,7 +53,7 @@ export function UserDetailDashboardModal({ isOpen, onClose, userId }: UserDetail
     }
   };
 
-  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('id-ID') : '-';
+  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-';
   const formatTime = (t: string) => t ? t.substring(0, 5) : '-';
 
   return (

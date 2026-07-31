@@ -108,7 +108,7 @@ export function JurnalBlockGrid({
                </div>
                {block.jurnal_date && (
                  <span className="text-[10px] text-gray-400 font-medium tracking-tight">
-                    {new Date(block.jurnal_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    {new Date(block.jurnal_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' })}
                  </span>
                )}
             </div>

@@ -531,13 +531,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit', timeZone: 'Asia/Jakarta' });
   };
 
   const getStatusBadge = (status: string) => {

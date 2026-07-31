@@ -394,18 +394,16 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
       const formatDate = (dateString: string | undefined) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
       };
 
       const formatDateTime = (dateString: string | undefined) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID', {
-          day: '2-digit',
+        return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit',
           month: 'long',
           year: 'numeric',
           hour: '2-digit',
-          minute: '2-digit'
-        });
+          minute: '2-digit', timeZone: 'Asia/Jakarta' });
       };
 
       // Prepare Excel data with ALL fields from database schema
@@ -767,7 +765,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       const batchName = batches.find(b => b.id === localBatchId)?.name || 'Semua Batch';
       doc.text(`Batch: ${batchName}`, 14, 23);
       doc.text(`Total: ${sortedData.length} thalibah`, 14, 28);
-      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth - 14, 23, { align: 'right' });
+      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}`, pageWidth - 14, 23, { align: 'right' });
 
       // Table data
       const tableData = sortedData.map((item, index) => {
@@ -928,13 +926,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
+      minute: '2-digit', timeZone: 'Asia/Jakarta' });
   };
 
   const getStatusBadge = (status: string) => {

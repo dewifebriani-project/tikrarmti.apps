@@ -469,11 +469,9 @@ export default function ThalibahBatch2Page() {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('id-ID', {
-        day: 'numeric',
+      return date.toLocaleDateString('id-ID', { day: 'numeric',
         month: 'long',
-        year: 'numeric'
-      });
+        year: 'numeric', timeZone: 'Asia/Jakarta' });
     } catch (e) {
       return dateString || '';
     }

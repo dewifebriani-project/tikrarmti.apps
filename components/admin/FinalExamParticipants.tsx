@@ -163,7 +163,7 @@ export function FinalExamParticipants() {
                   <div>
                     <h4 className="font-black text-gray-900 leading-tight">{reg.user.full_name}</h4>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      {reg.schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(reg.schedule.exam_date))}
+                      {reg.schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' }).format(new Date(reg.schedule.exam_date))}
                       {reg.schedule.start_time && ` • ${reg.schedule.start_time} - ${reg.schedule.end_time || ''} WIB`}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
@@ -267,7 +267,7 @@ export function FinalExamParticipants() {
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Tanggal:</span>
                     <span className="font-bold text-gray-900">
-                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date(selectedReg.schedule.exam_date))}
+                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeZone: 'Asia/Jakarta' }).format(new Date(selectedReg.schedule.exam_date))}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">

@@ -23,7 +23,7 @@ const STATUS_STYLES: Record<string, string> = {
 function formatDate(value?: string | null) {
   if (!value) return '-';
   try {
-    return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' });
   } catch {
     return '-';
   }

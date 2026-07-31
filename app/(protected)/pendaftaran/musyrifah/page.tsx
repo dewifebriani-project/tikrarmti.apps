@@ -782,7 +782,7 @@ function MusyrifahRegistrationContent() {
               <Calendar className="h-4 w-4" />
               <AlertDescription>
                 <strong>{batchInfo.name}</strong> •
-                {new Date(batchInfo.start_date).toLocaleDateString('id-ID')} - {new Date(batchInfo.end_date).toLocaleDateString('id-ID')}
+                {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} - {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}
               </AlertDescription>
             </Alert>
           )}

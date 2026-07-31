@@ -142,11 +142,9 @@ export function QuestionTable({
                   </span>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
-                  {new Date(question.created_at).toLocaleDateString('id-ID', {
-                    day: '2-digit',
+                  {new Date(question.created_at).toLocaleDateString('id-ID', { day: '2-digit',
                     month: 'short',
-                    year: 'numeric'
-                  })}
+                    year: 'numeric', timeZone: 'Asia/Jakarta' })}
                 </td>
                 <td className={`px-4 py-3 whitespace-nowrap text-right sticky right-0 z-10 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.05)] border-l border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/95 backdrop-blur'}`}>
                   <div className="flex items-center justify-end gap-1">

@@ -794,7 +794,7 @@ function PilihanGandaContent() {
                     </p>
                     {lastSavedTime && (
                       <p className="text-xs text-gray-500">
-                        Terakhir: {lastSavedTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        Terakhir: {lastSavedTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
                       </p>
                     )}
                   </div>

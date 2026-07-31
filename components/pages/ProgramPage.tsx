@@ -171,7 +171,7 @@ export default function ProgramPage() {
                 <option value="">Pilih Batch</option>
                 {batches.map((batch) => (
                   <option key={batch.id} value={batch.id}>
-                    {batch.name} ({new Date(batch.start_date).toLocaleDateString('id-ID')} - {new Date(batch.end_date).toLocaleDateString('id-ID')})
+                    {batch.name} ({new Date(batch.start_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} - {new Date(batch.end_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })})
                   </option>
                 ))}
               </select>

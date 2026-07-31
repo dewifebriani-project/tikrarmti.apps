@@ -280,19 +280,19 @@ export default function BatchPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Mulai:</span>
-                  <span className="font-medium">{new Date(batch.start_date).toLocaleDateString('id-ID')}</span>
+                  <span className="font-medium">{new Date(batch.start_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Selesai:</span>
-                  <span className="font-medium">{new Date(batch.end_date).toLocaleDateString('id-ID')}</span>
+                  <span className="font-medium">{new Date(batch.end_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })}</span>
                 </div>
                 {batch.registration_start_date && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Pendaftaran:</span>
                     <span className="font-medium">
-                      {new Date(batch.registration_start_date).toLocaleDateString('id-ID')} -{' '}
+                      {new Date(batch.registration_start_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })} -{' '}
                       {batch.registration_end_date
-                        ? new Date(batch.registration_end_date).toLocaleDateString('id-ID')
+                        ? new Date(batch.registration_end_date).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' })
                         : 'Open'
                       }
                     </span>

@@ -309,11 +309,9 @@ export default function PendaftaranPage() {
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
+    return date.toLocaleDateString('id-ID', { day: 'numeric',
       month: 'long',
-      year: 'numeric'
-    });
+      year: 'numeric', timeZone: 'Asia/Jakarta' });
   };
 
   const getStatusBadge = (status: 'open' | 'closed' | 'upcoming') => {

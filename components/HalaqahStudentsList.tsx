@@ -116,13 +116,11 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit',
-    });
+      minute: '2-digit', timeZone: 'Asia/Jakarta' });
   };
 
   const activeStudents = students.filter(s => s.status === 'active');

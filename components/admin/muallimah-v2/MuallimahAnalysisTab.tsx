@@ -156,6 +156,39 @@ export function MuallimahAnalysisTab() {
     }
   }, [rawAnalysisData, analysisMode, programTab]);
 
+  const handleDragStart = (e: React.DragEvent, muallimahId: string) => {
+    e.dataTransfer.setData("muallimah_id", muallimahId);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetJuz: string) => {
+    e.preventDefault();
+    const muallimahId = e.dataTransfer.getData("muallimah_id");
+    if (!muallimahId || !selectedBatchId) return;
+
+    try {
+      const toastId = toast.loading("Memindahkan muallimah...");
+      const res = await fetch("/api/admin/muallimah/assign-juz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          muallimah_id: muallimahId,
+          assigned_juz: targetJuz,
+          batch_id: selectedBatchId,
+        }),
+      });
+      
+      if (res.ok) {
+        toast.success("Muallimah berhasil dipindahkan", { id: toastId });
+        loadAnalysis(selectedBatchId);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal memindahkan muallimah", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan sistem");
+    }
+  };
+
   const loadBatches = async () => {
     try {
       const response = await fetch("/api/admin/batches?limit=1000");
@@ -229,13 +262,28 @@ export function MuallimahAnalysisTab() {
           return true;
         });
 
-        // Filter Thalibah based on programs.class_type
+        // Filter Thalibah based on programs.class_type and selection_status (for Pendaftar mode)
         thalibahs = (thalibahs || []).filter((t: any) => {
           const cType = t.programs?.class_type;
-          if (programTab === "tikrar") return cType === "tikrar_tahfidz";
-          if (programTab === "pra_tikrar") return cType === "pra_tahfidz";
-          if (programTab === "kelas_berbayar") return false; // Biasanya tidak ada thalibah untuk kelas berbayar di tabel pendaftaran_tikrar_tahfidz
-          return true;
+          
+          if (mode === "pendaftar") {
+            if (programTab === "tikrar") {
+              return cType === "tikrar_tahfidz" && ['selected', 'waitlist', 'passed'].includes(t.selection_status);
+            }
+            if (programTab === "pra_tikrar") {
+              return cType === "pra_tahfidz" || (cType === "tikrar_tahfidz" && t.selection_status === "not_selected");
+            }
+            if (programTab === "kelas_berbayar") return false;
+            
+            // For 'semua' tab in pendaftar mode
+            return ['selected', 'waitlist', 'passed', 'not_selected'].includes(t.selection_status) || cType === 'pra_tahfidz';
+          } else {
+            // Logika default / daftar_ulang
+            if (programTab === "tikrar") return cType === "tikrar_tahfidz";
+            if (programTab === "pra_tikrar") return cType === "pra_tahfidz";
+            if (programTab === "kelas_berbayar") return false; // Biasanya tidak ada thalibah untuk kelas berbayar di tabel pendaftaran_tikrar_tahfidz
+            return true;
+          }
         });
 
         // Filter Halaqah based on programs.class_type
@@ -940,11 +988,13 @@ export function MuallimahAnalysisTab() {
                   return (
                     <div
                       key={juz.juz_number}
-                      className={`border rounded-lg p-6 ${
+                      className={`border rounded-lg p-6 transition-colors ${
                         needsMoreHalaqah
                           ? "border-red-300 bg-red-50"
                           : "border-gray-100"
-                      }`}
+                      } hover:border-blue-300`}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                      onDrop={(e) => handleDrop(e, String(juz.juz_number))}
                     >
                       {/* Juz Header */}
                       <div className="mb-6">
@@ -1109,7 +1159,9 @@ export function MuallimahAnalysisTab() {
                                 return (
                                   <div
                                     key={idx}
-                                    className={`rounded-lg border p-4 transition-all duration-200 ${halaqah.is_allocated ? "bg-emerald-50/10 border-emerald-300 shadow-sm ring-1 ring-emerald-300" : "bg-white border-gray-200"}`}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, halaqah.id)}
+                                    className={`rounded-lg border p-3 transition-all duration-200 cursor-grab active:cursor-grabbing hover:shadow-md ${halaqah.is_allocated ? "bg-emerald-50/10 border-emerald-300 shadow-sm ring-1 ring-emerald-300" : "bg-white border-gray-200"}`}
                                   >
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex flex-col gap-1">
@@ -1251,29 +1303,21 @@ export function MuallimahAnalysisTab() {
                                         )}
                                       </div>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">
-                                        Kapasitas:
-                                      </span>
-                                      <span className="font-medium">
-                                        {halaqah.max_students}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">
-                                        Terisi:
-                                      </span>
-                                      <span className="font-medium text-blue-600">
-                                        {halaqah.current_students}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">
-                                        Tersedia:
-                                      </span>
-                                      <span className="font-medium text-green-600">
-                                        {halaqah.available_slots}
-                                      </span>
+
+                                    {/* Capacity Horizontal Layout */}
+                                    <div className="flex justify-between mt-2 pt-2 border-t border-gray-100 text-[11px]">
+                                      <div className="text-center">
+                                        <span className="block text-gray-500 mb-0.5">Kapasitas</span>
+                                        <span className="font-semibold text-gray-700">{halaqah.max_students}</span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="block text-gray-500 mb-0.5">Terisi</span>
+                                        <span className="font-semibold text-blue-600">{halaqah.current_students}</span>
+                                      </div>
+                                      <div className="text-center">
+                                        <span className="block text-gray-500 mb-0.5">Tersedia</span>
+                                        <span className="font-semibold text-green-600">{halaqah.available_slots}</span>
+                                      </div>
                                     </div>
 
                                     {/* Mini utilization bar */}
