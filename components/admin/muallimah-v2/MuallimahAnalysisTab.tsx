@@ -174,13 +174,15 @@ export function MuallimahAnalysisTab() {
           batch_id: selectedBatchId,
         }),
       });
-      
+
       if (res.ok) {
         toast.success("Muallimah berhasil dipindahkan", { id: toastId });
         loadAnalysis(selectedBatchId);
       } else {
         const err = await res.json();
-        toast.error(err.error || "Gagal memindahkan muallimah", { id: toastId });
+        toast.error(err.error || "Gagal memindahkan muallimah", {
+          id: toastId,
+        });
       }
     } catch (error) {
       toast.error("Terjadi kesalahan sistem");
@@ -203,13 +205,15 @@ export function MuallimahAnalysisTab() {
           batch_id: selectedBatchId,
         }),
       });
-      
+
       if (res.ok) {
         toast.success("Muallimah berhasil dipindahkan", { id: toastId });
         loadAnalysis(selectedBatchId);
       } else {
         const err = await res.json();
-        toast.error(err.error || "Gagal memindahkan muallimah", { id: toastId });
+        toast.error(err.error || "Gagal memindahkan muallimah", {
+          id: toastId,
+        });
       }
     } catch (error) {
       toast.error("Terjadi kesalahan sistem");
@@ -292,18 +296,29 @@ export function MuallimahAnalysisTab() {
         // Filter Thalibah based on programs.class_type and selection_status (for Pendaftar mode)
         thalibahs = (thalibahs || []).filter((t: any) => {
           const cType = t.programs?.class_type;
-          
+
           if (mode === "pendaftar") {
             if (programTab === "tikrar") {
-              return cType === "tikrar_tahfidz" && ['selected', 'waitlist', 'passed'].includes(t.selection_status);
+              return (
+                cType === "tikrar_tahfidz" &&
+                ["selected", "waitlist", "passed"].includes(t.selection_status)
+              );
             }
             if (programTab === "pra_tikrar") {
-              return cType === "pra_tahfidz" || (cType === "tikrar_tahfidz" && t.selection_status === "not_selected");
+              return (
+                cType === "pra_tahfidz" ||
+                (cType === "tikrar_tahfidz" &&
+                  t.selection_status === "not_selected")
+              );
             }
             if (programTab === "kelas_berbayar") return false;
-            
+
             // For 'semua' tab in pendaftar mode
-            return ['selected', 'waitlist', 'passed', 'not_selected'].includes(t.selection_status) || cType === 'pra_tahfidz';
+            return (
+              ["selected", "waitlist", "passed", "not_selected"].includes(
+                t.selection_status,
+              ) || cType === "pra_tahfidz"
+            );
           } else {
             // Logika default / daftar_ulang
             if (programTab === "tikrar") return cType === "tikrar_tahfidz";
@@ -559,7 +574,7 @@ export function MuallimahAnalysisTab() {
   const loadHalaqahAvailability = async (
     batchId: string,
     mode: "pendaftar" | "daftar_ulang" = "daftar_ulang",
-    tab: string = "semua"
+    tab: string = "semua",
   ) => {
     console.log(
       "[AnalysisTab] Loading halaqah availability for batch:",
@@ -1020,7 +1035,10 @@ export function MuallimahAnalysisTab() {
                           ? "border-red-300 bg-red-50"
                           : "border-gray-100"
                       } hover:border-blue-300`}
-                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
                       onDrop={(e) => handleDrop(e, String(juz.juz_number))}
                     >
                       {/* Juz Header */}
@@ -1212,12 +1230,22 @@ export function MuallimahAnalysisTab() {
                                         {analysisMode === "pendaftar" && (
                                           <select
                                             value={juz.juz_number}
-                                            onChange={(e) => handleAssignJuz(halaqah.id, e.target.value)}
+                                            onChange={(e) =>
+                                              handleAssignJuz(
+                                                halaqah.id,
+                                                e.target.value,
+                                              )
+                                            }
                                             className="text-[10px] py-0.5 px-1 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer bg-white mt-1"
                                           >
-                                            <option disabled>-- Pilih Juz --</option>
+                                            <option disabled>
+                                              -- Pilih Juz --
+                                            </option>
                                             {halaqahData.map((j: any) => (
-                                              <option key={j.juz_number} value={j.juz_number}>
+                                              <option
+                                                key={j.juz_number}
+                                                value={j.juz_number}
+                                              >
                                                 Juz {j.juz_number}
                                               </option>
                                             ))}
@@ -1227,58 +1255,61 @@ export function MuallimahAnalysisTab() {
                                       <div className="flex flex-col items-end gap-2">
                                         <span
                                           className={`text-xs px-2 py-0.5 rounded-lg font-medium ${(() => {
-                                          const normalized = (
-                                            halaqah.class_type || ""
-                                          ).toLowerCase();
-                                          if (
-                                            normalized.includes(
-                                              "tikrar_tahfidz",
-                                            ) &&
-                                            normalized.includes("pra_tahfidz")
-                                          ) {
-                                            return "bg-amber-50 text-amber-700 border border-amber-200";
-                                          }
-                                          if (
-                                            normalized.includes(
-                                              "tikrar_tahfidz",
-                                            )
-                                          ) {
-                                            return "bg-purple-50 text-purple-700 border border-purple-200";
-                                          }
-                                          if (
-                                            normalized.includes("pra_tahfidz")
-                                          ) {
-                                            return "bg-blue-50 text-blue-700 border border-blue-200";
-                                          }
-                                          return "bg-green-50 text-green-700 border border-green-200";
-                                        })()}`}
-                                      >
-                                        {(() => {
-                                          if (!halaqah.class_type)
-                                            return "Tashih Ujian";
-                                          return halaqah.class_type
-                                            .split(",")
-                                            .map((type: string) => {
-                                              const trimmed = type
-                                                .trim()
-                                                .toLowerCase();
-                                              if (trimmed === "tikrar_tahfidz")
-                                                return "Tikrar";
-                                              if (trimmed === "pra_tahfidz")
-                                                return "Pra-Tikrar";
-                                              if (trimmed === "tahfidz")
-                                                return "Tahfidz";
-                                              if (trimmed === "tashih")
-                                                return "Tashih";
-                                              return trimmed
-                                                .replace(/_/g, " ")
-                                                .replace(/\b\w/g, (c) =>
-                                                  c.toUpperCase(),
-                                                );
-                                            })
-                                            .join(", ");
-                                        })()}
-                                      </span>
+                                            const normalized = (
+                                              halaqah.class_type || ""
+                                            ).toLowerCase();
+                                            if (
+                                              normalized.includes(
+                                                "tikrar_tahfidz",
+                                              ) &&
+                                              normalized.includes("pra_tahfidz")
+                                            ) {
+                                              return "bg-amber-50 text-amber-700 border border-amber-200";
+                                            }
+                                            if (
+                                              normalized.includes(
+                                                "tikrar_tahfidz",
+                                              )
+                                            ) {
+                                              return "bg-purple-50 text-purple-700 border border-purple-200";
+                                            }
+                                            if (
+                                              normalized.includes("pra_tahfidz")
+                                            ) {
+                                              return "bg-blue-50 text-blue-700 border border-blue-200";
+                                            }
+                                            return "bg-green-50 text-green-700 border border-green-200";
+                                          })()}`}
+                                        >
+                                          {(() => {
+                                            if (!halaqah.class_type)
+                                              return "Tashih Ujian";
+                                            return halaqah.class_type
+                                              .split(",")
+                                              .map((type: string) => {
+                                                const trimmed = type
+                                                  .trim()
+                                                  .toLowerCase();
+                                                if (
+                                                  trimmed === "tikrar_tahfidz"
+                                                )
+                                                  return "Tikrar";
+                                                if (trimmed === "pra_tahfidz")
+                                                  return "Pra-Tikrar";
+                                                if (trimmed === "tahfidz")
+                                                  return "Tahfidz";
+                                                if (trimmed === "tashih")
+                                                  return "Tashih";
+                                                return trimmed
+                                                  .replace(/_/g, " ")
+                                                  .replace(/\b\w/g, (c) =>
+                                                    c.toUpperCase(),
+                                                  );
+                                              })
+                                              .join(", ");
+                                          })()}
+                                        </span>
+                                      </div>
                                     </div>
 
                                     <div className="space-y-1 text-xs">
@@ -1347,16 +1378,28 @@ export function MuallimahAnalysisTab() {
                                     {/* Capacity Horizontal Layout */}
                                     <div className="flex justify-between mt-2 pt-2 border-t border-gray-100 text-[11px]">
                                       <div className="text-center">
-                                        <span className="block text-gray-500 mb-0.5">Kapasitas</span>
-                                        <span className="font-semibold text-gray-700">{halaqah.max_students}</span>
+                                        <span className="block text-gray-500 mb-0.5">
+                                          Kapasitas
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          {halaqah.max_students}
+                                        </span>
                                       </div>
                                       <div className="text-center">
-                                        <span className="block text-gray-500 mb-0.5">Terisi</span>
-                                        <span className="font-semibold text-blue-600">{halaqah.current_students}</span>
+                                        <span className="block text-gray-500 mb-0.5">
+                                          Terisi
+                                        </span>
+                                        <span className="font-semibold text-blue-600">
+                                          {halaqah.current_students}
+                                        </span>
                                       </div>
                                       <div className="text-center">
-                                        <span className="block text-gray-500 mb-0.5">Tersedia</span>
-                                        <span className="font-semibold text-green-600">{halaqah.available_slots}</span>
+                                        <span className="block text-gray-500 mb-0.5">
+                                          Tersedia
+                                        </span>
+                                        <span className="font-semibold text-green-600">
+                                          {halaqah.available_slots}
+                                        </span>
                                       </div>
                                     </div>
 
