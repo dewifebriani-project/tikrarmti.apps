@@ -207,6 +207,9 @@ export async function GET(request: NextRequest) {
           // Check if muallimah's juz starts with thalibah's juz (e.g., "30A" matches "30")
           if (muallimahJuz.startsWith(thalibahJuz)) return true
 
+          // Allow "Juz Campur" to match any thalibah's juz
+          if (muallimahJuz.toLowerCase().includes('campur')) return true
+
           return false
         })
       })
