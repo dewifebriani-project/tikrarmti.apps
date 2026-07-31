@@ -6,7 +6,7 @@ async function check() {
   const { data, error } = await supabase
     .from('programs')
     .select('*')
-    .eq('batch_id', '2478b493-1b6b-412a-a05f-6193db815a43');
+    .eq('id', '980fad0d-fae5-4cab-b483-37a30493a816');
   
   if (error) console.error(error);
   else console.log(data);

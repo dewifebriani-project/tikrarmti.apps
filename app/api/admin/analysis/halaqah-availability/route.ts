@@ -123,16 +123,15 @@ export async function GET(request: NextRequest) {
         pendaftarList.forEach(p => {
           const cType = (p as any).programs?.class_type;
           
-          let matches = true;
+          let matches = false;
           if (programTab === 'tikrar') {
-            matches = cType === 'tikrar_tahfidz' && ['selected', 'waitlist', 'passed'].includes(p.selection_status);
+            matches = ['selected', 'passed'].includes(p.selection_status) || (cType === 'tikrar_tahfidz' && !['waitlist', 'not_selected'].includes(p.selection_status));
           } else if (programTab === 'pra_tikrar') {
-            matches = cType === 'pra_tahfidz' || (cType === 'tikrar_tahfidz' && p.selection_status === 'not_selected');
+            matches = ['waitlist', 'not_selected'].includes(p.selection_status) || (cType === 'pra_tahfidz' && !['selected', 'passed'].includes(p.selection_status));
           } else if (programTab === 'kelas_berbayar') {
             matches = false;
           } else if (programTab === 'semua') {
-            // Exclude pending if they want only those who took oral test
-            matches = ['selected', 'waitlist', 'passed', 'not_selected'].includes(p.selection_status) || cType === 'pra_tahfidz';
+            matches = true;
           }
           
           if (matches) {
