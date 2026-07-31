@@ -132,7 +132,7 @@ export function MuallimahAnalysisTableTab() {
     const [expandedJuz, setExpandedJuz] = useState<Set<string>>(new Set());
   const [programTab, setProgramTab] = useState<
     "semua" | "tikrar" | "pra_tikrar" | "kelas_berbayar"
-  >("semua");
+  >("tikrar");
   const [rawAnalysisData, setRawAnalysisData] = useState<any>(null);
 
   const toggleJuz = (juzNumber: string) => {
@@ -758,7 +758,7 @@ export function MuallimahAnalysisTableTab() {
                 <tr>
                   <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs bg-blue-50/30">Muallimah</th>
                   <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs bg-blue-50/30">Kapasitas</th>
-                  <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs bg-blue-50/30">Thalibah (Terisi)</th>
+                  <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs bg-blue-50/30">Pendaftar</th>
                   <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs border-r border-gray-200 bg-blue-50/30">Tersedia</th>
                   
                   <th className="px-3 py-2 font-semibold text-gray-600 text-center text-xs bg-emerald-50/30">Muallimah</th>

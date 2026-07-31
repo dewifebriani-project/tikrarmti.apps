@@ -87,7 +87,7 @@ export function MuallimahAvailabilityTab() {
         details.forEach((m: any) => {
           stats.push({
             name: m.muallimah_name || "Unknown",
-            juz: juz.juz_name || `Juz ${juz.juz_number}`,
+            juz: m.preferred_juz ? (String(m.preferred_juz).toLowerCase().includes('juz') ? m.preferred_juz : `Juz ${m.preferred_juz}`) : (juz.juz_name || `Juz ${juz.juz_number}`),
             jadwal: formatDay(m.day_name || m.day_of_week || '-'),
             jam: (m.start_time || m.end_time) ? `${m.start_time || '-'} - ${m.end_time || '-'}` : '-',
             kapasitas: m.max_students || 0,
