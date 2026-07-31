@@ -72,7 +72,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <LayoutGrid className="h-5 w-5 text-emerald-600" />,
       });
       baseItems.push({
-        href: isAdmin ? '/admin?tab=overview' : '/dashboard',
+        href: isAdmin ? '/statistik' : '/dashboard',
         label: 'Ringkasan Statistik',
         icon: <BarChart3 className="h-5 w-5" />,
       });
@@ -92,7 +92,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <ClipboardList className="h-5 w-5" />,
       });
       baseItems.push({
-        href: '/admin?tab=daftar-ulang',
+        href: '/admin/daftar-ulang',
         label: 'Daftar Ulang',
         icon: <UserCheck className="h-5 w-5" />,
       });
@@ -103,6 +103,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         href: '/admin/halaqah',
         label: 'Manajemen Halaqah',
         icon: <Users className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/admin/partner',
+        label: 'Manajemen Partner',
+        icon: <HeartHandshake className="h-5 w-5" />,
       });
       baseItems.push({
         href: '/presensi-jurnal',
@@ -129,7 +134,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           icon: <MessageSquare className="h-5 w-5" />,
         });
         baseItems.push({
-          href: '/admin?tab=donations',
+          href: '/admin/donations',
           label: 'Donasi Operasional',
           icon: <HeartHandshake className="h-5 w-5" />,
         });
@@ -148,11 +153,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           label: 'Manajemen Users',
           icon: <Shield className="h-5 w-5" />,
         });
-        baseItems.push({
-          href: '/admin?tab=exam-questions',
-          label: 'Bank Soal Seleksi',
-          icon: <FileText className="h-5 w-5" />,
-        });
+
         baseItems.push({
           href: '/admin/pengaturan/faq',
           label: 'Pengaturan FAQ',

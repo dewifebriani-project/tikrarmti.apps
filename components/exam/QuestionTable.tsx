@@ -49,7 +49,7 @@ export function QuestionTable({
                   {sortField === 'juz_number' && (
                     <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                   )}
-                  {sortField !== 'juz_number' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                  {sortField !== 'juz_number' && <ArrowUpDown className="w-3 h-3 text-gray-400 shrink-0" />}
                 </div>
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -64,7 +64,7 @@ export function QuestionTable({
                   {sortField === 'question_number' && (
                     <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                   )}
-                  {sortField !== 'question_number' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                  {sortField !== 'question_number' && <ArrowUpDown className="w-3 h-3 text-gray-400 shrink-0" />}
                 </div>
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -88,10 +88,10 @@ export function QuestionTable({
                   {sortField === 'created_at' && (
                     <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                   )}
-                  {sortField !== 'created_at' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                  {sortField !== 'created_at' && <ArrowUpDown className="w-3 h-3 text-gray-400 shrink-0" />}
                 </div>
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider sticky right-0 bg-gray-50/95 backdrop-blur z-10 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.05)] border-l border-gray-200">
                 Actions
               </th>
             </tr>
@@ -148,28 +148,28 @@ export function QuestionTable({
                     year: 'numeric'
                   })}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-right">
+                <td className={`px-4 py-3 whitespace-nowrap text-right sticky right-0 z-10 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.05)] border-l border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/95 backdrop-blur'}`}>
                   <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => onPreview(question)}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                      className="p-2 shrink-0 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                       title="Preview question"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-4 h-4 shrink-0" />
                     </button>
                     <button
                       onClick={() => onEdit(question)}
-                      className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                      className="p-2 shrink-0 text-blue-600 hover:bg-blue-100 rounded-lg transition"
                       title="Edit question"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-4 h-4 shrink-0" />
                     </button>
                     <button
                       onClick={() => onDelete(question.id)}
-                      className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                      className="p-2 shrink-0 text-red-600 hover:bg-red-100 rounded-lg transition"
                       title="Delete question"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 shrink-0" />
                     </button>
                   </div>
                 </td>

@@ -44,6 +44,38 @@ export async function GET(request: NextRequest) {
 
     const registration = registrations[0];
 
+    // Check if user is Alumni
+    const { data: pastRegs } = await supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('status, selection_status, batch:batches(end_date, status)')
+      .eq('user_id', user.id);
+
+    let isAlumni = false;
+    if (pastRegs) {
+      const now = new Date();
+      isAlumni = pastRegs.some((reg: any) => {
+        const isApproved = reg.status === 'approved' || reg.status === 'completed';
+        const isSelected = reg.selection_status === 'selected' || reg.selection_status === 'passed';
+        if (!isApproved || !isSelected) return false;
+        
+        const batch = reg.batch;
+        if (!batch) return false;
+        
+        const endDate = batch.end_date ? new Date(batch.end_date) : null;
+        return (endDate && endDate < now) || batch.status === 'archived';
+      });
+    }
+
+    if (isAlumni) {
+      const eligibility: ExamEligibility = {
+        isEligible: false,
+        requiredJuz: null,
+        reason: 'Ukhti adalah Alumni MTI sehingga tidak diwajibkan mengikuti tes tertulis.',
+        hasCompleted: true
+      };
+      return NextResponse.json({ data: eligibility });
+    }
+
     // Check if oral submission is completed
     if (!registration.oral_submitted_at || !registration.oral_submission_url) {
       const eligibility: ExamEligibility = {

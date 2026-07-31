@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { HelpCircle, Info, BookOpen, Shield, GraduationCap, Users, Lightbulb, Star, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, AlertCircle, X } from 'lucide-react';
+import { HelpCircle, Info, BookOpen, Shield, GraduationCap, Users, Lightbulb, Star, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, AlertCircle, X, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import type { FAQCategory, FAQQuestion } from '@/types/database';
 
@@ -330,14 +331,39 @@ export default function AdminFaqPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pengaturan FAQ</h1>
-          <p className="text-gray-500 mt-1">Kelola pertanyaan yang sering diajukan di halaman utama</p>
+    <div className="min-h-screen bg-gray-50/50 pb-20">
+      <div className="bg-white border-b border-gray-100 mb-8 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/admin"
+                className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all border border-transparent hover:border-gray-200"
+                title="Kembali ke Dashboard"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+              <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-green-600 uppercase tracking-[0.2em] mb-1">
+                  <Shield className="h-3 w-3" />
+                  <span>Authority Console</span>
+                </div>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                  Pengaturan FAQ
+                  <span className="px-2 py-0.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                    V2
+                  </span>
+                </h1>
+              </div>
+            </div>
+            
+          </div>
         </div>
+      </div>
+
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="flex items-center flex-wrap gap-3 w-full sm:w-auto justify-end">
+        <div className="flex items-center flex-wrap gap-3 w-full justify-end mb-6">
           {saveStatus === 'saving' && (
             <span className="text-xs text-amber-600 flex items-center gap-1.5 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
@@ -386,7 +412,6 @@ export default function AdminFaqPage() {
             <span>{saving ? 'Menyimpan...' : 'Simpan Semua'}</span>
           </button>
         </div>
-      </div>
 
       <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-8 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -588,6 +613,7 @@ export default function AdminFaqPage() {
             )}
           </div>
         ))}
+      </div>
       </div>
 
       {/* Modal Tambah Tanya Jawab */}

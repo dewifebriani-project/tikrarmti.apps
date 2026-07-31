@@ -405,18 +405,20 @@ function PresensiJurnalContent() {
     if (user && !authLoading) {
       const loadBatches = async () => {
         try {
-          const supabase = createClient();
-          const { data } = await supabase
-            .from('batches')
-            .select('id, name, status')
-            .order('created_at', { ascending: false });
-          if (data) {
-            setBatchList(data);
-            // Default ke batch open pertama jika belum dipilih
-            if (!selectedBatchId) {
-              const activeBatch = data.find((b: any) => b.status === 'ongoing') || data.find((b: any) => b.status === 'open') || data[0];
-              if (activeBatch) setSelectedBatchId(activeBatch.id);
+          const response = await fetch('/api/batches');
+          if (response.ok) {
+            const result = await response.json();
+            const data = result.data;
+            if (data && data.length > 0) {
+              setBatchList(data);
+              // Default ke batch open pertama jika belum dipilih
+              if (!selectedBatchId) {
+                const activeBatch = data.find((b: any) => b.status === 'ongoing') || data.find((b: any) => b.status === 'open') || data[0];
+                if (activeBatch) setSelectedBatchId(activeBatch.id);
+              }
             }
+          } else {
+            console.error('Error fetching batches:', await response.text());
           }
         } catch (error) {
           console.error('Error loading batches:', error);
@@ -452,17 +454,8 @@ function PresensiJurnalContent() {
 
   const loadMuallimah = async () => {
     try {
-      const supabase = createClient();
-      const { data: activeBatch } = await supabase
-        .from('batches')
-        .select('id')
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (activeBatch) {
-        const response = await fetch(`/api/muallimah/list?batch_id=${activeBatch.id}`);
+      if (selectedBatchId) {
+        const response = await fetch(`/api/muallimah/list?batch_id=${selectedBatchId}`);
         if (response.ok) {
           const result = await response.json();
           setMuallimahList(result.data || []);
@@ -559,8 +552,8 @@ function PresensiJurnalContent() {
       <Toaster position="top-right" />
       
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-100 mb-8 sticky top-0 z-20 shadow-sm py-6">
-        <div className="container mx-auto px-6">
+      <div className="bg-white border-b border-gray-100 mb-8 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -583,64 +576,64 @@ function PresensiJurnalContent() {
                 </h1>
               </div>
             </div>
-
-            <div className="flex gap-4">
-              {/* Total Thalibah Card */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[180px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
-                    Total Thalibah
-                  </p>
-                  <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                    {pagination?.totalCount || 0}
-                  </h3>
-                </div>
-                <div className="p-3 sm:p-4 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
-              </div>
-
-              {/* Avg Progress Card */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[180px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
-                    Avg Progress
-                  </p>
-                  <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                    {!isMounted ? '0' : (() => {
-                      if (pagination?.stats?.overall_avg_progress !== undefined) {
-                        return pagination.stats.overall_avg_progress;
-                      }
-
-                      if (activeTab === 'blacklist') {
-                        const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
-                        return blacklisted.length > 0 
-                          ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
-                          : 0;
-                      }
-                      if (activeTab === 'presensi') {
-                        const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
-                        return active.length > 0
-                          ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                          : 0;
-                      }
-                      const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
-                      return active.length > 0
-                        ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                        : 0;
-                    })()}%
-                  </h3>
-                </div>
-                <div className="p-3 sm:p-4 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
-                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
+        {/* KPI Cards (Moved from Header) */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* Total Thalibah Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[200px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                Total Thalibah
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                {pagination?.totalCount || 0}
+              </h3>
+            </div>
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
 
-      <div className="container mx-auto px-6 relative z-20">
+          {/* Avg Progress Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[200px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                Avg Progress
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                {!isMounted ? '0' : (() => {
+                  if (pagination?.stats?.overall_avg_progress !== undefined) {
+                    return pagination.stats.overall_avg_progress;
+                  }
+
+                  if (activeTab === 'blacklist') {
+                    const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
+                    return blacklisted.length > 0 
+                      ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
+                      : 0;
+                  }
+                  if (activeTab === 'presensi') {
+                    const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
+                    return active.length > 0
+                      ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                      : 0;
+                  }
+                  const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
+                  return active.length > 0
+                    ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                    : 0;
+                })()}%
+              </h3>
+            </div>
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
+              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
+        </div>
+
         <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-xl mx-auto sm:mx-0">
           <button
             onClick={() => {

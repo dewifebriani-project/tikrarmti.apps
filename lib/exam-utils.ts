@@ -19,18 +19,27 @@ export function getRequiredExamJuz(chosenJuz: string): JuzNumber | null {
   // Extract juz number from format like "30A", "29B", etc.
   const juzNumber = parseInt(chosenJuz.match(/\d+/)?.[0] || '0');
 
-  switch (juzNumber) {
-    case 30:
-      return null; // No exam required
-    case 29:
-      return 30; // Must take Juz 30 exam
-    case 28:
-      return 29; // Must take Juz 29 exam
-    case 1:
-      return 30; // Must take Juz 30 exam
-    default:
-      return null; // No exam required for other juz
+  if (juzNumber === 30) {
+    return null; // Juz 30 is the starting point, no exam
   }
+  
+  if (juzNumber === 1) {
+    return 30; // For Juz 1, test Juz 30
+  }
+  
+  if (juzNumber >= 2 && juzNumber <= 27) {
+    return (juzNumber - 1) as JuzNumber; // For forward memorizers
+  }
+  
+  if (juzNumber === 28) {
+    return 29; // For backward memorizers
+  }
+  
+  if (juzNumber === 29) {
+    return 30; // For backward memorizers
+  }
+
+  return null;
 }
 
 /**
