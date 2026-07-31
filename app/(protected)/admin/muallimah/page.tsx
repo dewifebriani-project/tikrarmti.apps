@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, GraduationCap, BarChart3, Users } from 'lucide-react';
+import { Shield, ArrowLeft, GraduationCap, BarChart3, Users, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
 import { MuallimahV2Tab } from '@/components/admin/muallimah-v2/MuallimahV2Tab';
 import { MuallimahAnalysisTab } from '@/components/admin/muallimah-v2/MuallimahAnalysisTab';
+import { MuallimahAnalysisTableTab } from '@/components/admin/muallimah-v2/MuallimahAnalysisTableTab';
+import { MuallimahAvailabilityTab } from '@/components/admin/muallimah-v2/MuallimahAvailabilityTab';
 import { cn } from '@/lib/utils';
 
 export default function AdminMuallimahPage() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'data' | 'analysis'>('data');
+  const [activeTab, setActiveTab] = useState<'data' | 'analysis_table' | 'availability' | 'analysis'>('data');
 
   useEffect(() => {
     setMounted(true);
@@ -70,6 +72,30 @@ export default function AdminMuallimahPage() {
               Data Muallimah
             </button>
             <button
+              onClick={() => setActiveTab('analysis_table')}
+              className={cn(
+                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
+                activeTab === 'analysis_table'
+                  ? "border-green-600 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              <FileText className="h-4 w-4" />
+              Tabel Analisis Juz
+            </button>
+            <button
+              onClick={() => setActiveTab('availability')}
+              className={cn(
+                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
+                activeTab === 'availability'
+                  ? "border-green-600 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              <Users className="h-4 w-4" />
+              Ketersediaan Muallimah
+            </button>
+            <button
               onClick={() => setActiveTab('analysis')}
               className={cn(
                 "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
@@ -79,18 +105,17 @@ export default function AdminMuallimahPage() {
               )}
             >
               <BarChart3 className="h-4 w-4" />
-              Analisis Data
+              Detail Analisis (Card)
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {activeTab === 'data' ? (
-          <MuallimahV2Tab user={user} />
-        ) : (
-          <MuallimahAnalysisTab />
-        )}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'data' && <MuallimahV2Tab user={user} />}
+        {activeTab === 'analysis_table' && <MuallimahAnalysisTableTab />}
+        {activeTab === 'availability' && <MuallimahAvailabilityTab />}
+        {activeTab === 'analysis' && <MuallimahAnalysisTab />}
       </div>
     </div>
   );

@@ -104,12 +104,13 @@ export async function GET(request: NextRequest) {
       .filter(reg => !reg.exclude_from_capacity)
       .map(reg => reg.user_id);
 
+    // Helper function to extract base juz, e.g. "30A" -> "30", "1" -> "1", "Juz 30" -> "30"
+    const getBaseJuz = (juz: string): string => {
+      const match = juz.trim().match(/\d+/);
+      return match ? match[0] : juz.trim();
+    };
+
     if (mode === 'pendaftar') {
-      // Helper function to extract base juz, e.g. "30A" -> "30", "1" -> "1", "Juz 30" -> "30"
-      const getBaseJuz = (juz: string): string => {
-        const match = juz.trim().match(/\d+/);
-        return match ? match[0] : juz.trim();
-      };
 
       const pendaftarPerJuz = new Map<string, number>();
       const { data: pendaftarList } = await supabaseAdmin
@@ -142,7 +143,6 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const displayGroups = Array.from(new Set<string>(pendaftarPerJuz.keys()));
       const muallimahRegsFiltered = muallimahRegs.filter(m => {
         if (m.exclude_from_capacity) return false;
         
@@ -151,13 +151,24 @@ export async function GET(request: NextRequest) {
           if (typeof pSched === 'string') {
             try { pSched = JSON.parse(pSched); } catch(e) { pSched = null; }
           }
-          if (programTab === 'tikrar') return pSched?.tikrar;
-          if (programTab === 'pra_tikrar') return pSched?.pra_tahfidz;
-          if (programTab === 'kelas_berbayar') return pSched?.berbayar || ((m as any).paid_class_scheme && (m as any).paid_class_scheme !== 'none');
+          if (programTab === 'tikrar') return m.class_type?.includes('tikrar_tahfidz') || pSched?.tikrar;
+          if (programTab === 'pra_tikrar') return m.class_type?.includes('pra_tahfidz') || pSched?.pra_tahfidz;
+          if (programTab === 'kelas_berbayar') return m.class_type?.includes('berbayar') || m.class_type?.includes('paid_class') || pSched?.berbayar || ((m as any).paid_class_scheme && (m as any).paid_class_scheme !== 'none');
           return true;
         }
         return true;
       });
+
+      const displayGroups = Array.from(new Set<string>(pendaftarPerJuz.keys()));
+      
+      // Add all muallimah allocated/preferred juz to displayGroups so they show up even if there are 0 pendaftar
+      for (const m of muallimahRegsFiltered) {
+        const juzStr = String(m.final_assigned_juz || (Array.isArray(m.preferred_juz) ? m.preferred_juz[0] : m.preferred_juz) || '').trim();
+        const bJuz = getBaseJuz(juzStr);
+        if (bJuz && !displayGroups.includes(bJuz)) {
+          displayGroups.push(bJuz);
+        }
+      }
 
       const availability: any[] = [];
 
@@ -585,26 +596,86 @@ export async function GET(request: NextRequest) {
       const utilizationPercent = maxStudents > 0 ? Math.round((currentStudents / maxStudents) * 100) : 0;
 
       // Get muallimah registration data from the map using muallimah_id
-      const muallimahReg = h.muallimah_id ? muallimahMap.get(h.muallimah_id) : null;
+      const muallimahReg: any = h.muallimah_id ? muallimahMap.get(h.muallimah_id) : null;
       const classType = muallimahReg?.class_type || 'tashih_ujian';
-      const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz;
+      const muallimahPreferredJuz = h.preferred_juz || muallimahReg?.preferred_juz;
       const muallimahName = muallimahReg?.full_name || 'Muallimah';
 
       // Use halaqah schedule first, fallback to muallimah_registrations schedule
-      let schedule = null;
+      let scheduleList: any[] = [];
       if (h.day_of_week !== null && h.start_time && h.end_time) {
-        schedule = {
-          day: DAY_NAMES[h.day_of_week],
-          time_start: h.start_time,
-          time_end: h.end_time
-        };
+        scheduleList.push({
+          day_name: DAY_NAMES[h.day_of_week] || h.day_of_week,
+          start_time: h.start_time,
+          end_time: h.end_time,
+          type: 'Jadwal Aktif',
+          is_allocated_here: true
+        });
       } else if (muallimahReg?.preferred_schedule) {
         try {
-          schedule = typeof muallimahReg.preferred_schedule === 'string'
+          const pSched = typeof muallimahReg.preferred_schedule === 'string'
             ? JSON.parse(muallimahReg.preferred_schedule)
             : muallimahReg.preferred_schedule;
+          
+          const programKeys = ['tikrar', 'pra_tahfidz', 'berbayar', 'tahfidz', 'tashih'];
+          if (pSched) {
+            for (const key of programKeys) {
+              if (pSched[key] && pSched[key].day) {
+                const d = pSched[key].day;
+                scheduleList.push({
+                  type: key === 'pra_tahfidz' ? 'Pra-Tikrar' : key.charAt(0).toUpperCase() + key.slice(1),
+                  is_backup: false,
+                  day_name: d.charAt(0).toUpperCase() + d.slice(1),
+                  start_time: pSched[key].time_start || '-',
+                  end_time: pSched[key].time_end || '-',
+                  is_allocated_here: false
+                });
+              }
+            }
+            if (scheduleList.length === 0 && pSched.day) {
+              const d = pSched.day;
+              scheduleList.push({
+                type: 'Utama',
+                is_backup: false,
+                day_name: d.charAt(0).toUpperCase() + d.slice(1),
+                start_time: pSched.time_start || '-',
+                end_time: pSched.time_end || '-',
+                is_allocated_here: false
+              });
+            }
+          }
+
+          if (muallimahReg.backup_schedule) {
+            const parsedBack = typeof muallimahReg.backup_schedule === 'string' ? JSON.parse(muallimahReg.backup_schedule) : muallimahReg.backup_schedule;
+            if (parsedBack) {
+              for (const key of programKeys) {
+                if (parsedBack[key] && parsedBack[key].day) {
+                  const d = parsedBack[key].day;
+                  scheduleList.push({
+                    type: key === 'pra_tahfidz' ? 'Pra-Tikrar' : key.charAt(0).toUpperCase() + key.slice(1),
+                    is_backup: true,
+                    day_name: d.charAt(0).toUpperCase() + d.slice(1),
+                    start_time: parsedBack[key].time_start || '-',
+                    end_time: parsedBack[key].time_end || '-',
+                    is_allocated_here: false
+                  });
+                }
+              }
+              if (scheduleList.filter((s: any) => s.is_backup).length === 0 && parsedBack.day) {
+                const d = parsedBack.day;
+                scheduleList.push({
+                  type: 'Cadangan',
+                  is_backup: true,
+                  day_name: d.charAt(0).toUpperCase() + d.slice(1),
+                  start_time: parsedBack.time_start || '-',
+                  end_time: parsedBack.time_end || '-',
+                  is_allocated_here: false
+                });
+              }
+            }
+          }
         } catch (e) {
-          schedule = null;
+          // ignore
         }
       }
 
@@ -622,7 +693,7 @@ export async function GET(request: NextRequest) {
         muallimah_id: h.muallimah_id,
         muallimah_name: muallimahName,
         class_type: classType,
-        schedule: schedule,
+        schedules: scheduleList,
         current_students: currentStudents,
         available_slots: availableSlots,
         is_full: isFull,
@@ -632,7 +703,9 @@ export async function GET(request: NextRequest) {
 
     // Group by juz
     processedHalaqahs.forEach(h => {
-      const juz = h.preferred_juz || 0;
+      const rawJuz = String(h.preferred_juz || '0');
+      const baseJuzStr = getBaseJuz(rawJuz);
+      const juz = parseInt(baseJuzStr) || 0;
       if (!juzMap.has(juz)) {
         juzMap.set(juz, []);
       }
@@ -688,7 +761,9 @@ export async function GET(request: NextRequest) {
           utilization_percent: h.utilization_percent,
           is_full: h.is_full,
           muallimah_name: h.muallimah_name,
-          class_type: h.class_type
+          class_type: h.class_type,
+          preferred_juz: h.preferred_juz,
+          schedules: h.schedules || []
         }))
       };
 
