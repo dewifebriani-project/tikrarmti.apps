@@ -832,17 +832,19 @@ export function MuallimahAnalysisTableTab() {
                                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                                         {est.halaqah_details.map((h: any) => (
                                           <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-between">
-                                            <div className="flex justify-between items-start mb-2">
-                                              <div>
-                                                <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
-                                                <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.class_type?.replace(/_/g, " ")}</p>
+                                            <div className="flex flex-col">
+                                              <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                  <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
+                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.class_type?.replace(/_/g, " ")}</p>
+                                                </div>
+                                              </div>
+                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 mb-3">
+                                                <span className="font-medium text-gray-500 text-[11px]">Kapasitas/Terisi:</span>
+                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
                                               </div>
                                             </div>
                                             <div className="flex flex-col gap-2 text-[11px] text-gray-600">
-                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100">
-                                                <span className="font-medium text-gray-500">Kapasitas/Terisi:</span>
-                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
-                                              </div>
                                               {h.schedules?.length > 0 ? (
                                                 <div className="space-y-1.5 mt-1">
                                                   {h.schedules.map((s: any, sIdx: number) => (
@@ -873,17 +875,19 @@ export function MuallimahAnalysisTableTab() {
                                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                                         {akt.halaqah_details.map((h: any) => (
                                           <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-between">
-                                            <div className="flex justify-between items-start mb-2">
-                                              <div>
-                                                <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
-                                                <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.name || h.class_type?.replace(/_/g, " ")}</p>
+                                            <div className="flex flex-col">
+                                              <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                  <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
+                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.name || h.class_type?.replace(/_/g, " ")}</p>
+                                                </div>
+                                              </div>
+                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 mb-3">
+                                                <span className="font-medium text-gray-500 text-[11px]">Kapasitas/Terisi:</span>
+                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
                                               </div>
                                             </div>
                                             <div className="flex flex-col gap-2 text-[11px] text-gray-600">
-                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100">
-                                                <span className="font-medium text-gray-500">Kapasitas/Terisi:</span>
-                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
-                                              </div>
                                               {h.schedules?.length > 0 ? (
                                                 <div className="space-y-1.5 mt-1">
                                                   {h.schedules.map((s: any, sIdx: number) => (
