@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       // Get muallimah registration data from the map using muallimah_id
       const muallimahReg = h.muallimah_id ? muallimahMap.get(h.muallimah_id) : null
       const classType = muallimahReg?.class_type || 'tashih_ujian'
-      const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
+      const muallimahPreferredJuz = h.preferred_juz || muallimahReg?.preferred_juz
       const muallimahName = muallimahReg?.full_name || 'Muallimah'
 
       // Use halaqah schedule first, fallback to muallimah_registrations schedule
