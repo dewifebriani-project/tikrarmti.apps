@@ -160,6 +160,33 @@ export function MuallimahAnalysisTab() {
     e.dataTransfer.setData("muallimah_id", muallimahId);
   };
 
+  const handleAssignJuz = async (muallimahId: string, targetJuz: string) => {
+    if (!muallimahId || !selectedBatchId) return;
+
+    try {
+      const toastId = toast.loading("Memindahkan muallimah...");
+      const res = await fetch("/api/admin/muallimah/assign-juz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          muallimah_id: muallimahId,
+          assigned_juz: targetJuz,
+          batch_id: selectedBatchId,
+        }),
+      });
+      
+      if (res.ok) {
+        toast.success("Muallimah berhasil dipindahkan", { id: toastId });
+        loadAnalysis(selectedBatchId);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || "Gagal memindahkan muallimah", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Terjadi kesalahan sistem");
+    }
+  };
+
   const handleDrop = async (e: React.DragEvent, targetJuz: string) => {
     e.preventDefault();
     const muallimahId = e.dataTransfer.getData("muallimah_id");
@@ -1159,9 +1186,7 @@ export function MuallimahAnalysisTab() {
                                 return (
                                   <div
                                     key={idx}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, halaqah.id)}
-                                    className={`rounded-lg border p-3 transition-all duration-200 cursor-grab active:cursor-grabbing hover:shadow-md ${halaqah.is_allocated ? "bg-emerald-50/10 border-emerald-300 shadow-sm ring-1 ring-emerald-300" : "bg-white border-gray-200"}`}
+                                    className={`rounded-lg border p-3 transition-all duration-200 hover:shadow-md ${halaqah.is_allocated ? "bg-emerald-50/10 border-emerald-300 shadow-sm ring-1 ring-emerald-300" : "bg-white border-gray-200"}`}
                                   >
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex flex-col gap-1">
@@ -1184,9 +1209,24 @@ export function MuallimahAnalysisTab() {
                                             </span>
                                           )}
                                         </p>
+                                        {analysisMode === "pendaftar" && (
+                                          <select
+                                            value={juz.juz_number}
+                                            onChange={(e) => handleAssignJuz(halaqah.id, e.target.value)}
+                                            className="text-[10px] py-0.5 px-1 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer bg-white mt-1"
+                                          >
+                                            <option disabled>-- Pilih Juz --</option>
+                                            {halaqahData.map((j: any) => (
+                                              <option key={j.juz_number} value={j.juz_number}>
+                                                Juz {j.juz_number}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        )}
                                       </div>
-                                      <span
-                                        className={`text-xs px-2 py-0.5 rounded-lg font-medium ${(() => {
+                                      <div className="flex flex-col items-end gap-2">
+                                        <span
+                                          className={`text-xs px-2 py-0.5 rounded-lg font-medium ${(() => {
                                           const normalized = (
                                             halaqah.class_type || ""
                                           ).toLowerCase();
