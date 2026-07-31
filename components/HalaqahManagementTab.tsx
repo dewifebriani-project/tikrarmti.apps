@@ -1040,7 +1040,7 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
+                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[140px]">
                         Actions
                       </th>
                     </tr>
@@ -1071,12 +1071,12 @@ export function HalaqahManagementTab() {
                         <td className="px-6 py-4">
                           {halaqah.day_of_week ? (
                             <div className="flex items-center gap-2 text-sm text-gray-900">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              <span>{getDayName(halaqah.day_of_week)}</span>
+                              <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="whitespace-nowrap">{getDayName(halaqah.day_of_week)}</span>
                               {halaqah.start_time && (
                                 <>
-                                  <Clock className="w-4 h-4 text-gray-400 ml-2" />
-                                  <span>{halaqah.start_time} - {halaqah.end_time}</span>
+                                  <Clock className="w-4 h-4 text-gray-400 ml-2 shrink-0" />
+                                  <span className="whitespace-nowrap">{halaqah.start_time} - {halaqah.end_time}</span>
                                 </>
                               )}
                             </div>
@@ -1095,8 +1095,8 @@ export function HalaqahManagementTab() {
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-gray-900">
+                              <Users className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="text-sm text-gray-900 whitespace-nowrap">
                                 {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} dari {halaqah.max_students || 20}
                               </span>
                               <span className="text-xs text-gray-500">tersedia</span>
@@ -1122,10 +1122,10 @@ export function HalaqahManagementTab() {
                           {getStatusBadge(halaqah.status)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setSelectedHalaqah(halaqah)}
-                              className="p-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 active:scale-90"
+                              className="p-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 active:scale-90 shrink-0"
                               title="View details"
                             >
                               <Eye className="w-4 h-4" />
@@ -1133,7 +1133,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => setEditingHalaqah(halaqah)}
-                              className="p-2 text-blue-600 bg-blue-50/50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-90"
+                              className="p-2 text-blue-600 bg-blue-50/50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-90 shrink-0"
                               title="Edit halaqah"
                             >
                               <Edit className="w-4 h-4" />
@@ -1142,7 +1142,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'inactive' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'active')}
-                                className="p-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-100 active:scale-90"
+                                className="p-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-100 active:scale-90 shrink-0"
                                 title="Activate halaqah"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -1152,7 +1152,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'active' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'inactive')}
-                                className="p-2 text-amber-600 bg-amber-50/50 hover:bg-amber-100 rounded-lg transition-all border border-amber-100 active:scale-90"
+                                className="p-2 text-amber-600 bg-amber-50/50 hover:bg-amber-100 rounded-lg transition-all border border-amber-100 active:scale-90 shrink-0"
                                 title="Deactivate halaqah"
                               >
                                 <XCircle className="w-4 h-4" />
@@ -1161,7 +1161,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => handleDeleteHalaqah(halaqah.id)}
-                              className="p-2 text-red-600 bg-red-50/50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-90"
+                              className="p-2 text-red-600 bg-red-50/50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-90 shrink-0"
                               title="Delete halaqah"
                             >
                               <Trash2 className="w-4 h-4" />
