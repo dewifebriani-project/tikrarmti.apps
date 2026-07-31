@@ -815,7 +815,7 @@ export function MuallimahEditModal({
 
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Pilihan Juz Mengajar</Label>
-                  <div className="p-4 border border-gray-200 rounded-2xl bg-gray-50/50 max-h-48 overflow-y-auto">
+                  <div className="p-4 border border-gray-200 rounded-2xl bg-gray-50/50">
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       {allJuzOptions.map(option => (
                         <label key={option.value} className={cn("flex items-center p-2 rounded-lg cursor-pointer transition-colors border", preferredJuz.includes(option.value) ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-200 hover:bg-gray-50")}>
