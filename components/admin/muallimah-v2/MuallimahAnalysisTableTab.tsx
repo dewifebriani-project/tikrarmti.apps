@@ -836,7 +836,7 @@ export function MuallimahAnalysisTableTab() {
                                               <div className="flex justify-between items-start mb-3">
                                                 <div>
                                                   <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
-                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.class_type?.replace(/_/g, " ")}</p>
+                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.class_type?.replace(/_/g, " ")}{h.preferred_juz ? (h.preferred_juz.toLowerCase().includes('juz') || h.preferred_juz.toLowerCase() === 'topik' ? ` - ${h.preferred_juz}` : ` - Juz ${h.preferred_juz}`) : ''}</p>
                                                 </div>
                                               </div>
                                               <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 mb-3">
