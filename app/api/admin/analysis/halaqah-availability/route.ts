@@ -441,7 +441,7 @@ export async function GET(request: NextRequest) {
 
         availability.push({
           juz_number: juz,
-          juz_name: juz.startsWith('Juz') ? juz : `Juz ${juz}`,
+          juz_name: juz === 'Topik' ? 'Topik' : (juz.startsWith('Juz') ? juz : `Juz ${juz}`),
           total_halaqah: totalMuallimah,
           total_schedules: totalSchedules,
           total_capacity: totalCapacity,
@@ -590,7 +590,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch pendaftaran if mode is pendaftar
     // Group halaqah by juz
-    const juzMap = new Map<number, any[]>();
+    const juzMap = new Map<string, any[]>();
     
     
 
@@ -711,13 +711,17 @@ export async function GET(request: NextRequest) {
 
     // Group by juz
     processedHalaqahs.forEach(h => {
-      const rawJuz = String(h.preferred_juz || '0');
+      let rawJuz = String(h.preferred_juz || '0');
+      if (programTab === 'pra_tikrar') rawJuz = '30';
+      else if (programTab === 'kelas_berbayar') rawJuz = 'Topik';
+
       const baseJuzStr = getBaseJuz(rawJuz);
-      const juz = parseInt(baseJuzStr) || 0;
-      if (!juzMap.has(juz)) {
-        juzMap.set(juz, []);
+      const juzKey = baseJuzStr;
+      
+      if (!juzMap.has(juzKey)) {
+        juzMap.set(juzKey, []);
       }
-      juzMap.get(juz)!.push(h);
+      juzMap.get(juzKey)!.push(h);
     });
 
     // Build availability response grouped by juz
@@ -726,7 +730,7 @@ export async function GET(request: NextRequest) {
     // Convert Map entries to array for iteration
     const juzEntries = Array.from(juzMap.entries());
 
-    for (const [juzNumber, halaqahList] of juzEntries) {
+    for (const [juzNumberStr, halaqahList] of juzEntries) {
       const totalHalaqah = halaqahList.length;
       const totalCapacity = halaqahList.reduce((sum, h) => sum + h.max_students, 0);
       const totalFilled = halaqahList.reduce((sum, h) => sum + h.current_students, 0);
@@ -745,8 +749,8 @@ export async function GET(request: NextRequest) {
       const utilizationPercentage = totalCapacity > 0 ? Math.round((totalFilled / totalCapacity) * 100) : 0;
 
       const juzData: any = {
-        juz_number: juzNumber,
-        juz_name: juzNumber === 0 ? 'Campuran' : `Juz ${juzNumber}`,
+        juz_number: juzNumberStr,
+        juz_name: juzNumberStr === '0' ? 'Campuran' : (juzNumberStr === 'Topik' ? 'Topik' : (juzNumberStr.startsWith('Juz') ? juzNumberStr : `Juz ${juzNumberStr}`)),
         total_halaqah: totalHalaqah,
         total_capacity: totalCapacity,
         total_filled: totalFilled,
