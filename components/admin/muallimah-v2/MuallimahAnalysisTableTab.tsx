@@ -831,7 +831,7 @@ export function MuallimahAnalysisTableTab() {
                                     {estMuallimahCount > 0 ? (
                                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                                         {est.halaqah_details.map((h: any) => (
-                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-start">
                                             <div className="flex flex-col">
                                               <div className="flex justify-between items-start mb-3">
                                                 <div>
@@ -874,7 +874,7 @@ export function MuallimahAnalysisTableTab() {
                                     {aktMuallimahCount > 0 ? (
                                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                                         {akt.halaqah_details.map((h: any) => (
-                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-start">
                                             <div className="flex flex-col">
                                               <div className="flex justify-between items-start mb-3">
                                                 <div>
