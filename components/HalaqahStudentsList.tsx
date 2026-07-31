@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Clock, ArrowUp, Loader2, UserMinus } from 'lucide-react';
+import { Users, Clock, ArrowUp, Loader2, UserMinus, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface HalaqahStudentsListProps {
@@ -23,6 +23,22 @@ interface Student {
   };
 }
 
+interface Submission {
+  id: string;
+  user_id: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  chosen_juz: string | null;
+  ujian_halaqah_id: string | null;
+  tashih_halaqah_id: string | null;
+  is_tashih_umum: boolean;
+  created_at: string;
+  thalibah?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+  };
+}
+
 interface CapacityInfo {
   active_students: number;
   waitlist_students: number;
@@ -34,6 +50,7 @@ interface CapacityInfo {
 export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStudentsListProps) {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
   const [promoting, setPromoting] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -54,9 +71,10 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
         throw new Error(data.error || 'Failed to load students');
       }
 
-      const { students: studentsData, capacity: capacityData } = await response.json();
+      const { students: studentsData, submissions: submissionsData, capacity: capacityData } = await response.json();
 
       setStudents(studentsData || []);
+      setSubmissions(submissionsData || []);
       setCapacity(capacityData);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load students');
@@ -289,6 +307,49 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
           </div>
         )}
       </div>
+
+      {/* Daftar Ulang Submissions */}
+      {submissions && submissions.length > 0 && (
+        <div className="pt-4 border-t border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-blue-600" />
+            Daftar Ulang Submissions
+          </h3>
+          <div className="space-y-2">
+            {submissions.map((submission) => (
+              <div
+                key={submission.id}
+                className="flex items-center justify-between p-3 bg-blue-50/30 border border-blue-100 rounded-lg"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 flex items-center gap-2">
+                    {submission.thalibah?.full_name || 'Unknown'}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      submission.status === 'approved' ? 'bg-green-100 text-green-700' :
+                      submission.status === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                      submission.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {submission.status}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {submission.thalibah?.email || 'No email'}
+                  </p>
+                  <div className="flex gap-4 mt-1">
+                    <p className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      Juz: {submission.chosen_juz || 'N/A'}
+                    </p>
+                    <p className="text-xs text-gray-400 self-center">
+                      Submitted: {formatDate(submission.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

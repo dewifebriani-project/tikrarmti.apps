@@ -83,8 +83,21 @@ export async function GET(
       )
     }
 
-    // Get user IDs from students
-    const userIds = students?.map(s => s.thalibah_id).filter(Boolean) || []
+    // Fetch submissions from daftar_ulang_submissions for this halaqah
+    const { data: submissions, error: submissionsError } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('*')
+      .or(`ujian_halaqah_id.eq.${halaqahId},tashih_halaqah_id.eq.${halaqahId}`)
+
+    if (submissionsError) {
+      console.error('Error fetching submissions:', submissionsError)
+    }
+
+    // Get user IDs from students and submissions
+    const userIds = [
+      ...(students?.map(s => s.thalibah_id) || []),
+      ...(submissions?.map(s => s.user_id) || [])
+    ].filter(Boolean)
 
     // Fetch user data using admin client
     const { data: usersData } = await supabaseAdmin
@@ -103,6 +116,12 @@ export async function GET(
       thalibah: userMap.get(student.thalibah_id) || null
     }))
 
+    // Combine submission data with user data
+    const submissionsWithUsers = (submissions || []).map(submission => ({
+      ...submission,
+      thalibah: userMap.get(submission.user_id) || null
+    }))
+
     // Fetch halaqah capacity info
     const { data: halaqahWithCapacity } = await supabaseAdmin
       .from('halaqah')
@@ -116,6 +135,7 @@ export async function GET(
 
     return NextResponse.json({
       students: studentsWithUsers,
+      submissions: submissionsWithUsers,
       capacity: {
         active_students: activeCount,
         waitlist_students: waitlistCount,
