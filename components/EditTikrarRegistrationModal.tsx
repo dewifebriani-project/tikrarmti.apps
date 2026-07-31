@@ -175,13 +175,13 @@ export function EditTikrarRegistrationModal({
               required
             >
               <option value="">Pilih waktu utama</option>
-              <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
-              <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
-              <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
-              <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
-              <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
-              <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
-              <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
+              <option value="04-06">04.00 - 06.00 WIB</option>
+              <option value="06-09">06.00 - 09.00 WIB</option>
+              <option value="09-12">09.00 - 12.00 WIB</option>
+              <option value="12-15">12.00 - 15.00 WIB</option>
+              <option value="15-18">15.00 - 18.00 WIB</option>
+              <option value="18-21">18.00 - 21.00 WIB</option>
+              <option value="21-24">21.00 - 24.00 WIB</option>
             </select>
           </div>
 
@@ -197,13 +197,13 @@ export function EditTikrarRegistrationModal({
               required
             >
               <option value="">Pilih waktu cadangan</option>
-              <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
-              <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
-              <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
-              <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
-              <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
-              <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
-              <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
+              <option value="04-06">04.00 - 06.00 WIB</option>
+              <option value="06-09">06.00 - 09.00 WIB</option>
+              <option value="09-12">09.00 - 12.00 WIB</option>
+              <option value="12-15">12.00 - 15.00 WIB</option>
+              <option value="15-18">15.00 - 18.00 WIB</option>
+              <option value="18-21">18.00 - 21.00 WIB</option>
+              <option value="21-24">21.00 - 24.00 WIB</option>
             </select>
           </div>
 

@@ -1353,13 +1353,13 @@ export default function ThalibahBatch2Page() {
                 <SelectValue placeholder={getQuestionMeta('main_time_slot').description || "Pilih waktu utama"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="04-06">04.00 - 06.00 WIB</SelectItem>
+                <SelectItem value="06-09">06.00 - 09.00 WIB</SelectItem>
+                <SelectItem value="09-12">09.00 - 12.00 WIB</SelectItem>
+                <SelectItem value="12-15">12.00 - 15.00 WIB</SelectItem>
+                <SelectItem value="15-18">15.00 - 18.00 WIB</SelectItem>
+                <SelectItem value="18-21">18.00 - 21.00 WIB</SelectItem>
+                <SelectItem value="21-24">21.00 - 24.00 WIB</SelectItem>
               </SelectContent>
             </Select>
             {errors.main_time_slot && (
@@ -1379,13 +1379,13 @@ export default function ThalibahBatch2Page() {
                 <SelectValue placeholder={getQuestionMeta('backup_time_slot').description || "Pilih waktu cadangan"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
-                <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="04-06">04.00 - 06.00 WIB</SelectItem>
+                <SelectItem value="06-09">06.00 - 09.00 WIB</SelectItem>
+                <SelectItem value="09-12">09.00 - 12.00 WIB</SelectItem>
+                <SelectItem value="12-15">12.00 - 15.00 WIB</SelectItem>
+                <SelectItem value="15-18">15.00 - 18.00 WIB</SelectItem>
+                <SelectItem value="18-21">18.00 - 21.00 WIB</SelectItem>
+                <SelectItem value="21-24">21.00 - 24.00 WIB</SelectItem>
               </SelectContent>
             </Select>
             {errors.backup_time_slot && (
