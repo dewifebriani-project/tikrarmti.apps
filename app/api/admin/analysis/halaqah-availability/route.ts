@@ -135,7 +135,9 @@ export async function GET(request: NextRequest) {
           }
           
           if (matches) {
-            const juz = (p.chosen_juz || 'Unknown').trim();
+            let juz = (p.chosen_juz || 'Unknown').trim();
+            if (programTab === 'pra_tikrar') juz = '30';
+            else if (programTab === 'kelas_berbayar') juz = 'Topik';
             const baseJuz = getBaseJuz(juz);
             pendaftarPerJuz.set(baseJuz, (pendaftarPerJuz.get(baseJuz) || 0) + 1);
           }
@@ -162,7 +164,10 @@ export async function GET(request: NextRequest) {
       
       // Add all muallimah allocated/preferred juz to displayGroups so they show up even if there are 0 pendaftar
       for (const m of muallimahRegsFiltered) {
-        const juzStr = String(m.final_assigned_juz || (Array.isArray(m.preferred_juz) ? m.preferred_juz[0] : m.preferred_juz) || '').trim();
+        let juzStr = String(m.final_assigned_juz || (Array.isArray(m.preferred_juz) ? m.preferred_juz[0] : m.preferred_juz) || '').trim();
+        if (programTab === 'pra_tikrar') juzStr = '30';
+        else if (programTab === 'kelas_berbayar') juzStr = 'Topik';
+        
         const bJuz = getBaseJuz(juzStr);
         if (bJuz && !displayGroups.includes(bJuz)) {
           displayGroups.push(bJuz);
@@ -253,7 +258,11 @@ export async function GET(request: NextRequest) {
         }
 
         let juzStr = '';
-        if (m.preferred_juz && String(m.preferred_juz).trim() !== '') {
+        if (programTab === 'pra_tikrar') {
+          juzStr = '30';
+        } else if (programTab === 'kelas_berbayar') {
+          juzStr = 'Topik';
+        } else if (m.preferred_juz && String(m.preferred_juz).trim() !== '') {
           juzStr = String(m.preferred_juz).trim();
         } else if (m.memorized_juz) {
           if (Array.isArray(m.memorized_juz)) {
