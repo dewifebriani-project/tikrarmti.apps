@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       // Try with specific batch first (any non-rejected status)
       const result = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('*, users(tanggal_lahir), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
+        .select('*, users(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
         .eq('user_id', user.id)
         .eq('batch_id', batchId)
         .not('selection_status', 'in', '("rejected","withdrawn")')
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (!registration) {
       const fallback = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('*, users(tanggal_lahir), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
+        .select('*, users(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
         .eq('user_id', user.id)
         .not('selection_status', 'in', '("rejected","withdrawn")')
         .order('created_at', { ascending: false })
@@ -112,7 +112,7 @@ function buildAkadIntisari(registration: any): {
   const domicile = registration.domicile || '________________'
   const mainTimeSlot = registration.main_time_slot || '________________'
   const backupTimeSlot = registration.backup_time_slot || '________________'
-  const timezone = 'WIB' // Diseragamkan menjadi WIB
+  const timezone = registration.timezone || registration.users?.zona_waktu || 'WIB'
   
   const batchName = registration.batches?.name || '________________'
 
