@@ -45,6 +45,7 @@ interface EditHalaqahModalProps {
 export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahModalProps) {
   const [saving, setSaving] = useState(false);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [zoomLinks, setZoomLinks] = useState<{name: string, url: string}[]>([]);
 
   const [formData, setFormData] = useState({
     name: halaqah.name,
@@ -62,30 +63,35 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
   });
 
   useEffect(() => {
-    loadPrograms();
+    loadDependencies();
   }, []);
 
-  const loadPrograms = async () => {
+  const loadDependencies = async () => {
     try {
       // Get batch_id from halaqah's program
       const batchId = halaqah.program?.batch_id;
 
       if (!batchId) {
-        console.log('[EditHalaqahModal] No batch_id found, skipping program load');
+        console.log('[EditHalaqahModal] No batch_id found, skipping dependency load');
         return;
       }
 
-      const response = await fetch(`/api/programs?batch_id=${batchId}`);
-      const result = await response.json();
+      const [programsRes, zoomRes] = await Promise.all([
+        fetch(`/api/programs?batch_id=${batchId}`),
+        fetch(`/api/admin/batch/${batchId}/zoom-links`)
+      ]);
 
-      if (response.ok && result.data) {
-        console.log('[EditHalaqahModal] Loaded programs:', result.data);
-        setPrograms(result.data);
-      } else {
-        console.error('[EditHalaqahModal] Failed to load programs:', result);
+      const programsResult = await programsRes.json();
+      if (programsRes.ok && programsResult.data) {
+        setPrograms(programsResult.data);
+      }
+
+      const zoomResult = await zoomRes.json();
+      if (zoomRes.ok && zoomResult.success) {
+        setZoomLinks(zoomResult.data);
       }
     } catch (error) {
-      console.error('Error loading programs:', error);
+      console.error('Error loading dependencies:', error);
     }
   };
 
@@ -323,14 +329,36 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Zoom Link
               </label>
-              <input
-                type="url"
-                value={formData.zoom_link}
-                onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
-                disabled={saving}
-                placeholder="https://zoom.us/j/..."
-              />
+              {zoomLinks.length > 0 ? (
+                <select
+                  value={formData.zoom_link}
+                  onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                  disabled={saving}
+                >
+                  <option value="">Pilih Room Zoom</option>
+                  {zoomLinks.map((link, idx) => (
+                    <option key={idx} value={link.url}>
+                      {link.name}
+                    </option>
+                  ))}
+                  {/* Option if current url doesn't match any master data */}
+                  {formData.zoom_link && !zoomLinks.some(z => z.url === formData.zoom_link) && (
+                    <option value={formData.zoom_link} className="italic text-gray-500">
+                      Custom URL (Existing)
+                    </option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  type="url"
+                  value={formData.zoom_link}
+                  onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                  disabled={saving}
+                  placeholder="https://zoom.us/j/..."
+                />
+              )}
             </div>
           </div>
 

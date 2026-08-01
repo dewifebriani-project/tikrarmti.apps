@@ -322,7 +322,9 @@ export function HalaqahManagementTab() {
       const rows = dataToExport.map((h, index) => {
         const programName = h.program?.name || h.program?.batch?.name || '-';
         const batchName = h.program?.batch?.name || '-';
-        const muallimahName = h.muallimah?.full_name || 'Not assigned';
+        const muallimahName = h.muallimah?.full_name 
+          ? (h.muallimah.full_name.toLowerCase().startsWith('ustadzah') ? h.muallimah.full_name : `Ustadzah ${h.muallimah.full_name}`)
+          : 'Not assigned';
         const dayName = h.day_of_week ? getDayName(h.day_of_week) : '-';
         const timeRange = h.start_time && h.end_time
           ? `${h.start_time} - ${h.end_time}`
@@ -425,10 +427,12 @@ export function HalaqahManagementTab() {
               ${dataToExport.map((h, index) => {
                 const programName = h.program?.name || '-';
                 const batchName = h.program?.batch?.name || '-';
-                const muallimahName = h.muallimah?.full_name || 'Not assigned';
+                const muallimahName = h.muallimah?.full_name 
+                  ? (h.muallimah.full_name.toLowerCase().startsWith('ustadzah') ? h.muallimah.full_name : `Ustadzah ${h.muallimah.full_name}`)
+                  : 'Not assigned';
                 const dayName = h.day_of_week ? getDayName(h.day_of_week) : '-';
                 const timeRange = h.start_time && h.end_time
-                  ? `${h.start_time} - ${h.end_time}`
+                  ? `${h.start_time} - ${h.end_time} WIB`
                   : (h.preferred_schedule ? formatSchedule(h.preferred_schedule).replace(/<[^>]*>/g, ' ') : '-');
                 const scheduleStr = h.day_of_week ? `${dayName}, ${timeRange}` : timeRange;
                 const statusBadge = `badge-${h.status}`;
@@ -444,10 +448,6 @@ export function HalaqahManagementTab() {
                     <td>${h.location || '-'}</td>
                     <td>
                       <div>${h.quota_details?.total_used || 0} / ${h.max_students || '-'}</div>
-                      <div class="quota-details">
-                        ✓ ${h.quota_details?.approved || 0} | ✓ ${h.quota_details?.submitted || 0} | ○ ${h.quota_details?.draft || 0}<br>
-                        ✓ ${h.quota_details?.active || 0} | ⏱ ${h.quota_details?.waitlist || 0}
-                      </div>
                     </td>
                     <td><span class="${statusBadge}">${h.status}</span></td>
                   </tr>
@@ -546,36 +546,8 @@ export function HalaqahManagementTab() {
     );
   };
 
-  // Format name - avoid double "Halaqah Ustadzah"
   const formatHalaqahName = (halaqah: Halaqah) => {
-    let name = halaqah.name;
-
-    // Clean up multiple "Halaqah" prefixes (case-insensitive)
-    while (name.toLowerCase().startsWith('halaqah ')) {
-      name = name.substring(8);
-    }
-    while (name.toLowerCase().startsWith('halaqah')) {
-      name = name.substring(7);
-    }
-
-    // Clean up multiple "Ustadzah" prefixes (case-insensitive)
-    while (name.toLowerCase().startsWith('ustadzah ')) {
-      name = name.substring(9);
-    }
-    while (name.toLowerCase().startsWith('ustadzah')) {
-      name = name.substring(8);
-    }
-
-    // Trim whitespace
-    name = name.trim();
-
-    // If after cleaning we have an empty name or just spaces, return original
-    if (!name) {
-      return halaqah.name;
-    }
-
-    // Add the proper prefix
-    return `Halaqah Ustadzah ${name}`;
+    return halaqah.name || 'Halaqah Tanpa Nama';
   };
 
   // Handle sort
@@ -684,13 +656,7 @@ export function HalaqahManagementTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Halaqah Management</h2>
-          <p className="text-sm text-gray-500 font-medium mt-1">
-            Manage halaqah (study groups) for muallimah and thalibah
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAssignThalibahModal(true)}
@@ -1086,7 +1052,7 @@ export function HalaqahManagementTab() {
                               {halaqah.start_time && (
                                 <>
                                   <Clock className="w-4 h-4 text-gray-400 ml-2 shrink-0" />
-                                  <span className="whitespace-nowrap">{halaqah.start_time} - {halaqah.end_time}</span>
+                                  <span className="whitespace-nowrap">{halaqah.start_time} - {halaqah.end_time} WIB</span>
                                 </>
                               )}
                             </div>

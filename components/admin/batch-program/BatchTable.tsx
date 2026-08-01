@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, ChevronLeft, ChevronRight, Edit3, Users as UsersIcon, BookOpen } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Edit3, Users as UsersIcon, BookOpen, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Batch, PaginationMeta } from './types';
 

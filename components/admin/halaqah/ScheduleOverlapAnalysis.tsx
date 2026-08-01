@@ -242,15 +242,15 @@ export function ScheduleOverlapAnalysis({ isOpen, onClose, halaqahs }: ScheduleO
                   <h5 className="text-sm font-bold text-gray-700 mb-3">Daftar Kelas yang Bentrok di Waktu Puncak:</h5>
                   <div className="space-y-3">
                     {analysis.results[selectedDay - 1].peakHalaqahs.map((h) => (
-                      <div key={h.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors gap-2">
-                        <div>
+                      <div key={h.id} className="flex flex-col sm:flex-row sm:items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors gap-3 justify-start">
+                        <div className="px-3 py-1 bg-white border border-gray-200 rounded-md text-xs font-semibold text-gray-700 whitespace-nowrap shadow-sm shrink-0">
+                          {h.start_time} - {h.end_time}
+                        </div>
+                        <div className="flex-1">
                           <div className="font-bold text-sm text-gray-900">{h.name}</div>
                           <div className="text-xs text-gray-500 mt-0.5">
                             {h.muallimah?.full_name || 'Tanpa Muallimah'} • {formatClassType(h.class_type || h.program?.class_type)}
                           </div>
-                        </div>
-                        <div className="px-3 py-1 bg-white border border-gray-200 rounded-md text-xs font-semibold text-gray-700 whitespace-nowrap shadow-sm">
-                          {h.start_time} - {h.end_time}
                         </div>
                       </div>
                     ))}

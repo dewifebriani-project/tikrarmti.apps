@@ -133,19 +133,9 @@ export default function AdminPairingTab() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto p-4 md:p-6">
-      {/* Batch Selector & Overall Info */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-green-100 p-2 rounded-lg">
-            <Info className="w-5 h-5 text-green-700" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Admin Pairing Panel</h2>
-            <p className="text-sm text-gray-500">Management pasangan belajar thalibah</p>
-          </div>
-        </div>
-        
+    <div className="space-y-6">
+      {/* Action Area (Header) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-64">
             <select
@@ -174,32 +164,34 @@ export default function AdminPairingTab() {
       <PairingStatsCard stats={stats} />
 
       {/* Tabs Control */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200">
-        {[
-          { id: 'self', label: 'Pilih Sendiri', count: stats.selfMatch.submitted },
-          { id: 'system', label: 'Cari Sistem', count: stats.systemMatch.submitted },
-          { id: 'tarteel', label: 'Tarteel', count: stats.tarteel.submitted },
-          { id: 'family', label: 'Family', count: stats.family.submitted }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id as any); setCurrentPage(1); }}
-            className={`px-6 py-3 text-sm font-semibold transition-all border-b-2 relative ${
-              activeTab === tab.id
-                ? 'border-green-800 text-green-900 bg-green-50/50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            {tab.label}
-            {tab.count > 0 && (
-              <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${
-                activeTab === tab.id ? 'bg-green-800 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="bg-white border-b border-gray-200 mb-6 px-2 rounded-2xl shadow-sm">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+          {[
+            { id: 'self', label: 'Pilih Sendiri', count: stats.selfMatch.submitted },
+            { id: 'system', label: 'Cari Sistem', count: stats.systemMatch.submitted },
+            { id: 'tarteel', label: 'Tarteel', count: stats.tarteel.submitted },
+            { id: 'family', label: 'Family', count: stats.family.submitted }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id as any); setCurrentPage(1); }}
+              className={`whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors relative flex items-center ${
+                activeTab === tab.id
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={`ml-2 px-2 py-0.5 rounded-md text-[10px] ${
+                  activeTab === tab.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Main Content Area */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers, BookMarked, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers, BookMarked, ClipboardList, Video } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAdminBatches, useAdminPrograms } from '@/lib/hooks/useAdminData';
@@ -12,13 +12,14 @@ import { BatchFormModal } from '@/components/admin/batch-program/BatchFormModal'
 import { ProgramTable } from '@/components/admin/batch-program/ProgramTable';
 import { ProgramFormModal } from '@/components/admin/batch-program/ProgramFormModal';
 import { AdminJuzTab } from '@/components/admin/batch-program/AdminJuzTab';
+import { AdminZoomTab } from '@/components/admin/batch-program/AdminZoomTab';
 import { AdminFormBuilderTab } from '@/components/admin/batch-program/AdminFormBuilderTab';
 import { AdminReregFormBuilderTab } from '@/components/admin/batch-program/AdminReregFormBuilderTab';
 import { AdminMuallimahFormBuilderTab } from '@/components/admin/batch-program/AdminMuallimahFormBuilderTab';
 import { AdminAkadQuizTab } from '@/components/admin/batch-program/AdminAkadQuizTab';
 import { BatchJuzModal } from '@/components/admin/batch-program/BatchJuzModal';
 
-type TabType = 'batches' | 'programs' | 'juz' | 'form-builder' | 'rereg-form-builder' | 'muallimah-form-builder' | 'akad-quiz';
+type TabType = 'batches' | 'programs' | 'juz' | 'zoom' | 'form-builder' | 'quiz';
 
 export default function AdminBatchProgramPage() {
   const [mounted, setMounted] = useState(false);
@@ -37,8 +38,9 @@ export default function AdminBatchProgramPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showProgramModal, setShowProgramModal] = useState(false);
-  const [selectedBatchForJuz, setSelectedBatchForJuz] = useState<Batch | null>(null);
-  const [showBatchJuzModal, setShowBatchJuzModal] = useState(false);
+  const [showJuzModal, setShowJuzModal] = useState(false);
+  const [activeFormSubTab, setActiveFormSubTab] = useState<'pendaftaran' | 'daftar-ulang' | 'muallimah'>('pendaftaran');
+  const [activeQuizSubTab, setActiveQuizSubTab] = useState<'pemahaman-akad'>('pemahaman-akad');
 
   useEffect(() => {
     setMounted(true);
@@ -218,6 +220,17 @@ export default function AdminBatchProgramPage() {
             {activeTab === 'juz' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-900 rounded-full" />}
           </button>
           <button
+            onClick={() => setActiveTab('zoom')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'zoom' ? 'text-purple-700' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <Video className="h-4 w-4" />
+            Pengaturan Zoom Link
+            {activeTab === 'zoom' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-700 rounded-full" />}
+          </button>
+          <button
             onClick={() => setActiveTab('form-builder')}
             className={cn(
               'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
@@ -229,37 +242,15 @@ export default function AdminBatchProgramPage() {
             {activeTab === 'form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-900 rounded-full" />}
           </button>
           <button
-            onClick={() => setActiveTab('rereg-form-builder')}
+            onClick={() => setActiveTab('quiz')}
             className={cn(
               'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
-              activeTab === 'rereg-form-builder' ? 'text-emerald-950' : 'text-gray-400 hover:text-gray-600'
+              activeTab === 'quiz' ? 'text-amber-700' : 'text-gray-400 hover:text-gray-600'
             )}
           >
             <ClipboardList className="h-4 w-4" />
-            Formulir Daftar Ulang
-            {activeTab === 'rereg-form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-950 rounded-full" />}
-          </button>
-          <button
-            onClick={() => setActiveTab('muallimah-form-builder')}
-            className={cn(
-              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
-              activeTab === 'muallimah-form-builder' ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
-            )}
-          >
-            <ClipboardList className="h-4 w-4" />
-            Formulir Mu'allimah
-            {activeTab === 'muallimah-form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />}
-          </button>
-          <button
-            onClick={() => setActiveTab('akad-quiz')}
-            className={cn(
-              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
-              activeTab === 'akad-quiz' ? 'text-blue-900' : 'text-gray-400 hover:text-gray-600'
-            )}
-          >
-            <ClipboardList className="h-4 w-4" />
-            Kuis Pemahaman Akad
-            {activeTab === 'akad-quiz' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-900 rounded-full" />}
+            Pengaturan Kuis
+            {activeTab === 'quiz' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-700 rounded-full" />}
           </button>
         </div>
 
@@ -335,8 +326,8 @@ export default function AdminBatchProgramPage() {
                 setShowBatchModal(true);
               }}
               onManageJuz={(batch) => {
-                setSelectedBatchForJuz(batch);
-                setShowBatchJuzModal(true);
+                setEditingBatch(batch);
+                setShowJuzModal(true);
               }}
             />
           </>
@@ -431,20 +422,72 @@ export default function AdminBatchProgramPage() {
           <AdminJuzTab />
         )}
 
+        {activeTab === 'zoom' && (
+          <AdminZoomTab batches={batches as Batch[]} />
+        )}
+
         {activeTab === 'form-builder' && (
-          <AdminFormBuilderTab />
+          <div className="space-y-6">
+            <div className="flex p-1 space-x-1 bg-white/50 border border-gray-200 rounded-xl max-w-2xl">
+              <button
+                onClick={() => setActiveFormSubTab('pendaftaran')}
+                className={cn(
+                  'w-full py-2.5 text-sm font-bold leading-5 rounded-lg transition-all',
+                  activeFormSubTab === 'pendaftaran'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                )}
+              >
+                Pendaftaran Tikrar
+              </button>
+              <button
+                onClick={() => setActiveFormSubTab('daftar-ulang')}
+                className={cn(
+                  'w-full py-2.5 text-sm font-bold leading-5 rounded-lg transition-all',
+                  activeFormSubTab === 'daftar-ulang'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-600'
+                )}
+              >
+                Daftar Ulang
+              </button>
+              <button
+                onClick={() => setActiveFormSubTab('muallimah')}
+                className={cn(
+                  'w-full py-2.5 text-sm font-bold leading-5 rounded-lg transition-all',
+                  activeFormSubTab === 'muallimah'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
+                )}
+              >
+                Mu'allimah
+              </button>
+            </div>
+
+            {activeFormSubTab === 'pendaftaran' && <AdminFormBuilderTab />}
+            {activeFormSubTab === 'daftar-ulang' && <AdminReregFormBuilderTab />}
+            {activeFormSubTab === 'muallimah' && <AdminMuallimahFormBuilderTab />}
+          </div>
         )}
 
-        {activeTab === 'rereg-form-builder' && (
-          <AdminReregFormBuilderTab />
-        )}
+        {activeTab === 'quiz' && (
+          <div className="space-y-6">
+            <div className="flex p-1 space-x-1 bg-white/50 border border-gray-200 rounded-xl max-w-sm">
+              <button
+                onClick={() => setActiveQuizSubTab('pemahaman-akad')}
+                className={cn(
+                  'w-full py-2.5 text-sm font-bold leading-5 rounded-lg transition-all',
+                  activeQuizSubTab === 'pemahaman-akad'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-amber-50 hover:text-amber-600'
+                )}
+              >
+                Pemahaman Akad
+              </button>
+            </div>
 
-        {activeTab === 'muallimah-form-builder' && (
-          <AdminMuallimahFormBuilderTab />
-        )}
-
-        {activeTab === 'akad-quiz' && (
-          <AdminAkadQuizTab />
+            {activeQuizSubTab === 'pemahaman-akad' && <AdminAkadQuizTab />}
+          </div>
         )}
       </div>
 
@@ -476,13 +519,13 @@ export default function AdminBatchProgramPage() {
         />
       )}
 
-      {showBatchJuzModal && selectedBatchForJuz && (
+      {editingBatch && (
         <BatchJuzModal
-          batch={selectedBatchForJuz}
-          isOpen={showBatchJuzModal}
+          batch={editingBatch}
+          isOpen={showJuzModal}
           onClose={() => {
-            setShowBatchJuzModal(false);
-            setSelectedBatchForJuz(null);
+            setShowJuzModal(false);
+            setEditingBatch(null);
           }}
         />
       )}

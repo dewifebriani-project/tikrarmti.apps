@@ -96,18 +96,23 @@ export function useAdminPairing() {
   // Data Fetching
   const loadBatches = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/pairing/batches', { cache: 'no-store' })
+      const response = await fetch('/api/admin/batches', { cache: 'no-store' })
       const result = await response.json()
       if (result.success) {
         setBatches(result.data)
         if (result.data.length > 0 && !selectedBatchId) {
           const activeBatch = result.data.find((b: Batch) => b.status === 'ACTIVE')
           setSelectedBatchId(activeBatch ? activeBatch.id : result.data[0].id)
+        } else if (result.data.length === 0) {
+          setLoading(false)
         }
+      } else {
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error loading batches:', error)
       toast.error('Gagal memuat daftar batch')
+      setLoading(false)
     }
   }, [selectedBatchId])
 
@@ -129,7 +134,7 @@ export function useAdminPairing() {
     setLoading(true)
     try {
       const response = await fetch(
-        `/api/admin/pairing/requests?batch_id=${selectedBatchId}&tab=${activeTab}&page=${currentPage}&limit=50`,
+        `/api/admin/pairing?batch_id=${selectedBatchId}&tab=${activeTab}&page=${currentPage}&limit=50`,
         { cache: 'no-store' }
       )
       const result = await response.json()
