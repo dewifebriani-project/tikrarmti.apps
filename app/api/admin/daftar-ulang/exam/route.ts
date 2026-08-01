@@ -37,8 +37,7 @@ export async function DELETE(request: NextRequest) {
     const { error: attemptsError } = await supabaseAdmin
       .from('exam_attempts')
       .delete()
-      .eq('registration_id', registrationId)
-      .eq('exam_type', 'written');
+      .eq('registration_id', registrationId);
 
     if (attemptsError) {
       console.error('Error deleting exam attempts', attemptsError, registrationId);
