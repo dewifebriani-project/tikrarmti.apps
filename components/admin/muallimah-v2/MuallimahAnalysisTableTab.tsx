@@ -279,8 +279,7 @@ export function MuallimahAnalysisTableTab() {
         daftarUlangSubmissions,
       } = data;
 
-      // Filter by program tab if not 'semua'
-      if (programTab !== "semua") {
+      // Filter by program tab
         // Filter Muallimah based on preferred_schedule
         muallimahs = (muallimahs || []).filter((m: any) => {
           let pSched = m.preferred_schedule;
@@ -357,7 +356,6 @@ export function MuallimahAnalysisTableTab() {
             return halaqahMatch !== undefined;
           },
         );
-      }
 
       // Process muallimah stats
       const muallimaList = (muallimahs || []) as MuallimaRegistration[];
