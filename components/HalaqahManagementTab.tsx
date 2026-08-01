@@ -1040,14 +1040,14 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[140px]">
+                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[140px] sticky right-0 z-10 backdrop-blur-sm">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAndSortedHalaqahs.map((halaqah) => (
-                      <tr key={halaqah.id} className="hover:bg-gray-50">
+                      <tr key={halaqah.id} className="hover:bg-gray-50 group">
                         <td className="px-6 py-4">
                           <div>
                             <p className="font-medium text-gray-900">
@@ -1121,7 +1121,7 @@ export function HalaqahManagementTab() {
                         <td className="px-6 py-4">
                           {getStatusBadge(halaqah.status)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 sticky right-0 bg-white group-hover:bg-gray-50 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 z-10">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setSelectedHalaqah(halaqah)}

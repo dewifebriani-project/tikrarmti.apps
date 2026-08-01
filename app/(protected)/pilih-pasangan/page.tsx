@@ -352,42 +352,71 @@ export default function PilihPasanganPage() {
                         </div>
 
                         <div className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            {(halaqah.muallimah_schedule || (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time)) && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Calendar className="w-4 h-4 text-amber-600" />
-                                <span className="text-gray-700">
-                                  {(() => {
-                                    if (halaqah.muallimah_schedule) {
-                                      try {
-                                        const schedule = JSON.parse(halaqah.muallimah_schedule)
-                                        return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
-                                      } catch {
-                                        return halaqah.muallimah_schedule
-                                      }
-                                    }
-                                    if (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time) {
-                                      const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
-                                      return `${DAY_NAMES[halaqah.day_of_week]} • ${halaqah.start_time} - ${halaqah.end_time} WIB`
-                                    }
-                                    return '-'
-                                  })()}
+                          {/* Quota Progress Bar - Moved to top */}
+                          {halaqah.total_max_students !== undefined && (
+                            <div className="mb-4">
+                              <div className="flex items-center justify-between text-xs mb-2">
+                                <span className="text-gray-500 font-medium">Kapasitas Terisi</span>
+                                <span className="font-bold text-gray-900">
+                                  {Math.max(0, halaqah.total_max_students - (halaqah.available_slots || 0))} dari {halaqah.total_max_students}
                                 </span>
                               </div>
-                            )}
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    halaqah.is_full
+                                      ? 'bg-red-500'
+                                      : (halaqah.available_slots || 0) <= 3
+                                      ? 'bg-orange-500'
+                                      : 'bg-green-500'
+                                  }`}
+                                  style={{ width: `${((halaqah.total_max_students - (halaqah.available_slots || 0)) / halaqah.total_max_students) * 100}%` }}
+                                ></div>
+                              </div>
+                              {halaqah.is_full && (
+                                <p className="text-xs text-red-600 mt-1">Kelas penuh</p>
+                              )}
+                            </div>
+                          )}
 
+                          {/* Schedule / Jadwal - Moved to top */}
+                          {(halaqah.muallimah_schedule || (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time)) && (
+                            <div className="flex items-center space-x-3 text-sm mb-4 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                              <span className="text-gray-700">
+                                <span className="font-semibold block text-amber-900 mb-0.5">Jadwal Kelas</span>
+                                {(() => {
+                                  if (halaqah.muallimah_schedule) {
+                                    try {
+                                      const schedule = JSON.parse(halaqah.muallimah_schedule)
+                                      return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
+                                    } catch {
+                                      return halaqah.muallimah_schedule
+                                    }
+                                  }
+                                  if (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time) {
+                                    const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
+                                    return `${DAY_NAMES[halaqah.day_of_week]} • ${halaqah.start_time} - ${halaqah.end_time} WIB`
+                                  }
+                                  return '-'
+                                })()}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            {/* Juz */}
                             {halaqah.muallimah_preferred_juz && (
                               <div className="flex items-center space-x-2 text-sm">
-                                <Info className="w-4 h-4 text-green-600" />
-                                <span className="text-gray-700">Juz: {halaqah.muallimah_preferred_juz}</span>
-                              </div>
-                            )}
-
-                            {halaqah.total_max_students !== undefined && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <Users className="w-4 h-4 text-blue-600" />
+                                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                                  <Info className="w-4 h-4 text-green-600" />
+                                </div>
                                 <span className="text-gray-700">
-                                  Sisa Kuota: <span className="font-medium">{halaqah.available_slots}</span> dari <span className="font-medium">{halaqah.total_max_students}</span>
+                                  <span className="font-medium">Juz: </span>{halaqah.muallimah_preferred_juz}
                                 </span>
                               </div>
                             )}

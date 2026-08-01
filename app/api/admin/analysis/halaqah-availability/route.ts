@@ -431,7 +431,7 @@ export async function GET(request: NextRequest) {
             is_full: false,
             muallimah_name: m.full_name,
             class_type: m.class_type,
-            preferred_juz: m.raw_preferred_juz,
+            preferred_juz: Array.isArray(m.raw_preferred_juz) ? m.raw_preferred_juz.join(', ') : m.raw_preferred_juz,
             wa_phone: m.wa_phone,
             memorized_juz: m.memorized_juz,
             schedules: schedulesWithAllocation,
@@ -606,7 +606,10 @@ export async function GET(request: NextRequest) {
       // Get muallimah registration data from the map using muallimah_id
       const muallimahReg: any = h.muallimah_id ? muallimahMap.get(h.muallimah_id) : null;
       const classType = muallimahReg?.class_type || 'tashih_ujian';
-      const muallimahPreferredJuz = h.preferred_juz || muallimahReg?.preferred_juz;
+      
+      // Use strictly the halaqah's preferred juz for 'aktual' as requested by user
+      const muallimahPreferredJuz = h.preferred_juz;
+      
       const muallimahName = muallimahReg?.full_name || 'Muallimah';
 
       // Use halaqah schedule first, fallback to muallimah_registrations schedule

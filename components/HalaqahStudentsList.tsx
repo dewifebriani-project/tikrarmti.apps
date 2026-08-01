@@ -27,7 +27,7 @@ interface Submission {
   id: string;
   user_id: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  chosen_juz: string | null;
+  confirmed_chosen_juz: string | null;
   ujian_halaqah_id: string | null;
   tashih_halaqah_id: string | null;
   is_tashih_umum: boolean;
@@ -338,7 +338,7 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
                   </p>
                   <div className="flex gap-4 mt-1">
                     <p className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                      Juz: {submission.chosen_juz || 'N/A'}
+                      Juz: {submission.confirmed_chosen_juz || 'N/A'}
                     </p>
                     <p className="text-xs text-gray-400 self-center">
                       Submitted: {formatDate(submission.created_at)}
