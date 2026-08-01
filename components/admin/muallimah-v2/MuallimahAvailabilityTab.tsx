@@ -8,8 +8,8 @@ export function MuallimahAvailabilityTab() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
   const [programTab, setProgramTab] = useState<
-    "semua" | "tikrar" | "pra_tikrar" | "kelas_berbayar"
-  >("semua");
+    "tikrar" | "pra_tikrar" | "kelas_berbayar"
+  >("tikrar");
   const [muallimahStats, setMuallimahStats] = useState<any[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
@@ -210,12 +210,7 @@ export function MuallimahAvailabilityTab() {
 
       <div className="flex flex-col gap-4">
         <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
-          <button
-            onClick={() => setProgramTab("semua")}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${programTab === "semua" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Semua Program
-          </button>
+
           <button
             onClick={() => setProgramTab("tikrar")}
             className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${programTab === "tikrar" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}

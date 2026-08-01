@@ -132,8 +132,8 @@ export function MuallimahAnalysisTab() {
     "pendaftar" | "daftar_ulang"
   >("daftar_ulang");
   const [programTab, setProgramTab] = useState<
-    "semua" | "tikrar" | "pra_tikrar" | "kelas_berbayar"
-  >("semua");
+    "tikrar" | "pra_tikrar" | "kelas_berbayar"
+  >("tikrar");
   const [rawAnalysisData, setRawAnalysisData] = useState<any>(null);
 
   useEffect(() => {
@@ -667,12 +667,7 @@ export function MuallimahAnalysisTab() {
       {/* Tab Navigation */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 mb-6">
         <div className="border-b border-gray-100 flex flex-wrap p-2 gap-2">
-          <button
-            onClick={() => setProgramTab("semua")}
-            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "semua" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}
-          >
-            Semua Program
-          </button>
+
           <button
             onClick={() => setProgramTab("tikrar")}
             className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${programTab === "tikrar" ? "bg-indigo-50 text-indigo-700 border-indigo-200 border" : "text-gray-500 hover:bg-gray-50"}`}

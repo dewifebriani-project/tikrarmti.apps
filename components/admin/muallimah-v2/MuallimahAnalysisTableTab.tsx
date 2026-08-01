@@ -129,9 +129,9 @@ export function MuallimahAnalysisTableTab() {
   const [analysis, setAnalysis] = useState<BatchAnalysis | null>(null);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-    const [expandedJuz, setExpandedJuz] = useState<Set<string>>(new Set());
+  const [expandedJuz, setExpandedJuz] = useState<Set<string>>(new Set());
   const [programTab, setProgramTab] = useState<
-    "semua" | "tikrar" | "pra_tikrar" | "kelas_berbayar"
+    "tikrar" | "pra_tikrar" | "kelas_berbayar"
   >("tikrar");
   const [rawAnalysisData, setRawAnalysisData] = useState<any>(null);
 
@@ -717,12 +717,7 @@ export function MuallimahAnalysisTableTab() {
 
       <div className="flex flex-col gap-4">
         <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
-          <button
-            onClick={() => setProgramTab("semua")}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${programTab === "semua" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Semua Program
-          </button>
+
           <button
             onClick={() => setProgramTab("tikrar")}
             className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${programTab === "tikrar" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
