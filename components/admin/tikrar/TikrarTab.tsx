@@ -12,9 +12,11 @@ import { TikrarTable } from './TikrarTable';
 import { TikrarReviewModal, TikrarBulkConfirmModal, TikrarUnapproveModal } from './TikrarModals';
 import { AdminCrudModal } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
+import { useJuzOptions } from '@/hooks/useJuzOptions';
 
 export function TikrarTab({ user }: { user: any }) {
   const supabase = createClient();
+  const { juzOptions } = useJuzOptions();
   
   // State
   const [tikrar, setTikrar] = useState<TikrarTahfidz[]>([]);
@@ -375,12 +377,16 @@ export function TikrarTab({ user }: { user: any }) {
             { value: 'not_selected', label: 'Not Selected' },
             { value: 'waitlist', label: 'Waitlist' }
           ] },
-          { name: 'chosen_juz', label: 'Juz Penempatan', type: 'select', options: [
-            { value: '1A', label: 'Juz 1A' }, { value: '1B', label: 'Juz 1B' },
-            { value: '28A', label: 'Juz 28A' }, { value: '28B', label: 'Juz 28B' },
-            { value: '29A', label: 'Juz 29A' }, { value: '29B', label: 'Juz 29B' },
-            { value: '30A', label: 'Juz 30A' }, { value: '30B', label: 'Juz 30B' }
-          ] },
+          { name: 'chosen_juz', label: 'Juz Penempatan', type: 'select', options: 
+            juzOptions && juzOptions.length > 0 
+              ? juzOptions.map(j => ({ value: j.code, label: j.name }))
+              : [
+                  { value: '1A', label: 'Juz 1A' }, { value: '1B', label: 'Juz 1B' },
+                  { value: '28A', label: 'Juz 28A' }, { value: '28B', label: 'Juz 28B' },
+                  { value: '29A', label: 'Juz 29A' }, { value: '29B', label: 'Juz 29B' },
+                  { value: '30A', label: 'Juz 30A' }, { value: '30B', label: 'Juz 30B' }
+                ]
+          },
           { name: 'wa_phone', label: 'WhatsApp', type: 'text' },
           { name: 'telegram_phone', label: 'Telegram Phone', type: 'text' },
           { name: 'domicile', label: 'Domisili', type: 'text' },

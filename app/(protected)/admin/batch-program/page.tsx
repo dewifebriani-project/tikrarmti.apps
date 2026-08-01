@@ -16,6 +16,7 @@ import { AdminFormBuilderTab } from '@/components/admin/batch-program/AdminFormB
 import { AdminReregFormBuilderTab } from '@/components/admin/batch-program/AdminReregFormBuilderTab';
 import { AdminMuallimahFormBuilderTab } from '@/components/admin/batch-program/AdminMuallimahFormBuilderTab';
 import { AdminAkadQuizTab } from '@/components/admin/batch-program/AdminAkadQuizTab';
+import { BatchJuzModal } from '@/components/admin/batch-program/BatchJuzModal';
 
 type TabType = 'batches' | 'programs' | 'juz' | 'form-builder' | 'rereg-form-builder' | 'muallimah-form-builder' | 'akad-quiz';
 
@@ -36,6 +37,8 @@ export default function AdminBatchProgramPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showProgramModal, setShowProgramModal] = useState(false);
+  const [selectedBatchForJuz, setSelectedBatchForJuz] = useState<Batch | null>(null);
+  const [showBatchJuzModal, setShowBatchJuzModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -326,9 +329,14 @@ export default function AdminBatchProgramPage() {
               batches={filteredBatches}
               isLoading={batchesLoading}
               pagination={batchPagination}
-              onEdit={(b) => {
-                setEditingBatch(b);
+              onPageChange={(page) => console.log('Page:', page)}
+              onEdit={(batch) => {
+                setEditingBatch(batch);
                 setShowBatchModal(true);
+              }}
+              onManageJuz={(batch) => {
+                setSelectedBatchForJuz(batch);
+                setShowBatchJuzModal(true);
               }}
             />
           </>
@@ -465,6 +473,17 @@ export default function AdminBatchProgramPage() {
             setEditingProgram(null);
           }}
           onSuccess={handleProgramSuccess}
+        />
+      )}
+
+      {showBatchJuzModal && selectedBatchForJuz && (
+        <BatchJuzModal
+          batch={selectedBatchForJuz}
+          isOpen={showBatchJuzModal}
+          onClose={() => {
+            setShowBatchJuzModal(false);
+            setSelectedBatchForJuz(null);
+          }}
         />
       )}
     </div>

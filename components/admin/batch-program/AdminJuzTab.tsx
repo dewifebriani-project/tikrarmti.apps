@@ -207,7 +207,7 @@ export function AdminJuzTab() {
                   <th className="px-4 py-4 w-48">Rentang Halaman</th>
                   <th className="px-4 py-4 text-center w-32">Total Halaman</th>
                   <th className="px-2 py-4 text-center w-16">Urutan</th>
-                  <th className="px-4 py-4 text-right w-56">Status</th>
+                  <th className="px-4 py-4 text-right w-32">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-sm">

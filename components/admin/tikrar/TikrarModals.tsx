@@ -6,6 +6,7 @@ import { OralAssessment } from '@/components/OralAssessment';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useJuzOptions } from '@/hooks/useJuzOptions';
 
 interface TikrarReviewModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface TikrarReviewModalProps {
 export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user }: TikrarReviewModalProps) {
   const [selectedJuz, setSelectedJuz] = useState('');
   const [isSavingJuz, setIsSavingJuz] = useState(false);
+  const { juzOptions } = useJuzOptions();
 
   useEffect(() => {
     if (reviewData) {
@@ -133,14 +135,22 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                         disabled={isSavingJuz}
                         className="text-sm font-bold text-gray-900 bg-white border border-gray-200 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       >
-                        <option value="1A">Juz 1A (Halaman 1-11)</option>
-                        <option value="1B">Juz 1B (Halaman 12-21)</option>
-                        <option value="28A">Juz 28A (Halaman 542-551)</option>
-                        <option value="28B">Juz 28B (Halaman 552-561)</option>
-                        <option value="29A">Juz 29A (Halaman 562-571)</option>
-                        <option value="29B">Juz 29B (Halaman 572-581)</option>
-                        <option value="30A">Juz 30A (Halaman 582-591)</option>
-                        <option value="30B">Juz 30B (Halaman 592-604)</option>
+                        {juzOptions && juzOptions.length > 0 ? (
+                          juzOptions.map((j) => (
+                            <option key={j.code} value={j.code}>Juz {j.name}</option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="1A">Juz 1A (Halaman 1-11)</option>
+                            <option value="1B">Juz 1B (Halaman 12-21)</option>
+                            <option value="28A">Juz 28A (Halaman 542-551)</option>
+                            <option value="28B">Juz 28B (Halaman 552-561)</option>
+                            <option value="29A">Juz 29A (Halaman 562-571)</option>
+                            <option value="29B">Juz 29B (Halaman 572-581)</option>
+                            <option value="30A">Juz 30A (Halaman 582-591)</option>
+                            <option value="30B">Juz 30B (Halaman 592-604)</option>
+                          </>
+                        )}
                       </select>
                     </div>
                     <div>

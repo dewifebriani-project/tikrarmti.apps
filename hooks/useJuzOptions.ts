@@ -7,9 +7,10 @@ import { JuzOption } from '@/types/database'
 /**
  * Hook for fetching all juz options
  */
-export function useJuzOptions() {
+export function useJuzOptions(batchId?: string) {
+  const url = batchId ? `/api/juz?batchId=${batchId}` : '/api/juz';
   const { data, error, isLoading } = useSWR<JuzOption[]>(
-    '/api/juz',
+    url,
     getFetcher,
     {
       revalidateOnFocus: false,
