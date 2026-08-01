@@ -1002,7 +1002,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
 
   const handleUpdateStatus = async (
-submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => {
+    submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => {
     setResettingId(submissionId);
     try {
       const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/update-status`, {
@@ -1024,6 +1024,66 @@ submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 
     } catch (error: any) {
       console.error('[DaftarUlangTab] Error updating status:', error);
       toast.error('Gagal mengubah status: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  const handleEditExamScore = async (submission: DaftarUlangSubmission) => {
+    if (!submission.registration?.id) {
+      toast.error('Registration ID tidak ditemukan.');
+      return;
+    }
+    const currentScore = submission.registration?.exam_score ?? '';
+    const newScore = window.prompt('Masukkan nilai Ujian Tulis baru (0-100):', String(currentScore));
+    
+    if (newScore === null) return; // Cancelled
+    
+    const parsedScore = parseInt(newScore, 10);
+    if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+      toast.error('Nilai tidak valid. Masukkan angka 0-100.');
+      return;
+    }
+
+    setResettingId(submission.registration.id);
+    try {
+      const response = await fetch('/api/admin/daftar-ulang/exam', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registrationId: submission.registration.id, score: parsedScore })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || 'Nilai berhasil diubah');
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(data.error || 'Gagal mengubah nilai');
+      }
+    } catch (e: any) {
+      toast.error('Terjadi kesalahan: ' + e.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
+  const handleResetExamScore = async (registrationId: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin mereset dan menghapus riwayat ujian tulis untuk Thalibah ini? Ini akan membuat Thalibah bisa mengambil ujian kembali.')) {
+      return;
+    }
+    setResettingId(registrationId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/exam?registrationId=${registrationId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(data.message || 'Riwayat ujian berhasil direset');
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(data.error || 'Gagal mereset ujian');
+      }
+    } catch (e: any) {
+      toast.error('Terjadi kesalahan: ' + e.message);
     } finally {
       setResettingId(null);
     }
@@ -1153,6 +1213,8 @@ submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 
         onDelete={handleDelete}
         onResetHalaqah={handleResetHalaqah}
         onUpdateStatus={handleUpdateStatus}
+        onEditExamScore={handleEditExamScore}
+        onResetExamScore={handleResetExamScore}
         resettingId={resettingId}
         sortField={sortField}
         sortOrder={sortOrder}

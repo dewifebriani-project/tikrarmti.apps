@@ -21,6 +21,8 @@ interface DaftarUlangV2TableProps {
   sortField: string;
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
+  onEditExamScore?: (submission: DaftarUlangSubmission) => void;
+  onResetExamScore?: (submissionId: string) => void;
 }
 
 
@@ -120,6 +122,8 @@ export function DaftarUlangV2Table({
   sortField,
   sortOrder,
   onSort,
+  onEditExamScore,
+  onResetExamScore,
 }: DaftarUlangV2TableProps) {
   
   const formatDate = (dateString?: string) => {
@@ -349,10 +353,31 @@ export function DaftarUlangV2Table({
                       </div>
 
                       {/* Ujian Tulis (Fase 3 Placement) */}
-                      <div className="flex flex-col pl-3 border-l border-gray-100">
-                        <span className="text-sm font-black text-gray-900 flex items-center gap-1">
-                          {submission.registration?.exam_score ?? '-'}
-                        </span>
+                      <div className="flex flex-col pl-3 border-l border-gray-100 min-w-[90px]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-gray-900 flex items-center gap-1">
+                            {submission.registration?.exam_score ?? '-'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => onEditExamScore && onEditExamScore(submission)}
+                              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit Nilai"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            {submission.registration?.exam_score != null && (
+                              <button
+                                onClick={() => onResetExamScore && onResetExamScore(submission.registration.id)}
+                                disabled={resettingId === submission.registration.id}
+                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                title="Hapus/Reset Nilai"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                         <div className="flex flex-col mt-0.5">
                           <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">UJIAN TULIS (F3)</span>
                           {submission.registration?.exam_score == null && submission.is_alumni && (
