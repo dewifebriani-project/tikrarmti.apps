@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
+import { getAuthorizationContext } from '@/lib/rbac'
 
 /**
  * GET /api/halaqah/[id]/students
@@ -52,13 +53,8 @@ export async function GET(
     }
 
     // Check if user is the muallimah or admin
-    const { data: currentUser } = await supabaseAdmin
-      .from('users')
-      .select('role, roles')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.roles?.includes?.('admin')
+    const authContext = await getAuthorizationContext()
+    const isAdmin = authContext?.roles.includes('admin') || false
     const isMuallimah = halaqah.muallimah_id === user.id
 
     if (!isAdmin && !isMuallimah) {
