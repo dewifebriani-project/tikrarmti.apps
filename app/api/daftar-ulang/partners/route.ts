@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration data
     let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score')
+      .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score, timezone')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -163,7 +163,8 @@ export async function GET(request: NextRequest) {
         has_user_selected_them: selectedByOthersSet.has(reg.user_id),
         has_selected_them: currentUserChoice === reg.user_id,
         schedule_compatible: schedule_compatible,
-        juz_compatible: registration.chosen_juz === reg.chosen_juz
+        juz_compatible: registration.chosen_juz === reg.chosen_juz,
+        timezone_compatible: (registration.timezone || 'WIB').toUpperCase() === (reg.timezone || 'WIB').toUpperCase()
       }
     })
 

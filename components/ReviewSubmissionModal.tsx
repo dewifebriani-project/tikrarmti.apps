@@ -536,95 +536,124 @@ export function ReviewSubmissionModal({
             <p className="text-xs font-bold text-emerald-700 mt-2 bg-emerald-200/50 px-4 py-1.5 rounded-full inline-block">
               Thalibah Batch {reg?.batch?.batch_number || '-'}
             </p>
+            {partner ? (
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 px-2 tracking-widest">Analisis Kecocokan Pasangan</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Main Slot */}
+              <div className={cn(
+                "p-5 rounded-3xl border transition-all",
+                isMainSlotMatch ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+              )}>
+                <div className="flex items-start gap-4">
+                  <div className={cn("p-2 rounded-xl flex-shrink-0", isMainSlotMatch ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Utama</p>
+                    <p className={cn("text-xs font-black", isMainSlotMatch ? "text-emerald-700" : "text-amber-700")}>
+                      {isMainSlotMatch ? 'Sama ✓' : 'Berbeda'}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                      {partner?.main_time_slot || '-'} {partner?.main_time_slot ? (partner.zona_waktu || 'WIB') : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Backup Slot */}
+              <div className={cn(
+                "p-5 rounded-3xl border transition-all",
+                isBackupSlotMatch ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
+              )}>
+                <div className="flex items-start gap-4">
+                  <div className={cn("p-2 rounded-xl flex-shrink-0", isBackupSlotMatch ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
+                    <RotateCcw className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Cadangan</p>
+                    <p className={cn("text-xs font-black", isBackupSlotMatch ? "text-emerald-700" : "text-amber-700")}>
+                      {isBackupSlotMatch ? 'Sama ✓' : 'Berbeda'}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                      {partner?.backup_time_slot || '-'} {partner?.backup_time_slot ? (partner.zona_waktu || 'WIB') : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Juz Compatibility */}
+              <div className={cn(
+                "p-5 rounded-3xl border transition-all",
+                isJuzMatch ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
+              )}>
+                <div className="flex items-start gap-4">
+                  <div className={cn("p-2 rounded-xl flex-shrink-0", isJuzMatch ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Kecocokan Juz</p>
+                    <p className={cn("text-xs font-black", isJuzMatch ? "text-emerald-700" : "text-blue-700")}>
+                      {isJuzMatch ? 'Juz Sama ✓' : 'Juz Berbeda'}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                      Target: {partner?.chosen_juz ? `Juz ${partner.chosen_juz}` : '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timezone */}
+              <div className={cn(
+                "p-5 rounded-3xl border transition-all",
+                isTimezoneMatch ? "bg-emerald-50 border-emerald-100" : "bg-purple-50 border-purple-100"
+              )}>
+                <div className="flex items-start gap-4">
+                  <div className={cn("p-2 rounded-xl flex-shrink-0", isTimezoneMatch ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600")}>
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Zona Waktu</p>
+                    <p className={cn("text-xs font-black", isTimezoneMatch ? "text-emerald-700" : "text-purple-700")}>
+                      {isTimezoneMatch ? 'Satu Wilayah ✓' : 'Luar Wilayah'}
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
+                      Lokasi: {partner?.zona_waktu || 'WIB'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 px-2 tracking-widest">Analisis Kecocokan Pasangan</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Main Slot */}
-            <div className={cn(
-              "p-5 rounded-3xl border transition-all",
-              isMainSlotMatch ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
-            )}>
-              <div className="flex items-start gap-4">
-                <div className={cn("p-2 rounded-xl flex-shrink-0", isMainSlotMatch ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Utama</p>
-                  <p className={cn("text-xs font-black", isMainSlotMatch ? "text-emerald-700" : "text-amber-700")}>
-                    {isMainSlotMatch ? 'Sama ✓' : 'Berbeda'}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                    {partner?.main_time_slot || '-'}
-                  </p>
-                </div>
-              </div>
+        ) : (
+          <div className="bg-gray-50 rounded-[2rem] p-8 border border-gray-100 text-center space-y-3 relative overflow-hidden">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-2 text-gray-400">
+              <Clock className="w-6 h-6" />
             </div>
-
-            {/* Backup Slot */}
-            <div className={cn(
-              "p-5 rounded-3xl border transition-all",
-              isBackupSlotMatch ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
-            )}>
-              <div className="flex items-start gap-4">
-                <div className={cn("p-2 rounded-xl flex-shrink-0", isBackupSlotMatch ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
-                  <RotateCcw className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Cadangan</p>
-                  <p className={cn("text-xs font-black", isBackupSlotMatch ? "text-emerald-700" : "text-amber-700")}>
-                    {isBackupSlotMatch ? 'Sama ✓' : 'Berbeda'}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                    {partner?.backup_time_slot || '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Juz Compatibility */}
-            <div className={cn(
-              "p-5 rounded-3xl border transition-all",
-              isJuzMatch ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
-            )}>
-              <div className="flex items-start gap-4">
-                <div className={cn("p-2 rounded-xl flex-shrink-0", isJuzMatch ? "bg-emerald-100 text-emerald-600" : "bg-blue-100 text-blue-600")}>
-                  <BookOpen className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Kecocokan Juz</p>
-                  <p className={cn("text-xs font-black", isJuzMatch ? "text-emerald-700" : "text-blue-700")}>
-                    {isJuzMatch ? 'Juz Sama ✓' : 'Juz Berbeda'}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                    Target: Juz {partner?.chosen_juz || '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Timezone Compatibility */}
-            <div className={cn(
-              "p-5 rounded-3xl border transition-all",
-              isTimezoneMatch ? "bg-emerald-50 border-emerald-100" : "bg-purple-50 border-purple-100"
-            )}>
-              <div className="flex items-start gap-4">
-                <div className={cn("p-2 rounded-xl flex-shrink-0", isTimezoneMatch ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600")}>
-                  <Info className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Zona Waktu</p>
-                  <p className={cn("text-xs font-black", isTimezoneMatch ? "text-emerald-700" : "text-purple-700")}>
-                    {isTimezoneMatch ? 'Satu Wilayah ✓' : 'Luar Wilayah'}
-                  </p>
-                  <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                    Lokasi: {partner?.zona_waktu || 'WIB'}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <h4 className="font-bold text-gray-900 text-lg">Proses Pengecekan</h4>
+            {pairingData?.partner_details?.partner_type === 'self_match' ? (
+              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                Anda memilih <b>{pairingData?.partner_details?.partner_name}</b> sebagai partner. Kami sedang menunggu yang bersangkutan untuk memilih Anda juga (mutual match).
+              </p>
+            ) : pairingData?.partner_details?.partner_type === 'system_match' ? (
+              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                Sistem kami sedang mencari thalibah dengan kecocokan jadwal dan juz terbaik untuk Anda. Silakan cek kembali nanti.
+              </p>
+            ) : pairingData?.partner_details?.partner_type === 'family' ? (
+              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                Anda memilih belajar bersama keluarga ({pairingData?.partner_details?.partner_name}). Menunggu verifikasi dari admin.
+              </p>
+            ) : pairingData?.partner_details?.partner_type === 'tarteel' ? (
+              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                Anda memilih ujian mandiri via Tarteel. Menunggu verifikasi dari admin.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+                Status pasangan Anda sedang diproses. Mohon bersabar menunggu pembaruan selanjutnya.
+              </p>
+            )}
+          </div>
+        )}
           </div>
         </div>
 

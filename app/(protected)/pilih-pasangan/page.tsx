@@ -676,12 +676,28 @@ export default function PilihPasanganPage() {
                             return slots[slot] || slot
                           }
 
+                          let matchCount = 0;
+                          if (p.juz_compatible) matchCount++;
+                          if (p.timezone_compatible) matchCount++;
+                          if (p.schedule_compatible) matchCount++;
+
+                          let baseBgClass = 'bg-white border-gray-200 hover:border-purple-300';
+                          if (matchCount === 3) {
+                            baseBgClass = 'bg-green-50/50 border-green-300 hover:border-green-400';
+                          } else if (matchCount === 2) {
+                            if (p.schedule_compatible) {
+                              baseBgClass = 'bg-blue-50/50 border-blue-300 hover:border-blue-400';
+                            } else {
+                              baseBgClass = 'bg-amber-50/50 border-amber-300 hover:border-amber-400';
+                            }
+                          }
+
                           return (
                             <div
                               key={p.user_id}
                               onClick={() => setFormData(f => ({ ...f, partner_user_id: p.user_id, partner_name: p.users?.full_name }))}
                               className={`relative p-4 border rounded-xl cursor-pointer transition-all flex flex-col justify-between hover:shadow-md
-                                ${formData.partner_user_id === p.user_id ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' : 'bg-white border-gray-200 hover:border-purple-300'}
+                                ${formData.partner_user_id === p.user_id ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' : baseBgClass}
                               `}
                             >
                               <div className="absolute top-3 right-3 flex flex-col items-end space-y-1">
@@ -724,11 +740,11 @@ export default function PilihPasanganPage() {
                                   <div className={`rounded p-2 col-span-2 border ${p.schedule_compatible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}>
                                     <span className="block text-gray-500 mb-1">Ketersediaan Waktu</span>
                                     <span className={`font-medium ${p.schedule_compatible ? 'text-green-700' : 'text-gray-900'}`}>
-                                      {reg?.main_time_slot ? formatTimeSlot(reg.main_time_slot) : '-'}
+                                      {reg?.main_time_slot ? `${formatTimeSlot(reg.main_time_slot)} ${reg.timezone || 'WIB'}` : '-'}
                                     </span>
                                     {reg?.backup_time_slot && (
                                       <span className="block text-gray-500 mt-1">
-                                        Alt: {formatTimeSlot(reg.backup_time_slot)}
+                                        Alt: {formatTimeSlot(reg.backup_time_slot)} {reg.timezone || 'WIB'}
                                       </span>
                                     )}
                                     {p.schedule_compatible && <span className="text-[10px] text-green-600 block mt-0.5">Jadwal cocok dengan Anda</span>}
