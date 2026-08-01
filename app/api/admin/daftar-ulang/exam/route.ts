@@ -13,8 +13,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
+    const user = session.user;
+    
+    // Check if user is admin using admin client
+    const { data: userData, error: dbError } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+
+    if (dbError || !userData || !userData.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -69,8 +77,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = session.user?.user_metadata?.role || session.user?.app_metadata?.role;
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
+    const user = session.user;
+    
+    // Check if user is admin using admin client
+    const { data: userData, error: dbError } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+
+    if (dbError || !userData || !userData.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
