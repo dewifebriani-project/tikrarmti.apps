@@ -23,7 +23,8 @@ import {
   Calculator,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Video
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -34,6 +35,7 @@ import { ManualCreateHalaqahModal } from '@/components/ManualCreateHalaqahModal'
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/HalaqahStats';
+import { ScheduleOverlapAnalysis } from '@/components/admin/halaqah/ScheduleOverlapAnalysis';
 
 interface Halaqah {
   id: string;
@@ -166,6 +168,7 @@ export function HalaqahManagementTab() {
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
   const [showManualCreateModal, setShowManualCreateModal] = useState(false);
   const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
+  const [showScheduleOverlapModal, setShowScheduleOverlapModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
   useEffect(() => {
@@ -712,6 +715,13 @@ export function HalaqahManagementTab() {
             <Sparkles className="w-4 h-4" />
             Auto Create
           </button>
+          <button
+            onClick={() => setShowScheduleOverlapModal(true)}
+            className="px-4 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-all font-bold text-sm shadow-sm shadow-teal-600/10 active:scale-95 duration-200 flex items-center gap-2"
+          >
+            <Video className="w-4 h-4" />
+            Analisis Zoom
+          </button>
         </div>
       </div>
 
@@ -1224,6 +1234,14 @@ export function HalaqahManagementTab() {
             setRefreshTrigger(prev => prev + 1);
           }}
           batchId={selectedBatch}
+        />
+      )}
+
+      {showScheduleOverlapModal && (
+        <ScheduleOverlapAnalysis
+          isOpen={showScheduleOverlapModal}
+          onClose={() => setShowScheduleOverlapModal(false)}
+          halaqahs={halaqahs}
         />
       )}
     </div>

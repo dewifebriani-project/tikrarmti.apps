@@ -4,9 +4,9 @@
   "description": "MTI - Markaz Tikrar Indonesia - Aplikasi Tahfidz Quran Digital",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3006",
+    "dev": "next dev",
     "build": "node scripts/generate-build-info.js && next build",
-    "start": "next start -p 3006",
+    "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "generate-build-info": "node scripts/generate-build-info.js",

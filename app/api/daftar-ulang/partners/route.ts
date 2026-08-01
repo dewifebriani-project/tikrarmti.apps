@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
           id: reg.user_id,
           full_name: reg.full_name,
           email: null,
-          whatsapp: null
+          whatsapp: reg.wa_phone
         },
         registrations: [reg],
         is_mutual_match: false, // Since we filtered them out, this is technically false for all returned
