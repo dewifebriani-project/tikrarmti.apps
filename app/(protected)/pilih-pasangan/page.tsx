@@ -701,17 +701,6 @@ export default function PilihPasanganPage() {
                             return `${formatted} ${tz || 'WIB'}`;
                           };
 
-                          let baseBgClass = 'bg-white border-gray-200 hover:border-purple-300';
-                          if (matchCount === 3) {
-                            baseBgClass = 'bg-green-50/50 border-green-300 hover:border-green-400';
-                          } else if (matchCount === 2) {
-                            if (p.schedule_compatible) {
-                              baseBgClass = 'bg-blue-50/50 border-blue-300 hover:border-blue-400';
-                            } else {
-                              baseBgClass = 'bg-amber-50/50 border-amber-300 hover:border-amber-400';
-                            }
-                          }
-
                           return (
                             <div
                               key={p.user_id}
