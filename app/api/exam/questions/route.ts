@@ -5,18 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
 // GET: Fetch exam questions (with optional filters)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
     const searchParams = request.nextUrl.searchParams;
     const juzNumber = searchParams.get('juz');
@@ -93,13 +90,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    logger.info('POST /api/exam/questions - Raw body', {
-      bodyKeys: Object.keys(body),
-      body: JSON.stringify(body),
-      juz_code: body.juz_code,
-      juz_code_type: typeof body.juz_code
-    });
-
     // Get juz_number from juz_code if provided
     let juzNumber = body.juz_number;
     if (body.juz_code) {
@@ -158,15 +148,6 @@ export async function POST(request: NextRequest) {
       question_package: body.question_package || 'A',
       created_by: user.id
     };
-
-    logger.info('Inserting exam question', {
-      juz_number: insertData.juz_number,
-      juz_code: insertData.juz_code,
-      section_number: insertData.section_number,
-      question_number: insertData.question_number,
-      options_count: Array.isArray(insertData.options) ? insertData.options.length : 0,
-      data: JSON.stringify(insertData)
-    });
 
     // Insert with admin client to bypass RLS
     const { data: newQuestion, error: insertError } = await supabaseAdmin

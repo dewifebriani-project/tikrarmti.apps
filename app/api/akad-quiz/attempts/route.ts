@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { data: attempts, error: fetchError } = await supabaseAdmin
       .from('akad_quiz_attempts')
-      .select('*')
+      .select('id, score, passed, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 

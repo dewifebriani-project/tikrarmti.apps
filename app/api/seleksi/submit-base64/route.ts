@@ -6,8 +6,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎵 Base64 API: Received audio submission request');
-
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -22,8 +20,6 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log('🔑 Base64 API: Token length:', token.length);
-
     // Verify token and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
@@ -35,18 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Base64 API: User authenticated:', user.id);
-
     // Parse request body
     const body = await request.json();
-    const { audioBase64, fileName, mimeType, size } = body;
-
-    console.log('📋 Base64 API: Request details:', {
-      fileName,
-      mimeType,
-      size,
-      base64Length: audioBase64?.length
-    });
+    const { audioBase64, fileName, mimeType } = body;
 
     if (!audioBase64 || !fileName) {
       console.error('❌ Base64 API: Missing required data');
@@ -57,7 +44,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert base64 back to buffer
-    console.log('🔄 Base64 API: Converting base64 to buffer...');
     const byteCharacters = atob(audioBase64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
@@ -65,10 +51,6 @@ export async function POST(request: NextRequest) {
     }
     const byteArray = new Uint8Array(byteNumbers);
     const audioBuffer = Buffer.from(byteArray);
-
-    console.log('📊 Base64 API: Buffer created:', {
-      size: audioBuffer.length
-    });
 
     // Validate buffer
     if (audioBuffer.length === 0) {
@@ -81,9 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Upload to Supabase Storage
     const supabaseFileName = `selection-${user.id}-${Date.now()}-${fileName}`;
-    console.log('📤 Base64 API: Uploading to storage:', supabaseFileName);
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('selection-audios')
       .upload(supabaseFileName, audioBuffer, {
         contentType: mimeType || 'audio/webm',
@@ -99,14 +79,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Base64 API: Upload successful:', uploadData);
-
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('selection-audios')
       .getPublicUrl(supabaseFileName);
-
-    console.log('🔗 Base64 API: Public URL:', publicUrl);
 
     // Check if user already exists in pendaftaran_tikrar_tahfidz
     const { data: existingRegistration, error: checkError } = await supabase
@@ -148,8 +124,6 @@ export async function POST(request: NextRequest) {
       needs_revision: false
     };
 
-    console.log('💾 Base64 API: Updating registration...');
-
     const { data: submission, error: updateError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .update(updateData)
@@ -164,8 +138,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('✅ Base64 API: Update successful:', submission);
 
     return NextResponse.json({
       success: true,

@@ -79,9 +79,31 @@ export async function PUT(
       return ApiResponses.error('ALREADY_APPROVED', 'Pendaftaran sudah disetujui dan tidak dapat diubah.', {}, 400);
     }
 
-    // Prepare update data
+    // Only user-editable registration fields may be changed here. Workflow,
+    // selection, score, ownership, batch and exam fields are server-controlled.
+    const editableFields = [
+      'full_name', 'email', 'wa_phone', 'telegram_phone', 'address',
+      'birth_date', 'age', 'domicile', 'timezone',
+      'understands_commitment', 'tried_simulation', 'no_negotiation',
+      'has_telegram', 'saved_contact', 'has_permission', 'permission_name',
+      'permission_phone', 'chosen_juz', 'no_travel_plans', 'motivation',
+      'ready_for_team', 'infaq_amount', 'main_time_slot', 'backup_time_slot',
+      'time_commitment', 'understands_program', 'questions'
+    ] as const;
+
+    const safeUpdates: Record<string, unknown> = {};
+    for (const field of editableFields) {
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        safeUpdates[field] = body[field];
+      }
+    }
+
+    if (Object.keys(safeUpdates).length === 0) {
+      return ApiResponses.error('VALIDATION_ERROR', 'Tidak ada field yang dapat diperbarui.', {}, 400);
+    }
+
     const dataToUpdate = {
-      ...body,
+      ...safeUpdates,
       updated_at: new Date().toISOString()
     };
 

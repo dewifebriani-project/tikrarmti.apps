@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+import { getRequiredExamJuz } from '@/lib/exam-utils';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -73,20 +74,6 @@ export async function POST(request: NextRequest) {
 
 
 
-    // Check if akad is uploaded (from daftar_ulang_submissions)
-    const { data: daftarUlang } = await supabaseAdmin
-      .from('daftar_ulang_submissions')
-      .select('akad_url, akad_submitted_at')
-      .eq('registration_id', registration.id)
-      .single();
-
-    if (daftarUlang && (daftarUlang.akad_url || daftarUlang.akad_submitted_at)) {
-      return NextResponse.json({
-        error: 'Exam closed',
-        details: 'Test tertulis sudah ditutup karena Ukhti telah mengunggah akad.'
-      }, { status: 400 });
-    }
-
     // Fetch configuration to check passing score
     const { data: config } = await supabaseAdmin
       .from('exam_configurations')
@@ -118,26 +105,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine exam juz number from chosen_juz
+    // Use the shared target-to-exam mapping used by eligibility and start routes.
     const chosenJuz = registration.chosen_juz;
-    let examJuzNumber: number | null = null;
-    const targetJuzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
+    const examJuzNumber = getRequiredExamJuz(chosenJuz);
 
-    if (targetJuzNum === 30) {
+    if (!examJuzNumber && parseInt(chosenJuz?.match(/\d+/)?.[0] || '0') === 30) {
       return NextResponse.json({
         error: 'No exam required for Juz 30',
         details: 'Target Juz 30 tidak memerlukan ujian tertulis'
       }, { status: 400 });
-    } else if (targetJuzNum === 29) {
-      examJuzNumber = 30;
-    } else if (targetJuzNum === 28) {
-      examJuzNumber = 29;
-    } else if (targetJuzNum === 27) {
-      examJuzNumber = 28;
-    } else if (targetJuzNum === 1) {
-      examJuzNumber = 30;
-    } else if (targetJuzNum >= 2 && targetJuzNum <= 26) {
-      examJuzNumber = targetJuzNum - 1;
     }
 
     if (!examJuzNumber) {
@@ -449,20 +425,6 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if akad is uploaded (from daftar_ulang_submissions)
-    const { data: daftarUlang } = await supabaseAdmin
-      .from('daftar_ulang_submissions')
-      .select('akad_url, akad_submitted_at')
-      .eq('registration_id', registration.id)
-      .single();
-
-    if (daftarUlang && (daftarUlang.akad_url || daftarUlang.akad_submitted_at)) {
-      return NextResponse.json({
-        error: 'Exam closed',
-        details: 'Test tertulis sudah ditutup karena Ukhti telah mengunggah akad.'
-      }, { status: 400 });
-    }
-
     // Check if exam is already completed and passed
     if (registration.exam_status === 'completed') {
       const { data: attempts } = await supabaseAdmin
@@ -483,25 +445,14 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Determine exam juz number from chosen_juz
+    // Keep autosave on the same shared target-to-exam mapping.
     const chosenJuz = registration.chosen_juz;
-    let examJuzNumber: number | null = null;
-    const targetJuzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
+    const examJuzNumber = getRequiredExamJuz(chosenJuz);
 
-    if (targetJuzNum === 30) {
+    if (!examJuzNumber && parseInt(chosenJuz?.match(/\d+/)?.[0] || '0') === 30) {
       return NextResponse.json({
         error: 'No exam required for Juz 30'
       }, { status: 400 });
-    } else if (targetJuzNum === 29) {
-      examJuzNumber = 30;
-    } else if (targetJuzNum === 28) {
-      examJuzNumber = 29;
-    } else if (targetJuzNum === 27) {
-      examJuzNumber = 28;
-    } else if (targetJuzNum === 1) {
-      examJuzNumber = 30;
-    } else if (targetJuzNum >= 2 && targetJuzNum <= 26) {
-      examJuzNumber = targetJuzNum - 1;
     }
 
     if (!examJuzNumber) {

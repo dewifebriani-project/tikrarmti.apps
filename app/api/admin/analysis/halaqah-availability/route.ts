@@ -365,9 +365,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      console.log("[DEBUG_ALLOCATION] First 3 muallimahs:", JSON.stringify(muallimahsWithSchedules.slice(0, 3), null, 2));
-      console.log("[DEBUG_ALLOCATION] Unallocated count:", muallimahsWithSchedules.filter(m => !m.allocated_juz).length);
-      console.log("[DEBUG_ALLOCATION] Total capacity:", juzAllocatedCapacity);
 
       // Build schedule slots for Phase 5 structure consistency
       const slots: any[] = [];

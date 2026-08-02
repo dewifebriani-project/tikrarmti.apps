@@ -11,25 +11,6 @@ interface ApprovalModalProps {
 }
 
 export default function AdminApprovalModalFixed({ isOpen, onClose, application, onRefresh }: ApprovalModalProps) {
-  // Early return if modal is closed or no application
-  if (!isOpen) {
-    return null
-  }
-
-  // Validate application prop
-  if (!application) {
-    console.error('AdminApprovalModalFixed: No application prop provided')
-    return null
-  }
-
-  console.log('=== AdminApprovalModalFixed Render ===')
-  console.log('Props:', {
-    isOpen,
-    hasApplication: !!application,
-    applicationId: application?.id,
-    applicationKeys: application ? Object.keys(application) : []
-  })
-
   const [action, setAction] = useState<'approve' | 'reject' | null>(null)
   const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -276,6 +257,8 @@ export default function AdminApprovalModalFixed({ isOpen, onClose, application, 
   // Defensive checks to ensure we have the data we need
   const applicationName = application?.full_name || application?.user?.full_name || 'Unknown Applicant';
   const applicationEmail = application?.email || application?.user?.email || 'unknown@example.com';
+
+  if (!isOpen || !application) return null
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

@@ -1,8 +1,12 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/rbac'
 
 export async function POST(request: Request) {
+  const authError = await requireAdmin()
+  if (authError) return authError
+
   const formData = await request.formData()
   const email = formData.get('email') as string
   const newId = formData.get('newId') as string

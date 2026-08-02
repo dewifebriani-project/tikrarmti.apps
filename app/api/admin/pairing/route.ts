@@ -102,9 +102,6 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
-    // DEBUG: Log the raw submission data to see structure
-    console.log('[PAIRING API] Raw submissions data (first 2):', JSON.stringify(submissions?.slice(0, 2), null, 2))
-
     // 4. Filter to keep only the latest submission per user (same as statistics API)
     const uniqueUserSubmissions = new Map<string, any>()
 
@@ -243,18 +240,6 @@ export async function GET(request: Request) {
       // otherwise fall back to zona_waktu from users table
       const userTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
 
-      // DEBUG: Log individual submission structure
-      console.log('[PAIRING API] Processing submission:', {
-        submission_id: submission.id,
-        user_id: submission.user_id,
-        has_users: !!submission.users,
-        users_type: typeof submission.users,
-        users_value: submission.users,
-        has_registrations: !!submission.registrations,
-        registrations_type: typeof submission.registrations,
-        registrations_value: submission.registrations,
-      })
-
       const requestData = {
         id: submission.id,
         user_id: submission.user_id,
@@ -276,8 +261,6 @@ export async function GET(request: Request) {
         batch_id: submission.batch_id,
         batch_name: batch?.[0]?.name,
       }
-
-      console.log('[PAIRING API] requestData built:', JSON.stringify(requestData, null, 2))
 
       if (submission.partner_type === 'self_match') {
         // Skip if this is the second half of a mutual match (already processed)
@@ -524,17 +507,6 @@ async function calculateMatchingStatistics(
   const userTimezone = userRegistration?.timezone || 'WIB'
   const userJuz = userRegistration?.chosen_juz
 
-  console.log('[CALCULATE STATS] User data:', {
-    userId,
-    userTimezone,
-    userJuz,
-    hasUserReg: !!userRegistration,
-    otherUsersCount: otherUsers.length,
-    otherUserIds,
-    usersFetched: usersData?.length || 0,
-    registrationsFetched: otherRegistrations?.length || 0,
-  })
-
   // Counters for detailed statistics
   let perfectMatches = 0 // Zona + Juz + Waktu Utama cocok
   let zonaWaktuMatches = 0 // Zona sama, juz beda
@@ -546,19 +518,11 @@ async function calculateMatchingStatistics(
   for (const otherUser of otherUsers) {
     const otherReg = regMap.get(otherUser.user_id)
     if (!otherReg) {
-      console.log('[CALCULATE STATS] Skipping - no registration data for:', otherUser.user_id)
       continue
     }
 
     const otherTimezone = otherReg.timezone || userMap.get(otherUser.user_id) || 'WIB'
     const otherJuz = otherReg.chosen_juz
-
-    console.log('[CALCULATE STATS] Processing other user:', {
-      user_id: otherUser.user_id,
-      otherTimezone,
-      otherJuz,
-      hasReg: !!otherReg,
-    })
 
     // Calculate score
     let score = 0
@@ -591,9 +555,6 @@ async function calculateMatchingStatistics(
       backupTimeMatches++
     }
 
-    console.log('[CALCULATE STATS] Score for', otherUser.user_id, ':', score,
-                '- Zona:', zonaMatch, 'Juz:', juzMatch, 'Main:', mainTimeMatch, 'Backup:', backupTimeMatch)
-
     // Categorize based on priority
     if (zonaMatch && juzMatch && mainTimeMatch) {
       // Perfect match: Zona + Juz + Waktu Utama cocok
@@ -623,16 +584,6 @@ async function calculateMatchingStatistics(
 
     return userTimezone === otherTimezone || userJuz === otherJuz
   }).length
-
-  console.log('[CALCULATE STATS] Final stats:', {
-    total_matches: totalMatches,
-    perfect_matches: perfectMatches,
-    zona_waktu_matches: zonaWaktuMatches,
-    same_juz_matches: sameJuzMatches,
-    cross_juz_matches: crossJuzMatches,
-    main_time_matches: mainTimeMatches,
-    backup_time_matches: backupTimeMatches,
-  })
 
   return {
     total_matches: totalMatches,

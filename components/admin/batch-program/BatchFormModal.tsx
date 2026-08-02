@@ -70,8 +70,6 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
   const [showTimeline, setShowTimeline] = useState(false);
   const [holidayInput, setHolidayInput] = useState('');
 
-  if (!isOpen) return null;
-
   // Handle name change to automatically suggest defaults for batch 3+
   const handleNameChange = (name: string) => {
     const match = name.match(/Batch\s*(\d+)/i);
@@ -163,6 +161,8 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
       setSaving(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

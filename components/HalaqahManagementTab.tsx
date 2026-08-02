@@ -24,7 +24,10 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Video
+  Video,
+  Copy,
+  ClipboardList,
+  MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -36,6 +39,13 @@ import { formatSchedule, formatClassType } from '@/lib/format-utils';
 import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/HalaqahStats';
 import { ScheduleOverlapAnalysis } from '@/components/admin/halaqah/ScheduleOverlapAnalysis';
+import {
+  generateHalaqahReminder,
+  generateDailyReminder,
+  generateTagThalibah,
+  generateLaporanKelas,
+  type HalaqahForReminder
+} from '@/lib/reminder-generator';
 
 interface Halaqah {
   id: string;
@@ -51,6 +61,7 @@ interface Halaqah {
   waitlist_max?: number;
   preferred_juz?: string;
   zoom_link?: string;
+  zoom_link_id?: string;
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   class_type?: string;
@@ -170,10 +181,19 @@ export function HalaqahManagementTab() {
   const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
   const [showScheduleOverlapModal, setShowScheduleOverlapModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [zoomLinks, setZoomLinks] = useState<Array<{ id: string; name: string; url: string; meeting_id?: string; passcode?: string }>>([]);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, [selectedBatch, selectedProgram, selectedStatus, refreshTrigger]);
+
+  // Load zoom links when batch changes
+  useEffect(() => {
+    if (selectedBatch) {
+      loadZoomLinks();
+    }
+  }, [selectedBatch]);
 
   const loadData = async () => {
     setLoading(true);
@@ -286,6 +306,162 @@ export function HalaqahManagementTab() {
       toast.error(error instanceof Error ? error.message : 'Failed to recalculate quota');
     } finally {
       setRecalculating(false);
+    }
+  };
+
+  // ─── Zoom Links ──────────────────────────────────────────────
+  const loadZoomLinks = async () => {
+    try {
+      const res = await fetch(`/api/admin/batch/${selectedBatch}/zoom-links`);
+      const result = await res.json();
+      if (res.ok && result.success) {
+        setZoomLinks(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading zoom links:', error);
+    }
+  };
+
+  const getZoomForHalaqah = (halaqah: Halaqah) => {
+    // If halaqah has zoom_link_id, find the matching zoom link
+    if (halaqah.zoom_link_id) {
+      const zoom = zoomLinks.find(z => z.id === halaqah.zoom_link_id);
+      if (zoom) return zoom;
+    }
+    // Fallback: try matching by URL
+    if (halaqah.zoom_link) {
+      const zoom = zoomLinks.find(z => z.url === halaqah.zoom_link);
+      if (zoom) return zoom;
+    }
+    return null;
+  };
+
+  const buildReminderData = async (halaqah: Halaqah): Promise<HalaqahForReminder> => {
+    const zoom = getZoomForHalaqah(halaqah);
+    const classType = halaqah.class_type || halaqah.program?.class_type;
+
+    // Fetch students for this halaqah
+    let students: Array<{ full_name: string; preferred_juz?: string }> = [];
+    try {
+      const res = await fetch(`/api/halaqah/${halaqah.id}/students`);
+      const result = await res.json();
+      if (res.ok && result.students) {
+        students = result.students
+          .filter((s: any) => s.status === 'active')
+          .map((s: any) => ({
+            full_name: s.thalibah?.full_name || 'Unknown',
+            preferred_juz: halaqah.preferred_juz,
+          }));
+      }
+    } catch (error) {
+      console.error('Error fetching students for reminder:', error);
+    }
+
+    return {
+      name: halaqah.name,
+      day_of_week: halaqah.day_of_week,
+      start_time: halaqah.start_time,
+      end_time: halaqah.end_time,
+      preferred_juz: halaqah.preferred_juz,
+      class_type: classType,
+      zoom_link: zoom?.url || halaqah.zoom_link,
+      zoom_name: zoom?.name,
+      zoom_meeting_id: zoom?.meeting_id,
+      zoom_passcode: zoom?.passcode,
+      muallimah: halaqah.muallimah,
+      program: halaqah.program,
+      students,
+    };
+  };
+
+  // ─── Copy Handlers ──────────────────────────────────────────
+  const handleCopyReminder = async (halaqah: Halaqah) => {
+    setCopyingId(`reminder-${halaqah.id}`);
+    try {
+      const data = await buildReminderData(halaqah);
+      const text = generateHalaqahReminder(data);
+      await navigator.clipboard.writeText(text);
+      toast.success('Reminder halaqah berhasil disalin!');
+    } catch (error) {
+      toast.error('Gagal menyalin reminder');
+    } finally {
+      setCopyingId(null);
+    }
+  };
+
+  const handleCopyTagThalibah = async (halaqah: Halaqah) => {
+    setCopyingId(`tag-${halaqah.id}`);
+    try {
+      const data = await buildReminderData(halaqah);
+      const text = generateTagThalibah(data);
+      await navigator.clipboard.writeText(text);
+      toast.success('Tag thalibah berhasil disalin!');
+    } catch (error) {
+      toast.error('Gagal menyalin tag thalibah');
+    } finally {
+      setCopyingId(null);
+    }
+  };
+
+  const handleCopyLaporan = async (halaqah: Halaqah) => {
+    setCopyingId(`laporan-${halaqah.id}`);
+    try {
+      const data = await buildReminderData(halaqah);
+      const text = generateLaporanKelas(data);
+      await navigator.clipboard.writeText(text);
+      toast.success('Laporan kelas berhasil disalin!');
+    } catch (error) {
+      toast.error('Gagal menyalin laporan kelas');
+    } finally {
+      setCopyingId(null);
+    }
+  };
+
+  const handleCopyDailyReminder = async () => {
+    setCopyingId('daily');
+    try {
+      const today = new Date();
+      const todayDay = today.getDay(); // 0=Sun, 1=Mon... 
+      // Convert JS day (0=Sun) to our day_of_week (1=Mon, 7=Ahad)
+      const ourDay = todayDay === 0 ? 7 : todayDay;
+
+      const todayHalaqahs = halaqahs.filter(h => h.day_of_week === ourDay && h.status === 'active');
+
+      if (todayHalaqahs.length === 0) {
+        toast.error('Tidak ada halaqah yang terjadwal hari ini');
+        setCopyingId(null);
+        return;
+      }
+
+      // Build reminder data for all halaqahs
+      const reminderDataList: HalaqahForReminder[] = [];
+      for (const h of todayHalaqahs) {
+        const zoom = getZoomForHalaqah(h);
+        const classType = h.class_type || h.program?.class_type;
+        reminderDataList.push({
+          name: h.name,
+          day_of_week: h.day_of_week,
+          start_time: h.start_time,
+          end_time: h.end_time,
+          preferred_juz: h.preferred_juz,
+          class_type: classType,
+          zoom_link: zoom?.url || h.zoom_link,
+          zoom_name: zoom?.name,
+          zoom_meeting_id: zoom?.meeting_id,
+          zoom_passcode: zoom?.passcode,
+          muallimah: h.muallimah,
+          program: h.program,
+        });
+      }
+
+      const batchName = batches.find(b => b.id === selectedBatch)?.name || 'BATCH';
+      const text = generateDailyReminder(batchName, reminderDataList);
+      await navigator.clipboard.writeText(text);
+      toast.success(`Jadwal harian (${todayHalaqahs.length} halaqah) berhasil disalin!`);
+    } catch (error) {
+      toast.error('Gagal menyalin jadwal harian');
+    } finally {
+      setCopyingId(null);
     }
   };
 
@@ -836,6 +1012,20 @@ export function HalaqahManagementTab() {
             {recalculating ? 'Calculating...' : 'Recalculate Quota'}
           </button>
 
+          <button
+            onClick={handleCopyDailyReminder}
+            disabled={copyingId === 'daily' || halaqahs.length === 0}
+            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-sm active:scale-95 duration-200 shadow-purple-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Salin jadwal seluruh halaqah hari ini"
+          >
+            {copyingId === 'daily' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+            Salin Jadwal Hari Ini
+          </button>
+
           <div className="h-6 w-px bg-gray-200" />
 
           <button
@@ -1016,7 +1206,7 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[140px] sticky right-0 z-10 backdrop-blur-sm">
+                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[280px] sticky right-0 z-10 backdrop-blur-sm">
                         Actions
                       </th>
                     </tr>
@@ -1141,6 +1331,35 @@ export function HalaqahManagementTab() {
                               title="Delete halaqah"
                             >
                               <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+
+                            <button
+                              onClick={() => handleCopyReminder(halaqah)}
+                              disabled={copyingId === `reminder-${halaqah.id}`}
+                              className="p-2 text-purple-600 bg-purple-50/50 hover:bg-purple-100 rounded-lg transition-all border border-purple-100 active:scale-90 shrink-0 disabled:opacity-50"
+                              title="Salin Reminder Kelas"
+                            >
+                              {copyingId === `reminder-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyTagThalibah(halaqah)}
+                              disabled={copyingId === `tag-${halaqah.id}`}
+                              className="p-2 text-teal-600 bg-teal-50/50 hover:bg-teal-100 rounded-lg transition-all border border-teal-100 active:scale-90 shrink-0 disabled:opacity-50"
+                              title="Salin Tag Thalibah"
+                            >
+                              {copyingId === `tag-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyLaporan(halaqah)}
+                              disabled={copyingId === `laporan-${halaqah.id}`}
+                              className="p-2 text-orange-600 bg-orange-50/50 hover:bg-orange-100 rounded-lg transition-all border border-orange-100 active:scale-90 shrink-0 disabled:opacity-50"
+                              title="Salin Laporan Kelas"
+                            >
+                              {copyingId === `laporan-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
                             </button>
                           </div>
                         </td>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { getAuthorizationContext } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -32,8 +33,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch questions', details: fetchError.message }, { status: 500 });
     }
 
+    const context = await getAuthorizationContext();
+    const isAdmin = context?.roles.includes('admin') === true;
+    const responseQuestions = isAdmin
+      ? (questions || [])
+      : (questions || []).map((question: any) => {
+          const sanitized = { ...question };
+          delete sanitized.correct_answer;
+          sanitized.options = Array.isArray(question.options)
+            ? question.options.map((option: any) => {
+                const cleanOption = { ...option };
+                delete cleanOption.isCorrect;
+                delete cleanOption.is_correct;
+                return cleanOption;
+              })
+            : question.options;
+          return sanitized;
+        });
+
     return NextResponse.json({
-      data: questions || [],
+      data: responseQuestions,
       total: questions?.length || 0
     });
 

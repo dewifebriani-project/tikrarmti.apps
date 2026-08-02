@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/rbac'
 
 export async function GET(request: NextRequest) {
   try {
+    const adminError = await requireAdmin()
+    if (adminError) return adminError
+
     const supabase = createClient()
     const supabaseAdmin = createSupabaseAdmin()
 

@@ -1,10 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { validateServerActionAuth } from '@/lib/rbac'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DebugAuthPage() {
+  try {
+    await validateServerActionAuth('admin')
+  } catch {
+    redirect('/dashboard')
+  }
+
   const supabase = createClient()
   
   // 1. Get Session

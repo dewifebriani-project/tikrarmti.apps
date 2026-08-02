@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { requireAdmin } from '@/lib/rbac';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -13,38 +13,8 @@ const supabaseAdmin = createSupabaseAdmin();
  */
 export async function POST(request: NextRequest) {
   try {
-    // Use Supabase SSR client to get session
-    const supabase = createServerClient();
-
-    /*
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return NextResponse.json({
-        error: 'Unauthorized - Invalid session. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
-    */
-    const user = { id: 'dummy' };
-
-
-    /* Temporarily disabled admin check
-    const { data: userData, error: dbError } = await supabaseAdmin
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (dbError || !userData || !userData.roles?.includes('admin')) {
-      console.error('Admin check failed:', dbError, userData);
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-    */
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
 
     const body = await request.json();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,11 +57,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Use admin client to bypass RLS when searching for other participants
-    const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
-    const adminClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const adminClient = createSupabaseAdmin()
 
     // Fetch ALL thalibah who passed selection in the same batch (for partner search)
     // INCLUDING extra fields for the marketplace UI

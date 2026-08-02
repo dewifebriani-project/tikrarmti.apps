@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste, Info, FileSpreadsheet } from 'lucide-react';
 import { JuzNumber } from '@/types/exam';
+import * as XLSX from 'xlsx';
 
 interface AdminExamImportProps {
   onClose: () => void;
@@ -212,8 +213,6 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
 
   const downloadExcelTemplate = (juzNumber: JuzNumber) => {
     // Create Excel workbook with template
-    const XLSX = require('xlsx');
-
     const templateData = [
       // Header
       ['Section', 'Section Title', 'Question Number', 'Question Text', 'Question Type', 'Option 1', 'Option 2', 'Option 3', 'Option 4', 'Correct Answer (1-4)', 'Points'],

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
 // GET: Fetch question analytics
 export async function GET(request: NextRequest) {
   try {
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
     const { searchParams } = new URL(request.url);
     const juz = searchParams.get('juz');
     const section = searchParams.get('section');

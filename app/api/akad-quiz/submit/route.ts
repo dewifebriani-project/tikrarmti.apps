@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
         questionId: q.id,
         questionText: q.question_text,
         userAnswer: userAnswerText,
-        isCorrect: isCorrect,
-        correctAnswer: correctOption?.text
+        isCorrect: isCorrect
       });
     }
 

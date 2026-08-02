@@ -18,10 +18,17 @@ const supabaseAdmin = createSupabaseAdmin()
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const batchId = searchParams.get('batch_id')
-    const userId = searchParams.get('user_id') // Optional: for excluding current user
+    // Never trust a caller-provided user_id when calculating quota.
+    const userId = user.id
 
     if (!batchId) {
       return NextResponse.json(
@@ -43,7 +50,6 @@ export async function GET(request: NextRequest) {
         location,
         max_students,
         status,
-        zoom_link,
         preferred_juz,
         muallimah_id,
         programs!inner(batch_id, class_type)

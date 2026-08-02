@@ -87,7 +87,7 @@ export default function ExamPage() {
       setAttempt(startResult.attempt);
 
       // Load questions
-      const questionsResponse = await fetch(`/api/exam/questions?juz=${requiredJuz}&active=true`);
+      const questionsResponse = await fetch('/api/exam/questions/for-user');
       const questionsResult = await questionsResponse.json();
 
       if (questionsResponse.ok) {
