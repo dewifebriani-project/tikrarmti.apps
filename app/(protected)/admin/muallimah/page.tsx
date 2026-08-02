@@ -72,18 +72,6 @@ export default function AdminMuallimahPage() {
               Data Muallimah
             </button>
             <button
-              onClick={() => setActiveTab('analysis_table')}
-              className={cn(
-                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
-                activeTab === 'analysis_table'
-                  ? "border-green-600 text-green-700"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              )}
-            >
-              <FileText className="h-4 w-4" />
-              Tabel Analisis Juz
-            </button>
-            <button
               onClick={() => setActiveTab('availability')}
               className={cn(
                 "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
@@ -94,6 +82,18 @@ export default function AdminMuallimahPage() {
             >
               <Users className="h-4 w-4" />
               Ketersediaan Muallimah
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis_table')}
+              className={cn(
+                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
+                activeTab === 'analysis_table'
+                  ? "border-green-600 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              <FileText className="h-4 w-4" />
+              Tabel Analisis Juz
             </button>
             <button
               onClick={() => setActiveTab('analysis')}

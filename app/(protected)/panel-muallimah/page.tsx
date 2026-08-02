@@ -166,7 +166,7 @@ export default function PanelMuallimahPage() {
     start_time: '',
     end_time: '',
     location: '',
-    max_students: 20,
+    max_students: 5,
     zoom_link: '',
     preferred_juz: '',
     waitlist_max: 5,
@@ -219,7 +219,7 @@ export default function PanelMuallimahPage() {
           start_time: '',
           end_time: '',
           location: '',
-          max_students: 20,
+          max_students: 5,
           zoom_link: '',
           preferred_juz: '',
           waitlist_max: 5,
@@ -256,7 +256,7 @@ export default function PanelMuallimahPage() {
           start_time: '',
           end_time: '',
           location: '',
-          max_students: 20,
+          max_students: 5,
           zoom_link: '',
           preferred_juz: '',
           waitlist_max: 5,
@@ -406,7 +406,7 @@ export default function PanelMuallimahPage() {
               start_time: '',
               end_time: '',
               location: '',
-              max_students: 20,
+              max_students: 5,
               zoom_link: '',
               preferred_juz: '',
               waitlist_max: 5,
@@ -433,7 +433,7 @@ export default function PanelMuallimahPage() {
               start_time: '',
               end_time: '',
               location: '',
-              max_students: 20,
+              max_students: 5,
               zoom_link: '',
               preferred_juz: '',
               waitlist_max: 5,
@@ -997,7 +997,7 @@ function HalaqahModal({
                       id="max_students"
                       min="1"
                       value={formData.max_students}
-                      onChange={(e) => onChange({ ...formData, max_students: parseInt(e.target.value) || 20 })}
+                      onChange={(e) => onChange({ ...formData, max_students: parseInt(e.target.value) || 5 })}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2"
                     />
                   </div>

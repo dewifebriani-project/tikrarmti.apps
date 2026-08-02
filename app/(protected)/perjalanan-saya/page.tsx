@@ -331,8 +331,11 @@ export default function PerjalananSaya() {
   const hasHalaqah = !!(daftarUlangData?.ujian_halaqah_id || daftarUlangData?.tashih_halaqah_id);
   const hasPartnerSelection = !!(daftarUlangData?.partner_type);
   const isPartnerSubmitted = !!(daftarUlangData && (daftarUlangData.partner_status === 'submitted' || daftarUlangData.partner_status === 'approved' || daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  const isSelfMatch = daftarUlangData?.partner_type === 'self_match';
+  const isMutualSelfMatch = !!pairingData?.partner_details?.is_mutual_match;
+  const isPartnerComplete = isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch);
   
-  const hasPhase3 = hasAkad && hasHalaqah && isPartnerSubmitted;
+  const hasPhase3 = hasAkad && hasHalaqah && isPartnerComplete;
   const hasPartner = !!(pairingData) || (hasHalaqah && hasPartnerSelection && isPartnerSubmitted);
   
   const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
@@ -494,7 +497,9 @@ export default function PerjalananSaya() {
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran || !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
             isTestAction: hasFormPendaftaran && !isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten && isSelectionDone && isSelectionPassed,
-            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate || hasAkad,
+            // Uploading the akad must not close the written-exam portal. The exam
+            // remains available independently until the re-enrollment period ends.
+            isTestDisabled: !isSelectionDone || !isSelectionPassed || !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           {
@@ -529,7 +534,7 @@ export default function PerjalananSaya() {
           {
             name: 'Pilih Halaqah & Pasangan',
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
-            done: isPraTikrar || (hasHalaqah && hasPartnerSelection && isPartnerSubmitted),
+            done: isPraTikrar || (hasHalaqah && hasPartnerSelection && isPartnerComplete),
             data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (() => {
               if (!hasAkadFiles) return 'Belum submit akad';
               // Build detailed status showing what's done and what's missing
@@ -544,6 +549,8 @@ export default function PerjalananSaya() {
               const pStatus = daftarUlangData?.partner_status || daftarUlangData?.status;
               if (pStatus === 'draft' && hasHalaqah && hasPartnerSelection) {
                 parts.push('(Perlu Diperbaiki)');
+              } else if (isSelfMatch && isPartnerSubmitted && !isMutualSelfMatch) {
+                parts.push('(Menunggu dipilih kembali)');
               } else if (pStatus === 'submitted' || pStatus === 'approved') {
                 parts.push('✓');
               }

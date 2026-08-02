@@ -2,6 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
+
+const parseDonationAmount = (value: string | number | null | undefined): number | null => {
+  if (value === null || value === undefined || value === '') return null
+  const digits = String(value).replace(/\D/g, '')
+  return digits ? Number(digits) : null
+}
 import { revalidatePath } from 'next/cache'
 
 export interface DaftarUlangFormData {
@@ -93,7 +99,7 @@ export async function saveDaftarUlangDraft(
       
       // Pengabdian & Donasi
       pengabdian_choice: data.pengabdian_choice || null,
-      donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
+      donasi_amount: parseDonationAmount(data.donasi_amount),
 
       // DO NOT overwrite halaqah data for draft because Halaqah selection is now handled independently in Pilih Pasangan
       akad_files: data.akad_files || null,
@@ -300,7 +306,7 @@ export async function submitDaftarUlang(
           ? `${data.pengabdian_choice} - ${types.join(', ')}`
           : (data.pengabdian_choice || null);
       })(),
-      donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
+      donasi_amount: parseDonationAmount(data.donasi_amount),
 
       // Halaqah selection - Convert empty strings to null for UUID fields
       ujian_halaqah_id: data.ujian_halaqah_id || null,

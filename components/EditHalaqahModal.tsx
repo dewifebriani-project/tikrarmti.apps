@@ -55,7 +55,7 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
     start_time: halaqah.start_time || '',
     end_time: halaqah.end_time || '',
     location: halaqah.location || '',
-    max_students: halaqah.max_students || 20,
+    max_students: halaqah.max_students || 5,
     waitlist_max: halaqah.waitlist_max || 5,
     preferred_juz: halaqah.preferred_juz || '',
     zoom_link: halaqah.zoom_link || '',

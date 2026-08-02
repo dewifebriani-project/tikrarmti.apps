@@ -822,37 +822,35 @@ export function MuallimahAnalysisTableTab() {
                                  <div className="p-6">
                                     <h4 className="font-bold text-blue-800 mb-4 flex items-center gap-2"><Users className="w-4 h-4"/> Detail Muallimah (Estimasi)</h4>
                                     {estMuallimahCount > 0 ? (
-                                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                                        {est.halaqah_details.map((h: any) => (
-                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-start">
-                                            <div className="flex flex-col">
-                                              <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                  <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
-                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.class_type?.replace(/_/g, " ")}{h.preferred_juz ? (h.preferred_juz.toLowerCase().includes('juz') || h.preferred_juz.toLowerCase() === 'topik' ? ` - ${h.preferred_juz}` : ` - Juz ${h.preferred_juz}`) : ''}</p>
-                                                </div>
-                                              </div>
-                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 mb-3">
-                                                <span className="font-medium text-gray-500 text-[11px]">Kapasitas/Terisi:</span>
-                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
-                                              </div>
-                                            </div>
-                                            <div className="flex flex-col gap-2 text-[11px] text-gray-600">
-                                              {h.schedules?.length > 0 ? (
-                                                <div className="space-y-1.5 mt-1">
-                                                  {h.schedules.map((s: any, sIdx: number) => (
-                                                    <div key={sIdx} className={`flex justify-between items-center px-2 py-1 rounded ${s.is_allocated_here ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100' : 'text-gray-500 bg-gray-50/50'}`}>
-                                                      <span>{s.type} {s.is_backup ? "(Cadangan)" : ""} :</span>
-                                                      <span>{s.day_name} {s.start_time !== "-" ? `(${s.start_time}-${s.end_time})` : ""}</span>
+                                      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                                        <table className="w-full text-xs">
+                                          <thead className="bg-blue-50 text-blue-900">
+                                            <tr>
+                                              <th className="px-3 py-2 text-left">Nama Muallimah</th>
+                                              <th className="px-3 py-2 text-left">Program / Juz</th>
+                                              <th className="px-3 py-2 text-center">Kapasitas</th>
+                                              <th className="px-3 py-2 text-center">Terisi</th>
+                                              <th className="px-3 py-2 text-left">Jadwal</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100">
+                                            {est.halaqah_details.map((h: any) => (
+                                              <tr key={h.id} className="align-top hover:bg-blue-50/40">
+                                                <td className="px-3 py-3 font-semibold text-gray-900">{h.muallimah_name}</td>
+                                                <td className="px-3 py-3 capitalize text-gray-600">{h.class_type?.replace(/_/g, " ")}{h.preferred_juz ? (h.preferred_juz.toLowerCase().includes('juz') || h.preferred_juz.toLowerCase() === 'topik' ? ` - ${h.preferred_juz}` : ` - Juz ${h.preferred_juz}`) : ''}</td>
+                                                <td className="px-3 py-3 text-center font-semibold">{h.max_students}</td>
+                                                <td className="px-3 py-3 text-center font-semibold">{h.current_students}</td>
+                                                <td className="px-3 py-3 text-gray-600">
+                                                  {h.schedules?.length > 0 ? h.schedules.map((s: any, sIdx: number) => (
+                                                    <div key={sIdx} className={s.is_allocated_here ? 'font-semibold text-blue-700' : 'text-gray-500'}>
+                                                      {s.type}{s.is_backup ? ' (Cadangan)' : ''}: {s.day_name} {s.start_time !== '-' ? `${s.start_time}-${s.end_time}` : ''}
                                                     </div>
-                                                  ))}
-                                                </div>
-                                              ) : (
-                                                <div className="text-gray-400 italic text-center py-2 bg-gray-50 rounded-md mt-1">Jadwal belum tersedia</div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
+                                                  )) : <span className="italic text-gray-400">Belum tersedia</span>}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     ) : (
                                       <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-200">
@@ -865,37 +863,35 @@ export function MuallimahAnalysisTableTab() {
                                  <div className="p-6">
                                     <h4 className="font-bold text-emerald-800 mb-4 flex items-center gap-2"><BookOpen className="w-4 h-4"/> Detail Muallimah (Aktual)</h4>
                                     {aktMuallimahCount > 0 ? (
-                                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                                        {akt.halaqah_details.map((h: any) => (
-                                          <div key={h.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col justify-start">
-                                            <div className="flex flex-col">
-                                              <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                  <h4 className="font-bold text-gray-900 text-sm">{h.muallimah_name}</h4>
-                                                  <p className="text-xs text-gray-500 font-medium capitalize mt-0.5">{h.name || h.class_type?.replace(/_/g, " ")}</p>
-                                                </div>
-                                              </div>
-                                              <div className="flex justify-between items-center bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-100 mb-3">
-                                                <span className="font-medium text-gray-500 text-[11px]">Kapasitas/Terisi:</span>
-                                                <span className="font-bold text-gray-800 text-xs">{h.current_students} / {h.max_students}</span>
-                                              </div>
-                                            </div>
-                                            <div className="flex flex-col gap-2 text-[11px] text-gray-600">
-                                              {h.schedules?.length > 0 ? (
-                                                <div className="space-y-1.5 mt-1">
-                                                  {h.schedules.map((s: any, sIdx: number) => (
-                                                    <div key={sIdx} className={`flex justify-between items-center px-2 py-1 rounded ${s.is_allocated_here ? 'bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100' : 'text-gray-500 bg-gray-50/50'}`}>
-                                                      <span>{s.type} {s.is_backup ? "(Cadangan)" : ""} :</span>
-                                                      <span>{s.day_name} {s.start_time !== "-" ? `(${s.start_time}-${s.end_time})` : ""}</span>
+                                      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                                        <table className="w-full text-xs">
+                                          <thead className="bg-emerald-50 text-emerald-900">
+                                            <tr>
+                                              <th className="px-3 py-2 text-left">Nama Muallimah</th>
+                                              <th className="px-3 py-2 text-left">Halaqah</th>
+                                              <th className="px-3 py-2 text-center">Kapasitas</th>
+                                              <th className="px-3 py-2 text-center">Terisi</th>
+                                              <th className="px-3 py-2 text-left">Jadwal Aktif</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100">
+                                            {akt.halaqah_details.map((h: any) => (
+                                              <tr key={h.id} className="align-top hover:bg-emerald-50/40">
+                                                <td className="px-3 py-3 font-semibold text-gray-900">{h.muallimah_name}</td>
+                                                <td className="px-3 py-3 text-gray-600">{h.name || h.class_type?.replace(/_/g, " ")}</td>
+                                                <td className="px-3 py-3 text-center font-semibold">{h.max_students}</td>
+                                                <td className="px-3 py-3 text-center font-semibold">{h.current_students}</td>
+                                                <td className="px-3 py-3 text-gray-600">
+                                                  {h.schedules?.length > 0 ? h.schedules.map((s: any, sIdx: number) => (
+                                                    <div key={sIdx} className={s.is_allocated_here ? 'font-semibold text-emerald-700' : 'text-gray-500'}>
+                                                      {s.type}{s.is_backup ? ' (Cadangan)' : ''}: {s.day_name} {s.start_time !== '-' ? `${s.start_time}-${s.end_time}` : ''}
                                                     </div>
-                                                  ))}
-                                                </div>
-                                              ) : (
-                                                <div className="text-gray-400 italic text-center py-2 bg-gray-50 rounded-md mt-1">Jadwal belum tersedia</div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
+                                                  )) : <span className="italic text-gray-400">Belum tersedia</span>}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     ) : (
                                       <div className="text-center py-8 bg-white rounded-xl border border-dashed border-gray-200">

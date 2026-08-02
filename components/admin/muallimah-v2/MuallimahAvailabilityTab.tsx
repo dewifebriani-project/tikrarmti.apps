@@ -79,17 +79,23 @@ export function MuallimahAvailabilityTab() {
       
       const estimasi = pendaftarData.data?.availability || [];
       const aktual = daftarUlangData.data?.availability || [];
+      // Kelas berbayar berasal dari akad Muallimah dan belum tentu sudah dibuatkan
+      // halaqah aktual. Gunakan data estimasi agar nama, jadwal, dan kuotanya tetap tampil.
+      const availabilitySource = programTab === "kelas_berbayar" ? estimasi : aktual;
       
       const stats: any[] = [];
       
-      aktual.forEach((juz: any) => {
+      availabilitySource.forEach((juz: any) => {
         const details = juz.halaqah_details || [];
         details.forEach((m: any) => {
+          const primarySchedule = m.schedules?.find((schedule: any) => !schedule.is_backup) || m.schedules?.[0];
           stats.push({
             name: m.muallimah_name || "Unknown",
             juz: m.preferred_juz ? (String(m.preferred_juz).toLowerCase().includes('juz') ? m.preferred_juz : `Juz ${m.preferred_juz}`) : (juz.juz_name || `Juz ${juz.juz_number}`),
-            jadwal: formatDay(m.day_name || m.day_of_week || '-'),
-            jam: (m.start_time || m.end_time) ? `${m.start_time || '-'} - ${m.end_time || '-'}` : '-',
+            jadwal: formatDay(m.day_name || m.day_of_week || primarySchedule?.day_name || '-'),
+            jam: (m.start_time || m.end_time || primarySchedule)
+              ? `${m.start_time || primarySchedule?.start_time || '-'} - ${m.end_time || primarySchedule?.end_time || '-'}`
+              : '-',
             kapasitas: m.max_students || 0,
             terisi: m.current_students || 0,
             tersedia: m.available_slots || 0
@@ -245,9 +251,11 @@ export function MuallimahAvailabilityTab() {
                   <th onClick={() => requestSort("name")} className="px-6 py-4 font-bold text-gray-700 whitespace-nowrap border-r border-gray-200 align-middle cursor-pointer group hover:bg-gray-100">
                     <div className="flex items-center gap-1">Nama Muallimah <SortIcon columnKey="name" /></div>
                   </th>
-                  <th onClick={() => requestSort("juz")} className="px-4 py-4 font-bold text-gray-700 whitespace-nowrap border-r border-gray-200 align-middle text-center cursor-pointer group hover:bg-gray-100">
-                    <div className="flex items-center justify-center gap-1">Juz <SortIcon columnKey="juz" /></div>
-                  </th>
+                  {programTab === "tikrar" && (
+                    <th onClick={() => requestSort("juz")} className="px-4 py-4 font-bold text-gray-700 whitespace-nowrap border-r border-gray-200 align-middle text-center cursor-pointer group hover:bg-gray-100">
+                      <div className="flex items-center justify-center gap-1">Juz <SortIcon columnKey="juz" /></div>
+                    </th>
+                  )}
                   <th onClick={() => requestSort("jadwal")} className="px-4 py-4 font-bold text-gray-700 whitespace-nowrap border-r border-gray-200 align-middle text-center cursor-pointer group hover:bg-gray-100">
                     <div className="flex items-center justify-center gap-1">Jadwal <SortIcon columnKey="jadwal" /></div>
                   </th>
@@ -271,9 +279,11 @@ export function MuallimahAvailabilityTab() {
                     <td className="px-6 py-4 font-medium text-gray-900 border-r border-gray-100">
                       {stat.name}
                     </td>
-                    <td className="px-4 py-4 text-center border-r border-gray-100 text-gray-600">
-                      {stat.juz}
-                    </td>
+                    {programTab === "tikrar" && (
+                      <td className="px-4 py-4 text-center border-r border-gray-100 text-gray-600">
+                        {stat.juz}
+                      </td>
+                    )}
                     <td className="px-4 py-4 text-center border-r border-gray-100 text-gray-600">
                       {stat.jadwal}
                     </td>

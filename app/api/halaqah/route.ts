@@ -161,7 +161,7 @@ export async function POST(request: Request) {
         start_time,
         end_time,
         preferred_juz,
-        max_students: max_thalibah_override || max_students,
+        max_students: max_thalibah_override || max_students || 5,
         max_thalibah_override,
         waitlist_max,
         location,

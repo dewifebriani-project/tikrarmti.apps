@@ -35,7 +35,7 @@ const createHalaqahSchema = z.object({
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   location: z.string().optional(),
-  max_students: z.number().min(1).default(20),
+  max_students: z.number().min(1).default(5),
   zoom_link: z.string().url().optional().or(z.literal('')),
   preferred_juz: z.string().optional(),
   waitlist_max: z.number().min(0).default(5),

@@ -7,7 +7,7 @@ import { JuzNumber } from '@/types/exam';
  * Determine which juz exam is required based on chosen juz
  *
  * Logic:
- * - Juz 30A/B → No exam required (null)
+ * - Juz 30A/B → No exam required (starting target)
  * - Juz 29A/B → Must take Juz 30 exam
  * - Juz 28A/B → Must take Juz 29 exam
  * - Juz 1A/B → Must take Juz 30 exam
@@ -20,14 +20,18 @@ export function getRequiredExamJuz(chosenJuz: string): JuzNumber | null {
   const juzNumber = parseInt(chosenJuz.match(/\d+/)?.[0] || '0');
 
   if (juzNumber === 30) {
-    return null; // Juz 30 is the starting point, no exam
+    return null;
   }
   
   if (juzNumber === 1) {
     return 30; // For Juz 1, test Juz 30
   }
   
-  if (juzNumber >= 2 && juzNumber <= 27) {
+  if (juzNumber === 27) {
+    return 28;
+  }
+
+  if (juzNumber >= 2 && juzNumber <= 26) {
     return (juzNumber - 1) as JuzNumber; // For forward memorizers
   }
   

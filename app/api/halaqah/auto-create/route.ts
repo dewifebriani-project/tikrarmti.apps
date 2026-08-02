@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
             start_time: schedule.time_start,
             end_time: schedule.time_end,
             preferred_juz: akad.preferred_juz,
-            max_students: akad.preferred_max_thalibah || 15,
+            max_students: akad.preferred_max_thalibah || 5,
             waitlist_max: 5,
             status: 'active'
           })

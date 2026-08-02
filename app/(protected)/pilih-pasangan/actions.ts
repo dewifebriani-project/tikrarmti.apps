@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 
 export interface PilihPasanganFormData {
@@ -130,7 +131,7 @@ export async function submitPilihPasangan(
 
     for (const halaqah of halaqahInfo) {
       const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
-      const maxStudents = halaqah.max_students || 20
+      const maxStudents = halaqah.max_students || 5
 
       if (currentStudents >= maxStudents) {
         return {
@@ -172,6 +173,27 @@ export async function submitPilihPasangan(
 
     if (updateError) {
       return { success: false, error: updateError.message }
+    }
+
+    let isMutualMatch = false
+    if (data.partner_type === 'self_match' && data.partner_user_id) {
+      const supabaseAdmin = createSupabaseAdmin()
+      const { data: reverseSelection } = await supabaseAdmin
+        .from('daftar_ulang_submissions')
+        .select('id, status, partner_status')
+        .eq('user_id', data.partner_user_id)
+        .eq('partner_user_id', authUser.id)
+        .eq('batch_id', registration.batch_id)
+        .eq('partner_type', 'self_match')
+        .maybeSingle()
+
+      isMutualMatch = Boolean(
+        reverseSelection &&
+        (reverseSelection.partner_status === 'submitted' ||
+          reverseSelection.partner_status === 'approved' ||
+          reverseSelection.status === 'submitted' ||
+          reverseSelection.status === 'approved')
+      )
     }
 
     // 6. Sync halaqah_students if already approved
@@ -218,7 +240,12 @@ export async function submitPilihPasangan(
 
     return {
       success: true,
-      message: 'Halaqah dan Pasangan berhasil dipilih!'
+      isMutualMatch,
+      message: data.partner_type === 'self_match'
+        ? isMutualMatch
+          ? `❤️ Kalian sudah saling memilih. Pasangan belajar dengan ${data.partner_name || 'thalibah pilihan Anda'} berhasil terbentuk!`
+          : `Pilihan pasangan berhasil dikirim. Menunggu ${data.partner_name || 'thalibah pilihan Anda'} memilih Anda kembali.`
+        : 'Halaqah dan pasangan berhasil disimpan.'
     }
   } catch (error: any) {
     console.error('Submit pilih pasangan error:', error)

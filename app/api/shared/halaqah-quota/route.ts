@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     const processedHalaqah = (halaqahData || []).map(h => {
       // Get current student count from submissions map
       const currentStudents = halaqahStudentMap.get(h.id)?.size || 0
-      const maxStudents = h.max_students || 20
+      const maxStudents = h.max_students || 5
       const isFull = currentStudents >= maxStudents
       const availableSlots = maxStudents - currentStudents
 

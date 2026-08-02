@@ -6,7 +6,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, ChevronRight, ChevronLeft, Info, FileText, X, ImageIcon, Trash2 } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, ChevronRight, ChevronLeft, Info, FileText, X, ImageIcon, Trash2, Pencil } from 'lucide-react'
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
@@ -24,6 +24,12 @@ const formatTimeSlot = (timeSlot: string): string => {
     '21-24': '21.00 - 24.00 WIB'
   }
   return timeSlotMap[timeSlot] || timeSlot
+}
+
+const formatDonationAmount = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '') return ''
+  const numericValue = Number(String(value).replace(/\D/g, ''))
+  return Number.isFinite(numericValue) ? numericValue.toLocaleString('id-ID') : ''
 }
 
 interface HalaqahData {
@@ -205,9 +211,6 @@ function DaftarUlangContent() {
           selectedRegistration.exam_submitted_at != null
         );
 
-        // Juz 30 tidak wajib Test Tertulis, sama seperti Alumni
-        // (lihat logika yang sama di perjalanan-saya/page.tsx). Pra-Tikrar (waitlist)
-        // sudah di-redirect keluar dari halaman ini di atas, jadi tidak perlu dicek lagi di sini.
         const isJuz30 = (selectedRegistration.chosen_juz || '').toUpperCase().startsWith('30');
 
         if (!hasWritten && !isAlumnus && !isJuz30) {
@@ -354,7 +357,9 @@ function DaftarUlangContent() {
       ...prev,
       // Load confirmed personal data from draft if available
       confirmed_full_name: existingSubmission.confirmed_full_name || prev.confirmed_full_name,
-      confirmed_chosen_juz: existingSubmission.confirmed_chosen_juz || prev.confirmed_chosen_juz,
+      // The current registration is authoritative because the written-test
+      // page can change the target after this submission snapshot was created.
+      confirmed_chosen_juz: registrationData?.chosen_juz || existingSubmission.confirmed_chosen_juz || prev.confirmed_chosen_juz,
       confirmed_main_time_slot: existingSubmission.confirmed_main_time_slot || prev.confirmed_main_time_slot,
       confirmed_backup_time_slot: existingSubmission.confirmed_backup_time_slot || prev.confirmed_backup_time_slot,
       confirmed_wa_phone: existingSubmission.confirmed_wa_phone || prev.confirmed_wa_phone,
@@ -376,7 +381,7 @@ function DaftarUlangContent() {
       pengabdian_type: existingSubmission.pengabdian_choice && existingSubmission.pengabdian_choice.includes(' - ')
         ? existingSubmission.pengabdian_choice.split(' - ').slice(1).join(' - ').split(', ')
         : [],
-      donasi_amount: existingSubmission.donasi_amount ? String(existingSubmission.donasi_amount) : '',
+      donasi_amount: formatDonationAmount(existingSubmission.donasi_amount),
       // Preserve akad files for both draft and submitted
       akad_files: existingSubmission.akad_files || [],
     }))
@@ -388,7 +393,7 @@ function DaftarUlangContent() {
     if (isDraft && !isAkadEditMode) {
       setCurrentStep('confirm')
     }
-  }, [existingSubmission, isAkadEditMode])
+  }, [existingSubmission, isAkadEditMode, registrationData?.chosen_juz])
 
   // Save draft on form data changes (debounced)
   // IMPORTANT: DO NOT save draft for submitted/approved status - this would overwrite halaqah data!
@@ -454,7 +459,7 @@ function DaftarUlangContent() {
         setFormData(prev => ({
           ...prev,
           pengabdian_choice: registrationData.ready_for_team === 'infaq' ? 'donasi' : 'mengabdi',
-          donasi_amount: registrationData.infaq_amount || ''
+          donasi_amount: formatDonationAmount(registrationData.infaq_amount)
         }))
       }
       setCurrentStep('pengabdian')
@@ -466,6 +471,15 @@ function DaftarUlangContent() {
       if (formData.pengabdian_choice === 'donasi' && !formData.donasi_amount) {
         toast.error('Pilih nominal infaq terlebih dahulu')
         return
+      }
+      if (formData.pengabdian_choice === 'donasi') {
+        const presetAmounts = ['25.000', '50.000', '75.000', '100.000']
+        const isCustomAmount = !presetAmounts.includes(formData.donasi_amount)
+        const numericAmount = Number(String(formData.donasi_amount).replace(/\D/g, ''))
+        if (isCustomAmount && numericAmount < 100000) {
+          toast.error('Nominal lainnya minimal Rp100.000')
+          return
+        }
       }
       setCurrentStep('akad')
     } else if (currentStep === 'akad') {
@@ -778,6 +792,7 @@ function DaftarUlangContent() {
                 formData={formData}
                 onChange={setFormData}
                 reregQuestions={reregQuestions}
+                registrationData={registrationData}
               />
             )}
 
@@ -907,11 +922,13 @@ const getJuzLabel = (juzValue: string) => {
 function ConfirmDataStep({
   formData,
   onChange,
-  reregQuestions
+  reregQuestions,
+  registrationData
 }: {
   formData: any
   onChange: (data: any) => void
   reregQuestions: any[]
+  registrationData: any
 }) {
   const nameQuestion = reregQuestions.find(q => q.field_key === 'confirmed_full_name')
   const waQuestion = reregQuestions.find(q => q.field_key === 'confirmed_wa_phone')
@@ -919,6 +936,42 @@ function ConfirmDataStep({
 
   const isWaActive = waQuestion ? waQuestion.is_active : true
   const isAddressActive = addressQuestion ? addressQuestion.is_active : true
+
+  const yesNo = (value: boolean | null | undefined) => value ? 'Ya' : 'Tidak'
+  const permissionLabel = registrationData?.has_permission === 'janda'
+    ? 'Mandiri (janda)'
+    : registrationData?.has_permission === 'yes' ? 'Sudah mendapat izin' : 'Belum ada data'
+  const teamReadinessLabels: Record<string, string> = {
+    ready: 'Siap bergabung dalam tim',
+    infaq: 'Memilih kontribusi infaq',
+    considering: 'Masih mempertimbangkan',
+    not_ready: 'Belum siap'
+  }
+  const registrationDetails = [
+    { label: 'Email', value: registrationData?.email },
+    { label: 'Nomor Telegram', value: registrationData?.telegram_phone },
+    { label: 'Tanggal Lahir', value: registrationData?.birth_date },
+    { label: 'Usia', value: registrationData?.age != null ? `${registrationData.age} tahun` : null },
+    { label: 'Domisili', value: registrationData?.domicile },
+    { label: 'Zona Waktu', value: registrationData?.timezone },
+    { label: 'Status Izin', value: permissionLabel },
+    { label: 'Nama Pemberi Izin', value: registrationData?.permission_name },
+    { label: 'Kontak Pemberi Izin', value: registrationData?.permission_phone },
+    { label: 'Motivasi Mengikuti Program', value: registrationData?.motivation },
+    { label: 'Kesiapan Tim', value: teamReadinessLabels[registrationData?.ready_for_team] || registrationData?.ready_for_team },
+    { label: 'Pertanyaan untuk Admin', value: registrationData?.questions },
+  ].filter(item => item.value !== null && item.value !== undefined && item.value !== '')
+
+  const commitmentDetails = [
+    { label: 'Memahami komitmen program', value: registrationData?.understands_commitment },
+    { label: 'Sudah mencoba simulasi', value: registrationData?.tried_simulation },
+    { label: 'Menyetujui ketentuan tanpa negosiasi', value: registrationData?.no_negotiation },
+    { label: 'Memiliki aplikasi Telegram', value: registrationData?.has_telegram },
+    { label: 'Sudah menyimpan kontak', value: registrationData?.saved_contact },
+    { label: 'Tidak memiliki rencana safar', value: registrationData?.no_travel_plans },
+    { label: 'Siap dengan komitmen waktu', value: registrationData?.time_commitment },
+    { label: 'Memahami mekanisme program', value: registrationData?.understands_program },
+  ]
 
   return (
     <div className="space-y-6">
@@ -1051,6 +1104,52 @@ function ConfirmDataStep({
             )}
           </div>
         )}
+      </div>
+
+      <div className="border-t border-gray-200 pt-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Data Pendaftaran Tikrar Lainnya</h3>
+            <p className="text-sm text-gray-500 mt-1">Data berikut diambil dari formulir pendaftaran dan hanya ditampilkan untuk dikonfirmasi.</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 border-green-600 text-green-700 hover:bg-green-50"
+            onClick={() => {
+              const batchParam = registrationData?.batch_id
+                ? `&batchId=${encodeURIComponent(registrationData.batch_id)}`
+                : ''
+              window.location.assign(`/pendaftaran/tikrar-tahfidz?edit=true${batchParam}`)
+            }}
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit Data Pendaftaran
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {registrationDetails.map(item => (
+            <div key={item.label} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs font-medium text-gray-500">{item.label}</p>
+              <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{String(item.value)}</p>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">Konfirmasi dan Komitmen</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {commitmentDetails.map(item => (
+              <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+                <span className="text-sm text-gray-700">{item.label}</span>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${item.value ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {yesNo(item.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -2026,7 +2125,7 @@ function AkadUploadStep({
 
         const akadUrl = new URL('/api/daftar-ulang/akad-intisari', window.location.origin)
         if (batchId) akadUrl.searchParams.set('batchId', batchId)
-        const response = await fetch(akadUrl.toString())
+        const response = await fetch(akadUrl.toString(), { cache: 'no-store' })
         const data = await response.json()
 
         if (!response.ok) {
@@ -2078,7 +2177,7 @@ function AkadUploadStep({
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
               <p className="text-sm text-amber-800 mb-4">
-                Berikut adalah teks akad yang harus Anda tulis tangan (salin). Beberapa bagian sudah disesuaikan dengan data Anda.
+                Berikut adalah teks akad yang harus Anda tulis tangan (salin). Seluruh bagian identitas dan tanggal sudah diisi otomatis sesuai data Anda.
               </p>
             </div>
           </div>
@@ -2336,6 +2435,17 @@ function PengabdianStep({
   // Find out what is selected based on formData
   const isDonasi = formData.pengabdian_choice === 'donasi'
   const isMengabdi = formData.pengabdian_choice === 'mengabdi' || formData.pengabdian_choice === 'muallimah' || formData.pengabdian_choice === 'musyrifah'
+  const presetDonationAmounts = ['25.000', '50.000', '75.000', '100.000']
+  const customDonationAmount = !presetDonationAmounts.includes(formData.donasi_amount || '')
+    ? formData.donasi_amount || ''
+    : ''
+  const customDonationNumeric = Number(String(customDonationAmount).replace(/\D/g, ''))
+
+  useEffect(() => {
+    if (isDonasi && !formData.donasi_amount) {
+      setFormData((prev: any) => ({ ...prev, donasi_amount: '100.000' }))
+    }
+  }, [isDonasi, formData.donasi_amount, setFormData])
 
   return (
     <div className="space-y-6">
@@ -2396,12 +2506,19 @@ function PengabdianStep({
                       name="pengabdian_choice"
                       value="donasi"
                       checked={isDonasi}
-                      onChange={() => setFormData((prev: any) => ({ ...prev, pengabdian_choice: 'donasi' }))}
+                      onChange={() => setFormData((prev: any) => ({
+                        ...prev,
+                        pengabdian_choice: 'donasi',
+                        donasi_amount: prev.donasi_amount || '100.000'
+                      }))}
                       className="mt-1 text-emerald-600 focus:ring-emerald-500"
                     />
                     <div className="flex-1">
                       <span className="block font-medium text-gray-900">Infaq / Donasi Bulanan</span>
-                      <span className="block text-sm text-gray-500">Berpartisipasi dalam program melalui donasi wajib bulanan. (Maksimal pembayaran tanggal 10 tiap bulannya. Jika belum membayar, Thalibah tidak dapat mengakses aplikasi).</span>
+                      <span className="block text-sm text-gray-500">Berpartisipasi dalam program melalui donasi wajib bulanan.</span>
+                      <span className="mt-2 block rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                        Maksimal pembayaran tanggal 10 tiap bulannya. Jika belum membayar, Thalibah tidak dapat mengakses aplikasi.
+                      </span>
                     </div>
                   </label>
                 </div>
@@ -2412,7 +2529,7 @@ function PengabdianStep({
                       Nominal Infaq Per Bulan
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {['25.000', '50.000', '100.000'].map((amount) => (
+                      {presetDonationAmounts.map((amount) => (
                         <button
                           key={amount}
                           type="button"
@@ -2431,12 +2548,23 @@ function PengabdianStep({
                         <input
                           type="text"
                           placeholder="Lainnya"
-                          value={!['25.000', '50.000', '100.000'].includes(formData.donasi_amount || '') ? formData.donasi_amount : ''}
-                          onChange={(e) => setFormData((prev: any) => ({ ...prev, donasi_amount: e.target.value }))}
-                          className="pl-9 h-full w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                          value={customDonationAmount}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '')
+                            const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+                            setFormData((prev: any) => ({ ...prev, donasi_amount: formatted }))
+                          }}
+                          className={`pl-9 h-full w-full rounded-md shadow-sm focus:ring-emerald-500 text-sm ${
+                            customDonationAmount && customDonationNumeric < 100000
+                              ? 'border-red-400 focus:border-red-500'
+                              : 'border-gray-300 focus:border-emerald-500'
+                          }`}
                         />
                       </div>
                     </div>
+                    <p className={`text-xs ${customDonationAmount && customDonationNumeric < 100000 ? 'font-semibold text-red-600' : 'text-gray-500'}`}>
+                      Nominal lainnya minimal Rp100.000.
+                    </p>
                   </div>
                 )}
               </div>

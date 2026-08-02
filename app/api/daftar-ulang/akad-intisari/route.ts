@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       // Try with specific batch first (any non-rejected status)
       const result = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('*, users(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
+        .select('*, users!pendaftaran_tikrar_tahfidz_user_id_fkey(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
         .eq('user_id', user.id)
         .eq('batch_id', batchId)
         .not('selection_status', 'in', '("rejected","withdrawn")')
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (!registration) {
       const fallback = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .select('*, users(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
+        .select('*, users!pendaftaran_tikrar_tahfidz_user_id_fkey(tanggal_lahir, zona_waktu), batches(name, opening_class_date, graduation_end_date, registration_start_date, registration_end_date)')
         .eq('user_id', user.id)
         .not('selection_status', 'in', '("rejected","withdrawn")')
         .order('created_at', { ascending: false })
@@ -61,10 +61,12 @@ export async function GET(request: NextRequest) {
       registrationError = fallback.error
     }
 
-    // If still not found, use empty object so akad always renders (with placeholders)
+    // Never render a generic akad. Every identity field must come from the
+    // authenticated user's current registration.
     if (registrationError || !registration) {
-      console.warn('[AkadIntisari] No registration found for user, building generic akad template')
-      registration = {} // Will use default placeholders in buildAkadIntisari
+      return NextResponse.json({
+        error: 'Data pendaftaran Tikrar tidak ditemukan. Silakan muat ulang atau hubungi admin.'
+      }, { status: 404 })
     }
 
 
@@ -74,6 +76,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: akadIntisari
+    }, {
+      headers: { 'Cache-Control': 'no-store, max-age=0' }
     })
 
   } catch (error) {
@@ -93,28 +97,55 @@ function buildAkadIntisari(registration: any): {
   content: string[]
   fullText: string
 } {
-  const fullName = registration.full_name || '________________'
-  const chosenJuz = registration.chosen_juz || '________________'
+  const fullName = registration.full_name
+  const chosenJuz = registration.chosen_juz
   
   // Calculate age
-  let age = '...'
-  if (registration.users?.tanggal_lahir) {
+  let age = registration.age != null ? `${registration.age} Tahun` : '-'
+  const registeredBirthDate = registration.users?.tanggal_lahir || registration.birth_date
+  if (registeredBirthDate) {
     const today = new Date()
-    const birthDate = new Date(registration.users.tanggal_lahir)
+    const birthDate = new Date(registeredBirthDate)
     let calcAge = today.getFullYear() - birthDate.getFullYear()
     const m = today.getMonth() - birthDate.getMonth()
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
       calcAge--
     }
-    age = `${calcAge} tahun`
+    age = `${calcAge} Tahun`
   }
   
-  const domicile = registration.domicile || '________________'
-  const mainTimeSlot = registration.main_time_slot || '________________'
-  const backupTimeSlot = registration.backup_time_slot || '________________'
-  const timezone = registration.timezone || registration.users?.zona_waktu || 'WIB'
-  
-  const batchName = registration.batches?.name || '________________'
+  const domicile = registration.domicile || registration.address || '-'
+  const mainTimeSlot = registration.main_time_slot || '-'
+  const backupTimeSlot = registration.backup_time_slot || '-'
+  // Time-slot choices in the registration form are defined and displayed in WIB.
+  // Do not relabel them using the user's domicile timezone.
+  const timezone = 'WIB'
+  const batchRelation = Array.isArray(registration.batches) ? registration.batches[0] : registration.batches
+  const batchName = batchRelation?.name || registration.batch_name || 'Program Tikrar MTI'
+  const batchLabel = batchName.match(/Batch\s*\d+/i)?.[0]?.replace(/Batch\s*/i, 'Batch ') || batchName
+  const permissionName = registration.permission_name || 'pihak pemberi izin yang tercatat pada formulir pendaftaran'
+  const permissionPhone = registration.permission_phone
+    ? ` melalui nomor ${registration.permission_phone}`
+    : ' menggunakan nomor yang tercatat pada formulir pendaftaran'
+  const akadDate = new Date()
+  const rawWeekday = akadDate.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    timeZone: 'Asia/Jakarta'
+  })
+  const weekday = rawWeekday === 'Minggu' ? 'Ahad' : rawWeekday
+  const masehiDate = akadDate.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
+  })
+  const hijriDate = new Intl.DateTimeFormat('id-ID-u-ca-islamic', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta'
+  }).format(akadDate)
+  const formattedAkadDate = `${weekday}, ${masehiDate} / ${hijriDate}`
 
   // Build akad content sections
   const content: string[] = []
@@ -123,13 +154,14 @@ function buildAkadIntisari(registration: any): {
   content.push('')
   content.push('Bismillahirrahmanirrahim')
   content.push('')
-  content.push('Pada hari ini ......, tanggal… saya yang menulis lembar akad ini dengan tulisan tangan saya,')
+  content.push(`Pada hari ini ${formattedAkadDate}, saya yang menulis lembar akad ini dengan tulisan tangan saya,`)
   content.push('')
   content.push(`Nama: ${fullName}`)
   content.push(`Usia: ${age}`)
   content.push(`Domisili: ${domicile}`)
+  content.push(`Target Hafalan: Juz ${chosenJuz}`)
   content.push('')
-  content.push(`Dengan sadar tanpa paksaan, menulis akad keikutsertaan pada kelas Tahfidz Tikrar MTI ${batchName}.`)
+  content.push(`Dengan sadar tanpa paksaan, menulis akad keikutsertaan pada kelas Tahfidz Tikrar MTI ${batchLabel}.`)
   content.push('')
   content.push('Saya siap memulai kelas Tikrar. Saya berjanji untuk menjadikan program ini sebagai salah satu prioritas. Saya berusaha menjaga kehadiran, bersungguh-sungguh dalam belajar dan menuntut ilmu ini dengan niat karena Allah Ta\'ala. Saya bersedia menjaga adab, patuh dan ta\'at pada aturan yang tercantum pada poin-poin di bawah ini,')
   content.push('')
@@ -170,18 +202,16 @@ function buildAkadIntisari(registration: any): {
   content.push('    ● Qadarullah, terjadi bencana alam yang tidak memungkinkan saya untuk melanjutkan program ini.')
   content.push('    ● Udzur lain yang mendesak/ tiba-tiba dan di luar perkiraan yang dapat dimaklumi oleh pihak Markaz Tikrar Indonesia."')
   content.push('18. Saya siap untuk dikeluarkan dari program (di-DO) apabila saya tidak memenuhi target karena udzur syar\'i sebagaimana tercantum pada poin 17, dengan tetap memiliki hak untuk mendaftar kembali dari awal pada angkatan selanjutnya.')
-  content.push('19. Apabila di tengah program saya mengundurkan diri karena larangan suami/orang tua/ majikan yang sebelumnya telah memberikan izin pada saat pendaftaran, maka saya bersedia pihak yang memberikan izin tersebut langsung menghubungi Kak Mara melalui panggilan WhatsApp (menggunakan nomor yang terdaftar pada formulir pendaftaran) dan saya siap untuk di blacklist.')
+  content.push(`19. Apabila di tengah program saya mengundurkan diri karena larangan suami/orang tua/majikan yang sebelumnya telah memberikan izin pada saat pendaftaran, maka saya bersedia ${permissionName} langsung menghubungi Kak Mara melalui panggilan WhatsApp${permissionPhone} dan saya siap untuk di-blacklist.`)
   content.push('20. Saya memahami bahwa seluruh peraturan dalam akad ini tidak bertujuan mempersulit peserta program MTI dalam menghafal Al-Qur\'an. Sebaliknya, semua aturan ini semata-mata untuk menjaga hak saya dan mitra setoran agar program dapat berjalan dengan tertib dan adil demi mencapai cita-cita mulia kita dalam membersamai Al-Qur\'an.')
   content.push('')
   content.push('Demikian akad ini saya tulis dengan sejujur-jujurnya, semoga Allah selalu memudahkan saya memenuhi setiap poin-poin akad yang telah saya tulis dengan tangan saya sendiri, sebagaimana saya juga menginginkan orang lain, suami, anak, keluarga dan siapapun yang telah berjanji suatu akad kepada saya untuk memenuhi akadnya.')
   content.push('')
-  content.push('Saya yang berjanji')
+  content.push(`${domicile}, ${masehiDate} / ${hijriDate}`)
   content.push('')
-  content.push('(tanggal, bulan, tahun)')
+  content.push('Tanda tangan')
   content.push('')
-  content.push('(Tanda Tangan)')
-  content.push('')
-  content.push(`(${fullName})`)
+  content.push(fullName)
 
   return {
     title: `Akad Daftar Ulang - ${batchName}`,

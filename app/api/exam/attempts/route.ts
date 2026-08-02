@@ -126,15 +126,17 @@ export async function POST(request: NextRequest) {
     if (targetJuzNum === 30) {
       return NextResponse.json({
         error: 'No exam required for Juz 30',
-        details: 'Tidak ada ujian untuk juz 30'
+        details: 'Target Juz 30 tidak memerlukan ujian tertulis'
       }, { status: 400 });
     } else if (targetJuzNum === 29) {
       examJuzNumber = 30;
     } else if (targetJuzNum === 28) {
       examJuzNumber = 29;
+    } else if (targetJuzNum === 27) {
+      examJuzNumber = 28;
     } else if (targetJuzNum === 1) {
       examJuzNumber = 30;
-    } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+    } else if (targetJuzNum >= 2 && targetJuzNum <= 26) {
       examJuzNumber = targetJuzNum - 1;
     }
 
@@ -494,9 +496,11 @@ export async function PUT(request: NextRequest) {
       examJuzNumber = 30;
     } else if (targetJuzNum === 28) {
       examJuzNumber = 29;
+    } else if (targetJuzNum === 27) {
+      examJuzNumber = 28;
     } else if (targetJuzNum === 1) {
       examJuzNumber = 30;
-    } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+    } else if (targetJuzNum >= 2 && targetJuzNum <= 26) {
       examJuzNumber = targetJuzNum - 1;
     }
 

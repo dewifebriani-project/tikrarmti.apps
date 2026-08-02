@@ -9,6 +9,8 @@ interface ZoomLink {
   id?: string;
   name: string;
   url: string;
+  meeting_id?: string;
+  passcode?: string;
 }
 
 export function AdminZoomTab({ batches }: { batches: Batch[] }) {
@@ -49,7 +51,7 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
   };
 
   const handleAddRow = () => {
-    setZoomList([...zoomList, { name: '', url: '' }]);
+    setZoomList([...zoomList, { name: '', url: '', meeting_id: '', passcode: '' }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -154,39 +156,82 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {zoomList.map((zoom, idx) => (
-              <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors">
-                <div className="w-full sm:w-1/3">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Room</label>
-                  <input
-                    type="text"
-                    value={zoom.name}
-                    onChange={(e) => handleChange(idx, 'name', e.target.value)}
-                    placeholder="Contoh: Room 1"
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                  />
-                </div>
-                <div className="w-full flex-1">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">URL Zoom</label>
-                  <input
-                    type="url"
-                    value={zoom.url}
-                    onChange={(e) => handleChange(idx, 'url', e.target.value)}
-                    placeholder="https://zoom.us/j/..."
-                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                  />
-                </div>
-                <div className="pt-5 sm:pt-6">
-                  <button
-                    onClick={() => handleRemoveRow(idx)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Hapus"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Nama Room (mis: Room 1)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        URL Zoom
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Meeting ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Passcode
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {zoomList.map((zoom, index) => (
+                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={zoom.name}
+                            onChange={(e) => handleChange(index, 'name', e.target.value)}
+                            placeholder="Contoh: Room 1"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={zoom.url}
+                            onChange={(e) => handleChange(index, 'url', e.target.value)}
+                            placeholder="https://zoom.us/j/..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={zoom.meeting_id || ''}
+                            onChange={(e) => handleChange(index, 'meeting_id', e.target.value)}
+                            placeholder="728 7493 1909"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={zoom.passcode || ''}
+                            onChange={(e) => handleChange(index, 'passcode', e.target.value)}
+                            placeholder="MTI4"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={() => handleRemoveRow(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
+            </div>
             
             {zoomList.length === 0 && selectedBatchId && (
               <div className="text-center py-12 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">

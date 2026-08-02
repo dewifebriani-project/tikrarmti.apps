@@ -71,7 +71,7 @@ export function AddHalaqahModal({ onClose, onSuccess }: AddHalaqahModalProps) {
     start_time: '',
     end_time: '',
     location: '',
-    max_students: 10,
+    max_students: 5,
   });
 
   useEffect(() => {
@@ -398,7 +398,7 @@ export function AddHalaqahModal({ onClose, onSuccess }: AddHalaqahModalProps) {
             <input
               type="number"
               value={formData.max_students}
-              onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 10 })}
+              onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 5 })}
               min="1"
               max="100"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent"

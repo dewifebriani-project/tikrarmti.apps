@@ -826,7 +826,7 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
               day_of_week: dayNum,
               start_time: schedule.time_start,
               end_time: schedule.time_end,
-              max_students: muallimah.preferred_max_thalibah || 20,
+              max_students: muallimah.preferred_max_thalibah || 5,
               waitlist_max: 5,
               preferred_juz: muallimah.preferred_juz,
               status: 'active',

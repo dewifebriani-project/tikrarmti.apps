@@ -63,7 +63,7 @@ function distributeQuestionsBySection(allQuestions: any[], totalNeeded: number):
 // - Juz 28A or 28B -> Exam Juz 29
 // - Juz 29A or 29B -> Exam Juz 30
 // - Juz 1A or 1B -> Exam Juz 30
-// - Juz 30A or 30B -> No exam (return empty)
+// - Juz 30A or 30B -> No exam (starting target)
 // - Only available during selection dates of active open batch
 // - source=final-exam: uses chosen_juz directly, 100 questions distributed per category
 export async function GET(request: NextRequest) {
@@ -206,16 +206,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           data: [],
           total: 0,
-          message: 'Tidak ada ujian untuk juz 30',
+          message: 'Target Juz 30 tidak memerlukan ujian tertulis',
           noExamRequired: true
         });
       } else if (targetJuzNum === 29) {
         requiredJuzNumber = 30;
       } else if (targetJuzNum === 28) {
         requiredJuzNumber = 29;
+      } else if (targetJuzNum === 27) {
+        requiredJuzNumber = 28;
       } else if (targetJuzNum === 1) {
         requiredJuzNumber = 30;
-      } else if (targetJuzNum >= 2 && targetJuzNum <= 27) {
+      } else if (targetJuzNum >= 2 && targetJuzNum <= 26) {
         requiredJuzNumber = targetJuzNum - 1;
       } else {
         return NextResponse.json({

@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send, Save } from 'lucide-react';
 import { UserProfileCard } from '@/components/UserProfileCard';
+import { useJuzOptions } from '@/hooks/useJuzOptions';
 
 interface ExamQuestion {
   id: string;
@@ -58,10 +59,24 @@ function PilihanGandaContent() {
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [noExamRequired, setNoExamRequired] = useState(false);
   const [examConfig, setExamConfig] = useState<ExamConfig | null>(null);
+  const { juzOptions: examTargetOptions, isLoading: examTargetsLoading } = useJuzOptions(
+    batchId || undefined,
+    { examOnly: true }
+  );
 
   const [chosenJuz, setChosenJuz] = useState<string>('');
   const [examJuzNumber, setExamJuzNumber] = useState<number | null>(null);
   const [isChangingTarget, setIsChangingTarget] = useState(false);
+  const [targetChangeNotice, setTargetChangeNotice] = useState<string | null>(null);
+  const newThalibahTargetOptions = examTargetOptions.filter(
+    option => option.part === 'A' && option.juz_number !== 30
+  );
+
+  // New thalibah select a Bagian A memorization target. Paket B belongs to the
+  // question bank and is selected separately by the exam API.
+  const selectedExamTarget = newThalibahTargetOptions.some(option => option.code === chosenJuz)
+    ? chosenJuz
+    : newThalibahTargetOptions.find(option => option.juz_number === parseInt(chosenJuz, 10))?.code || chosenJuz;
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -147,6 +162,7 @@ function PilihanGandaContent() {
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
     setQuestionsError(null);
+    setNoExamRequired(false);
 
     try {
       const batchParam = batchId ? `&batchId=${encodeURIComponent(batchId)}` : '';
@@ -298,9 +314,16 @@ function PilihanGandaContent() {
       const res = await fetch('/api/exam/change-target', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetJuz: newTarget })
+        body: JSON.stringify({ targetJuz: newTarget, batchId })
       });
       if (res.ok) {
+        const result = await res.json();
+        const targetLabel = newTarget.toUpperCase();
+        setTargetChangeNotice(
+          result.examJuz
+            ? `Target hafalan berhasil diubah menjadi Juz ${targetLabel}. Soal yang akan muncul adalah soal Juz ${result.examJuz}. Silakan murajaah dan persiapkan hafalan Juz ${result.examJuz} sebelum memulai ujian.`
+            : `Target hafalan berhasil diubah menjadi Juz ${targetLabel}. Target Juz 30A tidak memerlukan ujian tertulis.`
+        );
         // re-fetch questions
         await fetchQuestions();
       } else {
@@ -320,11 +343,13 @@ function PilihanGandaContent() {
         const res = await fetch('/api/exam/change-target', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ skipExam: true })
+          body: JSON.stringify({ skipExam: true, batchId })
         });
         if (res.ok) {
           alert("Target hafalan telah diubah ke Juz 30A. Halaman akan dialihkan.");
-          router.push('/perjalanan-saya');
+          // A full navigation clears the in-memory SWR registration cache so
+          // Perjalanan Saya immediately reads target 30A/completed from DB.
+          window.location.assign('/perjalanan-saya');
         } else {
           alert("Gagal memproses aksi");
         }
@@ -653,44 +678,30 @@ function PilihanGandaContent() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <select 
                         className="p-2 border rounded-md text-sm bg-white focus:ring-2 focus:ring-green-500 flex-grow"
-                        value={chosenJuz}
+                        value={selectedExamTarget}
                         onChange={(e) => handleChangeTargetJuz(e.target.value)}
-                        disabled={isChangingTarget}
+                        disabled={isChangingTarget || examTargetsLoading || newThalibahTargetOptions.length === 0}
                       >
-                        <option value="1">Juz 1</option>
-                        <option value="2">Juz 2</option>
-                        <option value="3">Juz 3</option>
-                        <option value="4">Juz 4</option>
-                        <option value="5">Juz 5</option>
-                        <option value="6">Juz 6</option>
-                        <option value="7">Juz 7</option>
-                        <option value="8">Juz 8</option>
-                        <option value="9">Juz 9</option>
-                        <option value="10">Juz 10</option>
-                        <option value="11">Juz 11</option>
-                        <option value="12">Juz 12</option>
-                        <option value="13">Juz 13</option>
-                        <option value="14">Juz 14</option>
-                        <option value="15">Juz 15</option>
-                        <option value="16">Juz 16</option>
-                        <option value="17">Juz 17</option>
-                        <option value="18">Juz 18</option>
-                        <option value="19">Juz 19</option>
-                        <option value="20">Juz 20</option>
-                        <option value="21">Juz 21</option>
-                        <option value="22">Juz 22</option>
-                        <option value="23">Juz 23</option>
-                        <option value="24">Juz 24</option>
-                        <option value="25">Juz 25</option>
-                        <option value="26">Juz 26</option>
-                        <option value="27">Juz 27</option>
-                        <option value="28">Juz 28</option>
-                        <option value="29">Juz 29</option>
-                        <option value="30A">Juz 30A</option>
-                        <option value="30B">Juz 30B</option>
+                        {examTargetsLoading && <option value={chosenJuz}>Memuat pilihan juz...</option>}
+                        {!examTargetsLoading && newThalibahTargetOptions.length === 0 && (
+                          <option value={chosenJuz}>Belum ada target juz yang dibuka</option>
+                        )}
+                        {newThalibahTargetOptions.map(option => (
+                          <option key={option.code} value={option.code}>
+                            Juz {option.code}
+                          </option>
+                        ))}
                       </select>
                       {isChangingTarget && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
                     </div>
+                  )}
+                  {targetChangeNotice && (
+                    <Alert className="border-emerald-200 bg-emerald-50">
+                      <AlertCircle className="h-5 w-5 text-emerald-700" />
+                      <AlertDescription className="font-medium text-emerald-900">
+                        {targetChangeNotice}
+                      </AlertDescription>
+                    </Alert>
                   )}
                   {!isFinalExam && (
                     <div className="pt-2 border-t mt-2">

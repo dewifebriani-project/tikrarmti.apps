@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
 /**
@@ -102,19 +103,23 @@ export async function GET(request: Request) {
         }
 
         // Check mutual match
-        const { data: partnerSubmission } = await supabase
+        const supabaseAdmin = createSupabaseAdmin()
+        const { data: partnerSubmission } = await supabaseAdmin
           .from('daftar_ulang_submissions')
-          .select('id')
+          .select('id, status, partner_status')
           .eq('user_id', submissionData.partner_user_id)
           .eq('partner_user_id', user.id)
           .eq('batch_id', batchId)
           .eq('partner_type', 'self_match')
-          .in('status', ['submitted', 'approved'])
           .maybeSingle();
         
-        if (partnerSubmission) {
-          isMutualMatch = true;
-        }
+        isMutualMatch = Boolean(
+          partnerSubmission &&
+          (partnerSubmission.partner_status === 'submitted' ||
+            partnerSubmission.partner_status === 'approved' ||
+            partnerSubmission.status === 'submitted' ||
+            partnerSubmission.status === 'approved')
+        );
       }
         
       return NextResponse.json({

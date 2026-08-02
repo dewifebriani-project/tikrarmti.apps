@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const requestedBatchId = searchParams.get('batchId');
+    const examOnly = searchParams.get('examOnly') === 'true';
 
     let batchIdToUse = requestedBatchId;
 
@@ -68,6 +69,15 @@ export async function GET(request: NextRequest) {
     } else {
       // Fallback if no batch is active
       activeJuzOptions = allJuz.filter(juz => juz.is_active);
+    }
+
+    // The written-test target list follows the new-thalibah registration form.
+    // Only target Bagian A is selectable. This is separate from the question
+    // package: selection exams still load Paket B questions in the exam API.
+    if (examOnly) {
+      activeJuzOptions = activeJuzOptions.filter(
+        option => option.part === 'A' && option.juz_number !== 30
+      );
     }
 
     return NextResponse.json({ data: activeJuzOptions || [] });

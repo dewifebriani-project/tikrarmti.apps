@@ -67,7 +67,7 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
     start_time: '',
     end_time: '',
     location: '',
-    max_students: 20,
+    max_students: 5,
     preferred_juz: '',
   });
 
@@ -393,7 +393,7 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
             <input
               type="number"
               value={formData.max_students}
-              onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 20 })}
+              onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 5 })}
               min="1"
               max="100"
               disabled={loading}

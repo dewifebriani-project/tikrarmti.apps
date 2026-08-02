@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
           ...h,
           program_class_type: Array.isArray(h.programs) ? h.programs[0]?.class_type : (h.programs as any)?.class_type,
           is_full: false,
-          available_slots: h.max_students || 20
+          available_slots: h.max_students || 5
         }))
       }
       

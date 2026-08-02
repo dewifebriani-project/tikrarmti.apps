@@ -66,6 +66,8 @@ export async function POST(
         batch_id: batchId,
         name: link.name,
         url: link.url,
+        meeting_id: link.meeting_id || null,
+        passcode: link.passcode || null,
         is_active: true
       }));
 

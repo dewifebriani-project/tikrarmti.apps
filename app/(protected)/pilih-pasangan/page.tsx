@@ -41,6 +41,22 @@ interface HalaqahData {
 
 type Step = 'halaqah' | 'partner'
 
+const formatPartnerTimeSlot = (slot?: string) => {
+  if (!slot) return '-'
+  const slots: Record<string, string> = {
+    pagi_1: 'Pagi (05.00-07.00)', pagi_2: 'Pagi (07.00-09.00)', pagi_3: 'Pagi (09.00-11.30)',
+    siang_1: 'Siang (12.30-14.30)', sore_1: 'Sore (15.30-17.30)',
+    malam_1: 'Malam (18.30-20.30)', malam_2: 'Malam (20.30-22.30)'
+  }
+  return slots[slot] || slot.replace(/:/g, '.')
+}
+
+const displayPartnerTime = (slot?: string, timezone?: string) => {
+  const formatted = formatPartnerTimeSlot(slot)
+  if (formatted === '-' || /\bWI[BT]\b/i.test(formatted)) return formatted
+  return `${formatted} ${timezone || 'WIB'}`
+}
+
 export default function PilihPasanganPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
@@ -57,6 +73,14 @@ export default function PilihPasanganPage() {
   
   const [partners, setPartners] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [pendingPartner, setPendingPartner] = useState<{
+    userId: string
+    name: string
+    whatsapp?: string
+    registration?: any
+    juzCompatible?: boolean
+    timezoneCompatible?: boolean
+  } | null>(null)
 
   const [formData, setFormData] = useState({
     ujian_halaqah_id: '',
@@ -279,11 +303,132 @@ export default function PilihPasanganPage() {
   const sortedHalaqahData = [...halaqahData]
     .filter(h => h.program_class_type === expectedProgramType || !h.program_class_type)
     .sort((a, b) => (a.day_of_week || 0) - (b.day_of_week || 0))
+  const selectedHalaqah = sortedHalaqahData.find(
+    halaqah => halaqah.id === formData.ujian_halaqah_id && !halaqah.is_full
+  )
+
+  const continueToPartner = () => {
+    if (!selectedHalaqah) {
+      toast.error('Silakan pilih halaqah yang masih tersedia sebelum memilih pasangan.')
+      return
+    }
+    setCurrentStep('partner')
+  }
+
+  const selectSelfMatchPartner = (partner: any) => {
+    if (formData.partner_user_id === partner.user_id) return
+    setPendingPartner({
+      userId: partner.user_id,
+      name: partner.users?.full_name || 'thalibah ini',
+      whatsapp: partner.users?.whatsapp,
+      registration: partner.registrations?.[0],
+      juzCompatible: partner.juz_compatible,
+      timezoneCompatible: partner.timezone_compatible
+    })
+  }
+
+  const confirmSelfMatchPartner = () => {
+    if (!pendingPartner) return
+    setFormData(current => ({
+      ...current,
+      partner_user_id: pendingPartner.userId,
+      partner_name: pendingPartner.name
+    }))
+    toast.success(`Anda dan ${pendingPartner.name} sudah sepakat. Silakan lanjutkan dan simpan pilihan.`)
+    setPendingPartner(null)
+  }
+
+  const buildPartnerWhatsAppMessage = (partner: {
+    name: string
+    registration?: any
+    juzCompatible?: boolean
+    timezoneCompatible?: boolean
+  }) => {
+    const partnerRegistration = partner.registration
+    const ownSlots = [registrationData?.main_time_slot, registrationData?.backup_time_slot].filter(Boolean)
+    const mainTimeCompatible = Boolean(partnerRegistration?.main_time_slot && ownSlots.includes(partnerRegistration.main_time_slot))
+    const backupTimeCompatible = Boolean(partnerRegistration?.backup_time_slot && ownSlots.includes(partnerRegistration.backup_time_slot))
+    const mainMatchLabel = partnerRegistration?.main_time_slot === registrationData?.main_time_slot
+      ? 'Cocok dengan Waktu Utama Anda'
+      : partnerRegistration?.main_time_slot === registrationData?.backup_time_slot
+        ? 'Cocok dengan Waktu Cadangan Anda'
+        : 'Berbeda dengan jadwal Anda'
+    const backupMatchLabel = partnerRegistration?.backup_time_slot === registrationData?.main_time_slot
+      ? 'Cocok dengan Waktu Utama Anda'
+      : partnerRegistration?.backup_time_slot === registrationData?.backup_time_slot
+        ? 'Cocok dengan Waktu Cadangan Anda'
+        : 'Berbeda dengan jadwal Anda'
+
+    return `Assalamu'alaikum Ukhti ${partner.name}, perkenalkan saya ${registrationData?.full_name || 'peserta Tikrar'}, Thalibah Markaz Tikrar Indonesia, Juz ${registrationData?.chosen_juz || '-'}, Zona Waktu ${registrationData?.timezone || 'WIB'}.
+
+Saya melihat data Ukhti di halaman Pilih Pasangan:
+
+Juz Pilihan
+*${partnerRegistration?.chosen_juz || '-'}*
+${partner.juzCompatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+
+Zona Waktu
+*${partnerRegistration?.timezone || 'WIB'}*
+${partner.timezoneCompatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+
+Waktu Utama
+*${displayPartnerTime(partnerRegistration?.main_time_slot, partnerRegistration?.timezone)}*
+${mainTimeCompatible ? mainMatchLabel : 'Berbeda dengan jadwal Anda'}
+
+Waktu Cadangan
+*${displayPartnerTime(partnerRegistration?.backup_time_slot, partnerRegistration?.timezone)}*
+${backupTimeCompatible ? backupMatchLabel : 'Berbeda dengan jadwal Anda'}
+
+Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika sepakat, mohon pilih nama saya juga di halaman Pilih Pasangan ya.`
+  }
+
+  const contactPendingPartner = () => {
+    if (!pendingPartner?.whatsapp) {
+      toast.error('Nomor WhatsApp thalibah ini belum tersedia.')
+      return
+    }
+    const phone = pendingPartner.whatsapp.replace(/[^0-9]/g, '')
+    const message = encodeURIComponent(buildPartnerWhatsAppMessage(pendingPartner))
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank', 'noopener,noreferrer')
+  }
   
-  const filteredPartners = partners.filter((partner) => {
-    const fullName = partner.users?.full_name || ''
-    return fullName.toLowerCase().includes(searchQuery.toLowerCase())
-  })
+  const filteredPartners = partners
+    .filter((partner) => {
+      const fullName = partner.users?.full_name || ''
+      return fullName.toLowerCase().includes(searchQuery.toLowerCase())
+    })
+    .sort((a, b) => {
+      const getPriority = (partner: any) => {
+        const partnerRegistration = partner.registrations?.[0]
+        const matchesMainTime = Boolean(partnerRegistration?.main_time_slot && [registrationData?.main_time_slot, registrationData?.backup_time_slot].includes(partnerRegistration.main_time_slot))
+        const matchesBackupTime = Boolean(partnerRegistration?.backup_time_slot && [registrationData?.main_time_slot, registrationData?.backup_time_slot].includes(partnerRegistration.backup_time_slot))
+        const mainMatchesOwnMain = Boolean(registrationData?.main_time_slot && partnerRegistration?.main_time_slot === registrationData.main_time_slot)
+        const backupMatchesOwnMain = Boolean(registrationData?.main_time_slot && partnerRegistration?.backup_time_slot === registrationData.main_time_slot)
+        const matchCount = Number(partner.juz_compatible) + Number(partner.timezone_compatible) + Number(matchesMainTime) + Number(matchesBackupTime)
+
+        return {
+          matchCount,
+          mainMatchesOwnMain,
+          backupMatchesOwnMain,
+          selectedCurrentUser: Boolean(partner.has_user_selected_them)
+        }
+      }
+
+      const priorityA = getPriority(a)
+      const priorityB = getPriority(b)
+
+      // Kecocokan lengkap selalu paling atas.
+      const completeA = priorityA.matchCount === 4
+      const completeB = priorityB.matchCount === 4
+      if (completeA !== completeB) return Number(completeB) - Number(completeA)
+      // Jika tidak lengkap, kesamaan Waktu Utama menjadi patokan pertama.
+      if (priorityA.mainMatchesOwnMain !== priorityB.mainMatchesOwnMain) return Number(priorityB.mainMatchesOwnMain) - Number(priorityA.mainMatchesOwnMain)
+      if (priorityA.matchCount !== priorityB.matchCount) return priorityB.matchCount - priorityA.matchCount
+      if (priorityA.backupMatchesOwnMain !== priorityB.backupMatchesOwnMain) return Number(priorityB.backupMatchesOwnMain) - Number(priorityA.backupMatchesOwnMain)
+      if (priorityA.selectedCurrentUser !== priorityB.selectedCurrentUser) return Number(priorityB.selectedCurrentUser) - Number(priorityA.selectedCurrentUser)
+
+      return (a.users?.full_name || '').localeCompare(b.users?.full_name || '')
+    })
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
@@ -329,6 +474,26 @@ export default function PilihPasanganPage() {
                 ) : (
                   sortedHalaqahData.map(halaqah => {
                     const selected = formData.ujian_halaqah_id === halaqah.id
+                    const muallimahNames = halaqah.mentors
+                      ?.filter((mentor: any) => mentor.role === 'muallimah' || mentor.role === 'ustadzah')
+                      .map((mentor: any) => `Ustadzah ${mentor.users?.full_name}`)
+                      .join(', ') || '-'
+                    const formatTime = (time: string) => time?.slice(0, 5).replace(':', '.')
+                    const scheduleLabel = (() => {
+                      if (halaqah.muallimah_schedule) {
+                        try {
+                          const schedule = JSON.parse(halaqah.muallimah_schedule)
+                          return `${schedule.day} • ${formatTime(schedule.time_start)} - ${formatTime(schedule.time_end)} WIB`
+                        } catch {
+                          return halaqah.muallimah_schedule
+                        }
+                      }
+                      if (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time) {
+                        const dayNames = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
+                        return `${dayNames[halaqah.day_of_week]} • ${formatTime(halaqah.start_time)} - ${formatTime(halaqah.end_time)} WIB`
+                      }
+                      return '-'
+                    })()
                     return (
                       <div
                         key={halaqah.id}
@@ -343,7 +508,9 @@ export default function PilihPasanganPage() {
                         </div>
                         <div className={`px-4 py-3 flex items-center justify-between ${selected ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-gray-50 to-gray-100'}`}>
                           <div className="flex items-center space-x-3">
-                            <h4 className={`font-semibold ${selected ? 'text-white' : 'text-gray-900'}`}>{halaqah.name}</h4>
+                            <h4 className={`font-semibold ${selected ? 'text-white' : 'text-gray-900'}`}>
+                              Tahfidz Tikrar MTI - {muallimahNames} - {scheduleLabel}
+                            </h4>
                             <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getClassTypeColor(halaqah.class_type)}`}>
                               {getClassTypeLabel(halaqah.class_type)}
                             </span>
@@ -379,8 +546,30 @@ export default function PilihPasanganPage() {
                             </div>
                           )}
 
-                          {/* Schedule / Jadwal - Moved to top */}
-                          {(halaqah.muallimah_schedule || (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time)) && (
+                          {/* Juz */}
+                          {halaqah.muallimah_preferred_juz && (
+                            <div className="flex items-center space-x-3 text-sm mb-3">
+                              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                                <Info className="w-4 h-4 text-green-600" />
+                              </div>
+                              <span className="text-gray-700">
+                                <span className="font-semibold">Juz: </span>{halaqah.muallimah_preferred_juz}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Muallimah */}
+                          <div className="flex items-center space-x-3 text-sm mb-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                              <span className="font-semibold text-emerald-700">U</span>
+                            </div>
+                            <span className="text-gray-700">
+                              <span className="font-semibold">Muallimah: </span>{muallimahNames}
+                            </span>
+                          </div>
+
+                          {/* Jadwal */}
+                          {scheduleLabel !== '-' && (
                             <div className="flex items-center space-x-3 text-sm mb-4 bg-amber-50 p-3 rounded-lg border border-amber-100">
                               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
                                 <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,43 +578,8 @@ export default function PilihPasanganPage() {
                               </div>
                               <span className="text-gray-700">
                                 <span className="font-semibold block text-amber-900 mb-0.5">Jadwal Kelas</span>
-                                {(() => {
-                                  if (halaqah.muallimah_schedule) {
-                                    try {
-                                      const schedule = JSON.parse(halaqah.muallimah_schedule)
-                                      return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
-                                    } catch {
-                                      return halaqah.muallimah_schedule
-                                    }
-                                  }
-                                  if (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time) {
-                                    const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
-                                    return `${DAY_NAMES[halaqah.day_of_week]} • ${halaqah.start_time} - ${halaqah.end_time} WIB`
-                                  }
-                                  return '-'
-                                })()}
+                                {scheduleLabel}
                               </span>
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                            {/* Juz */}
-                            {halaqah.muallimah_preferred_juz && (
-                              <div className="flex items-center space-x-2 text-sm">
-                                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
-                                  <Info className="w-4 h-4 text-green-600" />
-                                </div>
-                                <span className="text-gray-700">
-                                  <span className="font-medium">Juz: </span>{halaqah.muallimah_preferred_juz}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          {halaqah.mentors && halaqah.mentors.length > 0 && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <span className="font-medium">Muallimah:</span>{' '}
-                              {halaqah.mentors.filter((m: any) => m.role === 'muallimah' || m.role === 'ustadzah').map((m: any) => `Ustadzah ${m.users?.full_name}`).join(', ') || '-'}
                             </div>
                           )}
                         </div>
@@ -437,9 +591,10 @@ export default function PilihPasanganPage() {
 
               <div className="flex justify-end pt-6 border-t">
                 <Button 
-                  onClick={() => setCurrentStep('partner')}
-                  disabled={!formData.ujian_halaqah_id}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  type="button"
+                  onClick={continueToPartner}
+                  disabled={!selectedHalaqah}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
                 >
                   Selanjutnya <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -637,6 +792,35 @@ export default function PilihPasanganPage() {
               {formData.partner_type === 'self_match' && (
                 <div className="bg-purple-50 rounded-lg p-5 border border-purple-100">
                   <h3 className="font-medium text-purple-900 mb-4">Cari Pasangan</h3>
+                  <div className="mb-4 rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-purple-900">Data Anda</p>
+                        <p className="text-xs text-gray-500">Data ini menjadi pembanding kecocokan pasangan.</p>
+                      </div>
+                      <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                        {registrationData?.full_name || 'Thalibah'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 p-2">
+                        <span className="block text-gray-500">Juz Pilihan</span>
+                        <span className="font-semibold text-purple-900">{registrationData?.chosen_juz || '-'}</span>
+                      </div>
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 p-2">
+                        <span className="block text-gray-500">Zona Waktu</span>
+                        <span className="font-semibold text-purple-900">{registrationData?.timezone || 'WIB'}</span>
+                      </div>
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 p-2">
+                        <span className="block text-gray-500">Waktu Utama</span>
+                        <span className="font-semibold text-purple-900">{displayPartnerTime(registrationData?.main_time_slot, registrationData?.timezone)}</span>
+                      </div>
+                      <div className="rounded-lg border border-purple-100 bg-purple-50 p-2">
+                        <span className="block text-gray-500">Waktu Cadangan</span>
+                        <span className="font-semibold text-purple-900">{displayPartnerTime(registrationData?.backup_time_slot, registrationData?.timezone)}</span>
+                      </div>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     placeholder="Ketik nama untuk mencari..."
@@ -667,44 +851,41 @@ export default function PilihPasanganPage() {
                             ageText = `${age} thn`
                           }
 
-                          const formatTimeSlot = (slot: string) => {
-                            const slots: Record<string, string> = {
-                              'pagi_1': 'Pagi (05:00-07:00)', 'pagi_2': 'Pagi (07:00-09:00)', 'pagi_3': 'Pagi (09:00-11:30)',
-                              'siang_1': 'Siang (12:30-14:30)', 'sore_1': 'Sore (15:30-17:30)',
-                              'malam_1': 'Malam (18:30-20:30)', 'malam_2': 'Malam (20:30-22:30)'
-                            }
-                            return slots[slot] || slot
-                          }
+                          const ownSlots = [registrationData?.main_time_slot, registrationData?.backup_time_slot].filter(Boolean)
+                          const mainTimeCompatible = Boolean(reg?.main_time_slot && ownSlots.includes(reg.main_time_slot))
+                          const backupTimeCompatible = Boolean(reg?.backup_time_slot && ownSlots.includes(reg.backup_time_slot))
+                          const mainMatchLabel = reg?.main_time_slot === registrationData?.main_time_slot
+                            ? 'Cocok dengan Waktu Utama Anda'
+                            : reg?.main_time_slot === registrationData?.backup_time_slot
+                              ? 'Cocok dengan Waktu Cadangan Anda'
+                              : 'Tidak sama dengan jadwal Anda'
+                          const backupMatchLabel = reg?.backup_time_slot === registrationData?.main_time_slot
+                            ? 'Cocok dengan Waktu Utama Anda'
+                            : reg?.backup_time_slot === registrationData?.backup_time_slot
+                              ? 'Cocok dengan Waktu Cadangan Anda'
+                              : 'Tidak sama dengan jadwal Anda'
 
-                          let matchCount = 0;
-                          if (p.juz_compatible) matchCount++;
-                          if (p.timezone_compatible) matchCount++;
-                          if (p.schedule_compatible) matchCount++;
+                          const matchCount = Number(p.juz_compatible)
+                            + Number(p.timezone_compatible)
+                            + Number(mainTimeCompatible)
+                            + Number(backupTimeCompatible)
 
                           // "Kalau tiga2nya sesuai hijau. Kalau sesuai 2 kuning kalau 2nya ga termasuk jadwal. Kalau jadwal termasuk dari 2 yhvsesuai biru."
                           let baseBgClass = 'bg-white border-gray-200 hover:border-purple-300';
-                          if (matchCount === 3) {
+                          if (matchCount === 4) {
                             baseBgClass = 'bg-emerald-50 border-emerald-400 hover:border-emerald-500 shadow-sm';
-                          } else if (matchCount === 2) {
-                            if (p.schedule_compatible) {
+                          } else if (matchCount >= 2) {
+                            if (mainTimeCompatible) {
                               baseBgClass = 'bg-blue-50 border-blue-400 hover:border-blue-500 shadow-sm';
                             } else {
                               baseBgClass = 'bg-amber-50 border-amber-400 hover:border-amber-500 shadow-sm';
                             }
                           }
 
-                          // Smarter time display
-                          const displayTime = (slot: string, tz: string) => {
-                            if (!slot) return '-';
-                            const formatted = formatTimeSlot(slot);
-                            if (formatted.includes('WIB') || formatted.includes('WIT')) return formatted;
-                            return `${formatted} ${tz || 'WIB'}`;
-                          };
-
                           return (
                             <div
                               key={p.user_id}
-                              onClick={() => setFormData(f => ({ ...f, partner_user_id: p.user_id, partner_name: p.users?.full_name }))}
+                              onClick={() => selectSelfMatchPartner(p)}
                               className={`relative p-4 border rounded-xl cursor-pointer transition-all flex flex-col justify-between hover:shadow-md
                                 ${formData.partner_user_id === p.user_id ? 'bg-purple-50 border-purple-500 ring-1 ring-purple-500' : baseBgClass}
                               `}
@@ -733,38 +914,68 @@ export default function PilihPasanganPage() {
                                       {p.users?.full_name}
                                     </h4>
                                     <p className="text-xs text-gray-500">{ageText} • {reg?.domicile || 'Lokasi tidak diketahui'}</p>
+                                    <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                      matchCount === 4
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : mainTimeCompatible
+                                          ? 'bg-blue-100 text-blue-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                      {matchCount} dari 4 cocok
+                                    </span>
                                   </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                  <div className={`rounded p-2 border ${p.juz_compatible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}>
+                                  <div className={`rounded p-2 border ${p.juz_compatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                                     <span className="block text-gray-500 mb-1">Juz Pilihan</span>
-                                    <span className={`font-medium ${p.juz_compatible ? 'text-green-700' : 'text-gray-900'}`}>{reg?.chosen_juz || '-'}</span>
-                                    {p.juz_compatible && <span className="text-[10px] text-green-600 block mt-0.5">Sama dengan Anda</span>}
-                                  </div>
-                                  <div className="bg-gray-50 rounded p-2 border border-transparent">
-                                    <span className="block text-gray-500 mb-1">Zona Waktu</span>
-                                    <span className="font-medium text-gray-900">{reg?.timezone || 'WIB'}</span>
-                                  </div>
-                                  <div className={`rounded p-2 col-span-2 border ${p.schedule_compatible ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent'}`}>
-                                    <span className="block text-gray-500 mb-1">Ketersediaan Waktu</span>
-                                    <span className={`font-medium ${p.schedule_compatible ? 'text-emerald-700' : 'text-gray-900'}`}>
-                                      {displayTime(reg?.main_time_slot, reg?.timezone)}
+                                    <span className={`font-medium ${p.juz_compatible ? 'text-green-700' : 'text-amber-800'}`}>{reg?.chosen_juz || '-'}</span>
+                                    <span className={`block mt-0.5 text-[10px] ${p.juz_compatible ? 'text-green-600' : 'text-amber-700'}`}>
+                                      {p.juz_compatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
                                     </span>
-                                    {reg?.backup_time_slot && (
-                                      <span className="block text-gray-500 mt-1">
-                                        Alt: {displayTime(reg.backup_time_slot, reg?.timezone)}
-                                      </span>
-                                    )}
-                                    {p.schedule_compatible && <span className="text-[10px] text-emerald-600 block mt-0.5">Jadwal cocok dengan Anda</span>}
                                   </div>
+                                  <div className={`rounded p-2 border ${p.timezone_compatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                    <span className="block text-gray-500 mb-1">Zona Waktu</span>
+                                    <span className={`font-medium ${p.timezone_compatible ? 'text-green-700' : 'text-amber-800'}`}>{reg?.timezone || 'WIB'}</span>
+                                    <span className={`block mt-0.5 text-[10px] ${p.timezone_compatible ? 'text-green-600' : 'text-amber-700'}`}>
+                                      {p.timezone_compatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+                                    </span>
+                                  </div>
+                                  <div className={`rounded p-2 border ${mainTimeCompatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                    <span className="block text-gray-500 mb-1">Waktu Utama</span>
+                                    <span className={`font-medium ${mainTimeCompatible ? 'text-emerald-700' : 'text-amber-800'}`}>
+                                      {displayPartnerTime(reg?.main_time_slot, reg?.timezone)}
+                                    </span>
+                                    <span className={`block mt-0.5 text-[10px] ${mainTimeCompatible ? 'text-green-600' : 'text-amber-700'}`}>
+                                      {mainMatchLabel}
+                                    </span>
+                                  </div>
+                                  <div className={`rounded p-2 border ${backupTimeCompatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                                    <span className="block text-gray-500 mb-1">Waktu Cadangan</span>
+                                    <span className={`font-medium ${backupTimeCompatible ? 'text-emerald-700' : 'text-amber-800'}`}>
+                                      {displayPartnerTime(reg?.backup_time_slot, reg?.timezone)}
+                                    </span>
+                                    <span className={`block mt-0.5 text-[10px] ${backupTimeCompatible ? 'text-green-600' : 'text-amber-700'}`}>
+                                      {backupMatchLabel}
+                                    </span>
+                                  </div>
+                                  {p.schedule_compatible && (
+                                    <span className="col-span-2 text-[10px] text-emerald-600 -mt-1">
+                                      Jadwal cocok dengan Anda
+                                    </span>
+                                  )}
                                 </div>
                                 
                                 {/* Action Buttons */}
                                 <div className="flex items-center space-x-2 mt-2 pt-3 border-t border-gray-100">
                                   {p.users?.whatsapp && (
                                     <a
-                                      href={`https://wa.me/${p.users.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalamu'alaikum ukhti ${p.users.full_name}, perkenalkan saya ${registrationData?.full_name || 'peserta Tikrar'}. Saya melihat profil ukhti di halaman Pilih Pasangan MTI dan jadwal kita sepertinya cocok. Apakah ukhti berkenan jika kita berpasangan?`)}`}
+                                      href={`https://wa.me/${p.users.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(buildPartnerWhatsAppMessage({
+                                        name: p.users.full_name,
+                                        registration: reg,
+                                        juzCompatible: p.juz_compatible,
+                                        timezoneCompatible: p.timezone_compatible
+                                      }))}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex-1 flex items-center justify-center space-x-1 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-md text-xs font-medium transition-colors border border-green-200"
@@ -855,6 +1066,43 @@ export default function PilihPasanganPage() {
           )}
         </CardContent>
       </Card>
+
+      {pendingPartner && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" onClick={() => setPendingPartner(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pink-100 text-2xl">
+              ❤️
+            </div>
+            <h3 className="text-center text-xl font-bold text-gray-900">Sudah Menghubungi dan Sepakat?</h3>
+            <p className="mt-3 text-center text-sm leading-6 text-gray-600">
+              Pastikan Anda sudah menghubungi <strong>{pendingPartner.name}</strong> dan beliau setuju menjadi pasangan belajar Anda. Self match baru lengkap setelah beliau memilih Anda kembali.
+            </p>
+            <div className="mt-6 space-y-3">
+              <button
+                type="button"
+                onClick={confirmSelfMatchPartner}
+                className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Ya, Kami Sudah Sepakat
+              </button>
+              <button
+                type="button"
+                onClick={contactPendingPartner}
+                className="w-full rounded-lg border border-green-300 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-100"
+              >
+                Belum, Hubungi via WhatsApp
+              </button>
+              <button
+                type="button"
+                onClick={() => setPendingPartner(null)}
+                className="w-full px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
