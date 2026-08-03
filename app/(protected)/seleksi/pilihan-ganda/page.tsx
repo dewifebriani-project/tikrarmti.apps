@@ -637,7 +637,7 @@ function PilihanGandaContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-sm">
               <div className="space-y-1">
                 <p className="text-gray-600 font-medium text-xs sm:text-sm">Nama Lengkap</p>
-                <p className="text-gray-900 font-semibold text-sm sm:text-base">{user?.user_metadata?.full_name || user?.email || '-'}</p>
+                <p className="text-gray-900 font-semibold text-sm sm:text-base">{(user as any)?.user_metadata?.full_name || (user as any)?.full_name || (user as any)?.email || '-'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-gray-600 font-medium text-xs sm:text-sm">Target Hafalan (Saat Daftar)</p>
