@@ -528,6 +528,18 @@ function DaftarUlangContent() {
       return
     }
 
+    if (!formData.pengabdian_choice) {
+      toast.error('Pilihan pengabdian atau donasi wajib diisi.')
+      setCurrentStep('pengabdian')
+      return
+    }
+
+    if (formData.pengabdian_choice === 'donasi' && !formData.donasi_amount) {
+      toast.error('Masukkan nominal infaq bulanan Anda.')
+      setCurrentStep('pengabdian')
+      return
+    }
+
     setIsLoading(true)
     try {
       const submitData = {

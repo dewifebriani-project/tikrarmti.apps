@@ -255,6 +255,18 @@ export async function submitDaftarUlang(
       has_akad_files: !!data.akad_files && data.akad_files.length > 0
     })
 
+    if (!data.pengabdian_choice) {
+      return { success: false, error: 'Pilihan pengabdian atau donasi wajib diisi.' }
+    }
+
+    if (data.pengabdian_choice === 'donasi' && !data.donasi_amount) {
+      return { success: false, error: 'Nominal infaq bulanan wajib diisi jika memilih donasi.' }
+    }
+
+    if (!data.akad_files || data.akad_files.length === 0) {
+      return { success: false, error: 'Minimal harus ada 1 file akad pendaftaran' }
+    }
+
     if (data.partner_type === 'self_match' && !data.partner_user_id) {
       return { success: false, error: 'Nama pasangan belajar wajib dipilih untuk tipe Memilih Sendiri' }
     }
