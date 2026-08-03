@@ -112,6 +112,15 @@ export default function PilihPasanganPage() {
         setExistingSubmission(data.data.existingSubmission)
 
         if (data.data.existingSubmission) {
+          const sub = data.data.existingSubmission;
+          const isAkadSubmitted = sub.akad_status === 'submitted' || sub.akad_status === 'approved' || sub.status === 'submitted' || sub.status === 'approved';
+          
+          if (!isAkadSubmitted) {
+            toast.error('Silakan selesaikan form Upload Akad terlebih dahulu');
+            router.push('/perjalanan-saya');
+            return;
+          }
+
           setFormData(prev => ({
             ...prev,
             ujian_halaqah_id: data.data.existingSubmission.ujian_halaqah_id || '',

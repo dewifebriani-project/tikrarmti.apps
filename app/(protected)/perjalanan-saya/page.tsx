@@ -564,7 +564,7 @@ export default function PerjalananSaya() {
             isTestAction: !isPraTikrar && hasAkad && !(hasHalaqah && hasPartnerSelection),
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`,
-            isEditAction: !isPraTikrar && hasHalaqah && hasPartnerSelection,
+            isEditAction: !isPraTikrar && hasAkad && hasHalaqah && hasPartnerSelection,
             isEditDisabled: isReEnrollmentDoneByDate,
             editUrl: `/pilih-pasangan?batchId=${batchId}`,
             editLabel: 'Edit',
