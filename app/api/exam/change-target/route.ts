@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
           exam_status: 'completed',
           exam_juz_number: null,
           exam_score: 0,
+          exam_attempt_id: null,
         })
         .eq('id', registration.id);
 
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
         .from('pendaftaran_tikrar_tahfidz')
         .update({
           chosen_juz: targetJuz,
+          exam_attempt_id: null,
         })
         .eq('id', registration.id);
 

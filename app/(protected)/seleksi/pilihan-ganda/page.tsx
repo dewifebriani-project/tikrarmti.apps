@@ -118,6 +118,9 @@ function PilihanGandaContent() {
     }
   }, [questions.length, user]);
 
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftAnswersCount, setDraftAnswersCount] = useState(0);
+
   const checkAndAutoStart = async () => {
     try {
       const response = await fetch('/api/exam/attempts');
@@ -125,8 +128,9 @@ function PilihanGandaContent() {
       if (response.ok) {
         const data = await response.json();
         if (data.attempt && (data.attempt.status === 'draft' || data.attempt.status === 'in_progress')) {
-          // Auto-start quiz if user has existing draft
-          setQuizStarted(true);
+          setHasDraft(true);
+          const ansCount = data.attempt.answers ? data.attempt.answers.filter((a: any) => a.answer).length : 0;
+          setDraftAnswersCount(ansCount);
         }
       }
     } catch (error) {
@@ -650,6 +654,15 @@ function PilihanGandaContent() {
                 </AlertDescription>
               </Alert>
 
+              {hasDraft && (
+                <Alert className="bg-indigo-50 border-indigo-200">
+                  <AlertCircle className="h-5 w-5 text-indigo-600" />
+                  <AlertDescription className="text-indigo-800 font-medium">
+                    Ukhti memiliki ujian yang belum selesai (tersimpan {draftAnswersCount} jawaban). Silakan klik <strong>Lanjutkan Ujian</strong> untuk meneruskan. Jika Ukhti mengubah target hafalan, maka progres ujian ini akan direset.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Persiapan Sebelum Ujian:</h3>
                 <Alert className="bg-amber-50 border-amber-200">
@@ -739,7 +752,7 @@ function PilihanGandaContent() {
                   size="lg"
                 >
                   <FileText className="w-5 h-5 mr-2" />
-                  Mulai Ujian
+                  {hasDraft ? 'Lanjutkan Ujian' : 'Mulai Ujian'}
                 </Button>
               </div>
             </CardContent>

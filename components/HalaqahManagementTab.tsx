@@ -1132,9 +1132,11 @@ export function HalaqahManagementTab() {
             </div>
           ) : (
             <>
-              {/* Table with horizontal scroll */}
-              <div className="overflow-x-auto overflow-y-visible scroll-smooth">
-                <table className="w-full border-collapse min-w-[1200px]">
+              {/* Container for both views */}
+              <div className="w-full">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto overflow-y-visible scroll-smooth">
+                  <table className="w-full border-collapse min-w-[1200px]">
                   <thead className="sticky top-0 z-10">
                     <tr>
                       <th
@@ -1368,6 +1370,131 @@ export function HalaqahManagementTab() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="block md:hidden space-y-4 p-4">
+                {filteredAndSortedHalaqahs.map((halaqah) => (
+                  <div key={halaqah.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3 relative">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 pr-16">
+                        <p className="font-bold text-gray-900 text-lg leading-tight">
+                          {formatHalaqahName(halaqah)}
+                        </p>
+                        <p className="text-sm text-gray-500 font-medium mt-1">
+                          {formatClassType(halaqah.class_type || halaqah.program?.class_type)}
+                        </p>
+                      </div>
+                      <div className="absolute top-4 right-4">
+                        {getStatusBadge(halaqah.status)}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Target Juz</span>
+                        <span className="font-semibold">{halaqah.preferred_juz || '-'}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Muallimah</span>
+                        <span className="truncate font-semibold">{halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name.split(' ')[0]}` : 'Belum Ada'}</span>
+                      </div>
+                      <div className="col-span-2 flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Jadwal</span>
+                        <span className="font-semibold">
+                          {halaqah.day_of_week ? (
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                              {getDayName(halaqah.day_of_week)}, {halaqah.start_time} - {halaqah.end_time} WIB
+                            </div>
+                          ) : (
+                            <span dangerouslySetInnerHTML={{ __html: formatSchedule(halaqah.preferred_schedule) }} />
+                          )}
+                        </span>
+                      </div>
+                      {halaqah.location && (
+                         <div className="col-span-2 flex flex-col gap-0.5">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Lokasi</span>
+                            <span className="font-semibold">{halaqah.location}</span>
+                         </div>
+                      )}
+                    </div>
+
+                    <div className="border border-gray-100 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-gray-400" /> Quota Thalibah
+                        </span>
+                        <span className="text-xs font-semibold">
+                          {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} dari {halaqah.max_students || 20} sisa
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            (halaqah._count?.students || 0) >= (halaqah.max_students || 20)
+                              ? 'bg-red-500'
+                              : (halaqah.max_students || 20) - (halaqah._count?.students || 0) <= 3
+                              ? 'bg-orange-500'
+                              : 'bg-green-500'
+                          }`}
+                          style={{ width: `${((halaqah._count?.students || 0) / (halaqah.max_students || 20)) * 100}%` }}
+                        ></div>
+                      </div>
+                      <QuotaDetailsCell halaqah={halaqah} />
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1.5 pt-1">
+                      <button
+                        onClick={() => setSelectedHalaqah(halaqah)}
+                        className="col-span-2 flex items-center justify-center gap-1 p-2.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 active:scale-95"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Detail
+                      </button>
+                      
+                      <button
+                        onClick={() => handleCopyReminder(halaqah)}
+                        disabled={copyingId === `reminder-${halaqah.id}`}
+                        className="flex items-center justify-center p-2.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all border border-purple-100 active:scale-95 disabled:opacity-50"
+                        title="Salin Reminder"
+                      >
+                        {copyingId === `reminder-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleCopyTagThalibah(halaqah)}
+                        disabled={copyingId === `tag-${halaqah.id}`}
+                        className="flex items-center justify-center p-2.5 text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-lg transition-all border border-teal-100 active:scale-95 disabled:opacity-50"
+                        title="Salin Tag"
+                      >
+                        {copyingId === `tag-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleCopyLaporan(halaqah)}
+                        disabled={copyingId === `laporan-${halaqah.id}`}
+                        className="flex items-center justify-center p-2.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-100 active:scale-95 disabled:opacity-50"
+                        title="Salin Laporan"
+                      >
+                        {copyingId === `laporan-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => setEditingHalaqah(halaqah)}
+                        className="flex items-center justify-center p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-95"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteHalaqah(halaqah.id)}
+                        className="flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-95"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+            </div>
 
             </>
           )}
