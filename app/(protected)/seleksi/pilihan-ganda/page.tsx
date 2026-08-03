@@ -627,8 +627,25 @@ function PilihanGandaContent() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-        {/* User Profile Card */}
-        <UserProfileCard userId={user?.id} showAlert={false} showTitle={false} />
+        {/* Registration Data Card */}
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="font-bold text-lg sm:text-xl text-gray-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+              Data Pendaftaran
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-sm">
+              <div className="space-y-1">
+                <p className="text-gray-600 font-medium text-xs sm:text-sm">Nama Lengkap</p>
+                <p className="text-gray-900 font-semibold text-sm sm:text-base">{user?.user_metadata?.full_name || user?.email || '-'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-gray-600 font-medium text-xs sm:text-sm">Target Hafalan (Saat Daftar)</p>
+                <p className="text-gray-900 font-semibold text-sm sm:text-base">Juz {chosenJuz || '-'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {!quizStarted ? (
           /* Start Quiz Screen */
