@@ -307,27 +307,28 @@ function DaftarUlangContent() {
         const submissionStatus = halaqahDataResult.data?.existing_submission?.status
         const existingSub = halaqahDataResult.data?.existing_submission
 
+        // "Edit Halaqah/Partner" mode: entered from "Pilih Halaqah & Pasangan" card
+        const isHalaqahEditMode = searchParams.get('editHalaqah') === 'true'
+
         if (isAkadEditMode && existingSub) {
           // Came here specifically to add a missed akad file — jump straight to
           // the akad step regardless of draft/submitted/approved status or
           // halaqah/partner completion, and don't touch any of those when saving.
           setCurrentStep('akad')
         } else if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
-          if (submissionStatus === 'approved') {
-            if (!existingSub.ujian_halaqah_id) {
-              // Approved but hasn't selected halaqah
-              setCurrentStep('halaqah')
-            } else if (!existingSub.partner_type) {
-              // Approved, has halaqah, hasn't selected partner
-              setCurrentStep('partner')
-            } else {
-              // Fully completed, redirect to perjalanan-saya
-              toast.success('Alhamdulillah! Daftar ulang selesai.')
-              router.push('/perjalanan-saya')
-              return
-            }
+          if (!existingSub.ujian_halaqah_id || isHalaqahEditMode) {
+            // Hasn't selected halaqah OR explicitly requested to edit
+            setCurrentStep('halaqah')
+          } else if (!existingSub.partner_type) {
+            // Has halaqah, hasn't selected partner
+            setCurrentStep('partner')
+          } else if (submissionStatus === 'approved') {
+            // Fully completed and approved, redirect to perjalanan-saya
+            toast.success('Alhamdulillah! Daftar ulang selesai.')
+            router.push('/perjalanan-saya')
+            return
           } else {
-            // Submitted but not approved
+            // Submitted but not approved, and halaqah & partner already selected
             setCurrentStep('success')
             toast.success('Anda sudah melakukan daftar ulang! Menunggu persetujuan admin.')
           }

@@ -537,6 +537,7 @@ export default function PerjalananSaya() {
             done: isPraTikrar || (hasHalaqah && hasPartnerSelection && isPartnerComplete),
             data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (() => {
               if (!hasAkadFiles) return 'Belum submit akad';
+              if (!isAkadSubmitted) return 'Silakan klik Mulai di Upload Akad terlebih dahulu';
               // Build detailed status showing what's done and what's missing
               const parts: string[] = [];
               parts.push(hasHalaqah ? `Halaqah: ✓` : `Halaqah belum dipilih`);
