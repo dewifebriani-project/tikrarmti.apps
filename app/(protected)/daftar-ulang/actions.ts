@@ -301,15 +301,15 @@ export async function submitDaftarUlang(
       confirmed_wa_phone: data.confirmed_wa_phone || registration.wa_phone,
       confirmed_address: data.confirmed_address || registration.address,
 
-      // Partner selection - Convert empty strings to null (partner_type is only
-      // known once the user reaches the 'partner' step; NOT NULL was dropped in
-      // migration 20260725_allow_null_partner_type.sql to support this)
-      partner_type: data.partner_type || null,
-      partner_user_id: data.partner_user_id || null,
-      partner_name: data.partner_name || null,
-      partner_relationship: data.partner_relationship || null,
-      partner_wa_phone: data.partner_wa_phone || null,
-      partner_notes: data.partner_notes || null,
+      // Partner selection
+      // If halaqah is not selected yet, partner fields MUST be null to prevent
+      // orphaned partner selections from old drafts.
+      partner_type: data.ujian_halaqah_id ? (data.partner_type || null) : null,
+      partner_user_id: data.ujian_halaqah_id ? (data.partner_user_id || null) : null,
+      partner_name: data.ujian_halaqah_id ? (data.partner_name || null) : null,
+      partner_relationship: data.ujian_halaqah_id ? (data.partner_relationship || null) : null,
+      partner_wa_phone: data.ujian_halaqah_id ? (data.partner_wa_phone || null) : null,
+      partner_notes: data.ujian_halaqah_id ? (data.partner_notes || null) : null,
 
       // Pengabdian & Donasi
       pengabdian_choice: (() => {
