@@ -1916,6 +1916,14 @@ function PartnerSelectionStep({
 
             {formData.partner_type === 'family' && (
               <div className="mt-4 space-y-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-3">
+                  <div className="flex">
+                    <Info className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      <strong>Penting:</strong> Nama yang diinput di sini <strong>BUKAN</strong> nama Thalibah yang terdaftar di angkatan ini. Jika keluarga Anda juga peserta MTI di angkatan ini, silakan gunakan opsi <strong>Memilih Sendiri</strong>.
+                    </p>
+                  </div>
+                </div>
                 <input
                   type="text"
                   placeholder="Nama lengkap"
