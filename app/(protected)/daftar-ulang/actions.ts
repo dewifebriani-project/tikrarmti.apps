@@ -68,10 +68,6 @@ export async function saveDaftarUlangDraft(
   }
 
   try {
-    if (data.partner_type === 'self_match' && !data.partner_user_id) {
-      return { success: false, error: 'Nama pasangan belajar wajib dipilih untuk tipe Memilih Sendiri' }
-    }
-
     // Check for existing draft
     const { data: existing } = await supabase
       .from('daftar_ulang_submissions')
@@ -265,10 +261,6 @@ export async function submitDaftarUlang(
 
     if (!data.akad_files || data.akad_files.length === 0) {
       return { success: false, error: 'Minimal harus ada 1 file akad pendaftaran' }
-    }
-
-    if (data.partner_type === 'self_match' && !data.partner_user_id) {
-      return { success: false, error: 'Nama pasangan belajar wajib dipilih untuk tipe Memilih Sendiri' }
     }
 
     // Check for existing submission
