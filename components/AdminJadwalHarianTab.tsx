@@ -65,16 +65,13 @@ export default function AdminJadwalHarianTab() {
           start_time,
           end_time,
           preferred_juz,
-          class_type,
           zoom_link,
-          zoom_name,
-          zoom_meeting_id,
-          zoom_passcode,
+          zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
-          program:programs(class_type, batch:batches(name)),
+          program:programs!inner(class_type, batch_id, batch:batches(name)),
           students:halaqah_students(status, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
         `)
-        .eq('batch_id', batch.id)
+        .eq('program.batch_id', batch.id)
         .eq('day_of_week', activeDay)
         .eq('status', 'active')
         .order('start_time', { ascending: true });
@@ -84,6 +81,10 @@ export default function AdminJadwalHarianTab() {
       // Map to HalaqahForReminder format
       const formattedData: HalaqahForReminder[] = (halaqahData || []).map((h: any) => ({
         ...h,
+        zoom_name: h.zoom?.name || '',
+        zoom_link: h.zoom?.url || h.zoom_link || '',
+        zoom_meeting_id: '',
+        zoom_passcode: '',
         muallimah: {
           full_name: h.muallimah?.full_name
         },
