@@ -1,4 +1,5 @@
 export interface HalaqahForReminder {
+  id?: string;
   name: string;
   day_of_week?: number;
   start_time?: string;
