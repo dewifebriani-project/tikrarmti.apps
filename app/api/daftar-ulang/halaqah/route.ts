@@ -31,17 +31,18 @@ export async function GET(request: NextRequest) {
       query = query.eq('batch_id', batchId)
     }
 
-    const { data: registration, error: regError } = await query
+    const { data: registrations, error: regError } = await query
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
 
-    if (regError || !registration) {
+    if (regError || !registrations || registrations.length === 0) {
       return NextResponse.json(
         { error: 'No valid registration found' },
         { status: 404 }
       )
     }
+
+    const approvedRegistration = registrations.find(reg => reg.selection_status === 'selected' || reg.selection_status === 'waitlist' || (reg.oral_total_score ?? 0) >= 80);
+    const registration = approvedRegistration || registrations[0];
 
     const oralScore = registration.oral_total_score ?? 0;
     const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;

@@ -31,20 +31,22 @@ export async function GET(request: NextRequest) {
       .select('id, batch_id, chosen_juz, main_time_slot, backup_time_slot, full_name, selection_status, oral_total_score, timezone')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(1)
 
     if (batchId) {
       query = query.eq('batch_id', batchId)
     }
 
-    const { data: registration, error: regError } = await query.maybeSingle()
+    const { data: registrations, error: regError } = await query
 
-    if (regError || !registration) {
+    if (regError || !registrations || registrations.length === 0) {
       return NextResponse.json(
         { error: 'No valid registration found' },
         { status: 404 }
       )
     }
+
+    const approvedRegistration = registrations.find(reg => reg.selection_status === 'selected' || reg.selection_status === 'waitlist' || (reg.oral_total_score ?? 0) >= 80);
+    const registration = approvedRegistration || registrations[0];
 
     const oralScore = registration.oral_total_score ?? 0;
     const isPassed = registration.selection_status === 'selected' || registration.selection_status === 'waitlist' || oralScore >= 80;

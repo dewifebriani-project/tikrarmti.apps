@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       return ApiResponses.error('NOT_FOUND', 'Pendaftaran tidak ditemukan', undefined, 404)
     }
 
-    const registration = registrations[0]
+    const approvedRegistration = registrations.find(reg => reg.selection_status === 'selected' || reg.selection_status === 'waitlist' || (reg.oral_total_score ?? 0) >= 80);
+    const registration = approvedRegistration || registrations[0]
     
     const { data: existingSubmission } = await supabase
       .from('daftar_ulang_submissions')
