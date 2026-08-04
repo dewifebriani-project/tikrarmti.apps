@@ -134,33 +134,38 @@ export async function GET(request: Request) {
       targetStatuses = ['dropout'];
     }
 
+    let activeBatchData: any = null;
+
     if (!activeBatchId) {
       const { data: activeBatch } = await supabase
         .from('batches')
-        .select('id')
+        .select('id, start_date, first_week_start_date, end_date')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       
       activeBatchId = activeBatch?.id;
-    }
+      activeBatchData = activeBatch;
 
-    const { data: batch } = await supabase
-      .from('batches')
-      .select('start_date')
-      .eq('id', activeBatchId)
-      .maybeSingle();
+      if (activeBatch?.start_date) {
+        const startDate = new Date(activeBatch.start_date);
+        const firstWeekStart = new Date(startDate);
+        firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
 
-    if (batch?.start_date) {
-      const startDate = new Date(batch.start_date);
-      const firstWeekStart = new Date(startDate);
-      firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
-
-      const now = new Date();
-      const diffTime = now.getTime() - firstWeekStart.getTime();
-      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-      currentWeek = diffWeeks + 1;
+        const now = new Date();
+        const diffTime = now.getTime() - firstWeekStart.getTime();
+        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        currentWeek = diffWeeks + 1;
+      }
+    } else {
+      const { data: batch } = await supabase
+        .from('batches')
+        .select('start_date, first_week_start_date, end_date')
+        .eq('id', activeBatchId)
+        .maybeSingle();
+        
+      activeBatchData = batch;
     }
 
     // First, get total count
@@ -232,6 +237,19 @@ export async function GET(request: Request) {
       .select('*')
       .in('user_id', userIds)
       .order('waktu_tashih', { ascending: false });
+
+    // Filter by batch dates to prevent data leakage from previous batches
+    if (activeBatchData?.start_date) {
+      const filterStartDate = new Date(activeBatchData.start_date);
+      filterStartDate.setDate(filterStartDate.getDate() - 1);
+      tashihQuery = tashihQuery.gte('created_at', filterStartDate.toISOString());
+    }
+    
+    if (activeBatchData?.end_date) {
+      const filterEndDate = new Date(activeBatchData.end_date);
+      filterEndDate.setDate(filterEndDate.getDate() + 7);
+      tashihQuery = tashihQuery.lte('created_at', filterEndDate.toISOString());
+    }
 
     const { data: allTashihRecords, error: tashihError } = await tashihQuery;
 

@@ -338,6 +338,7 @@ export async function GET(request: Request) {
 
     let activeBatchId = batchId;
     let currentWeek = 0;
+    let activeBatchData: any = null;
 
     // Define allowed statuses based on the request
     let targetStatuses = ['approved', 'submitted'];
@@ -348,13 +349,14 @@ export async function GET(request: Request) {
     if (!activeBatchId) {
       const { data: activeBatch } = await supabase
         .from('batches')
-        .select('id, start_date, first_week_start_date')
+        .select('id, start_date, first_week_start_date, end_date')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       
       activeBatchId = activeBatch?.id;
+      activeBatchData = activeBatch;
 
       if (activeBatch?.start_date) {
         const startDate = new Date(activeBatch.start_date);
@@ -369,9 +371,11 @@ export async function GET(request: Request) {
     } else {
       const { data: batch } = await supabase
         .from('batches')
-        .select('start_date, first_week_start_date')
+        .select('start_date, first_week_start_date, end_date')
         .eq('id', activeBatchId)
         .maybeSingle();
+        
+      activeBatchData = batch;
 
       if (batch?.start_date) {
         const startDate = new Date(batch.start_date);
@@ -462,6 +466,21 @@ export async function GET(request: Request) {
     // Apply blok filter if specified
     if (blok && blok !== 'all') {
       recordsQuery = recordsQuery.eq('blok', blok);
+    }
+
+    // Filter by batch dates to prevent data leakage from previous batches
+    if (activeBatchData?.start_date) {
+      // Allow records created slightly before the batch start date (e.g. 1 day before) to handle timezone differences
+      const filterStartDate = new Date(activeBatchData.start_date);
+      filterStartDate.setDate(filterStartDate.getDate() - 1);
+      recordsQuery = recordsQuery.gte('created_at', filterStartDate.toISOString());
+    }
+    
+    if (activeBatchData?.end_date) {
+      // Allow records created slightly after the batch end date (e.g. 1 week after) to handle late submissions
+      const filterEndDate = new Date(activeBatchData.end_date);
+      filterEndDate.setDate(filterEndDate.getDate() + 7);
+      recordsQuery = recordsQuery.lte('created_at', filterEndDate.toISOString());
     }
 
     const { data: entries, error: jurnalError } = await recordsQuery;
