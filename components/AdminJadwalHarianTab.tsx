@@ -81,6 +81,7 @@ export default function AdminJadwalHarianTab() {
       // Map to HalaqahForReminder format
       const formattedData: HalaqahForReminder[] = (halaqahData || []).map((h: any) => ({
         ...h,
+        class_type: h.program?.class_type,
         zoom_name: h.zoom?.name || '',
         zoom_link: h.zoom?.url || h.zoom_link || '',
         zoom_meeting_id: '',
