@@ -48,7 +48,7 @@ export const GroupLinks = ({
                   <div>
                     <p className="text-sm text-gray-500 font-medium flex items-center gap-1"><Calendar className="w-4 h-4"/> Jadwal</p>
                     <p className="font-semibold text-gray-800">
-                      {getDayNameIndo(halaqah.day_of_week)}, {halaqah.start_time?.substring(0, 5)} - {halaqah.end_time?.substring(0, 5)} WIB
+                      {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][(halaqah.day_of_week || 1) - 1]}, {halaqah.start_time?.substring(0, 5)} - {halaqah.end_time?.substring(0, 5)} WIB
                     </p>
                   </div>
                   <div>
