@@ -110,6 +110,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <HeartHandshake className="h-5 w-5" />,
       });
       baseItems.push({
+        href: '/admin/jadwal-harian',
+        label: 'Jadwal Harian',
+        icon: <Calendar className="h-5 w-5" />,
+      });
+      baseItems.push({
         href: '/presensi-jurnal',
         label: 'Presensi & Jurnal',
         icon: <BookOpen className="h-5 w-5" />,
