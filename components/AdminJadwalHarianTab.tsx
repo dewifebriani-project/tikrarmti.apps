@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
-  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2
+  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -199,116 +199,94 @@ export default function AdminJadwalHarianTab() {
           <p className="text-gray-500 mt-1">Belum ada kelas halaqah aktif di hari ini.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {halaqahs.map((halaqah, idx) => {
-            const dateForTemplate = getNextDateForDay(activeDay);
-            
-            return (
-              <div key={idx} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:shadow-gray-200/40 transition-all group">
-                <div className="p-6">
-                  {/* Card Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                        {halaqah.name}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                          {halaqah.class_type?.replace(/_/g, ' ').toUpperCase() || 'TIKRAR'}
-                        </span>
-                        {halaqah.preferred_juz && (
-                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
-                            Juz {halaqah.preferred_juz}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Class Info */}
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-gray-50 text-gray-500">
-                        <Clock className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</p>
-                        <p className="text-sm font-semibold text-gray-900">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
+                <tr>
+                  <th className="py-4 px-6 whitespace-nowrap">WAKTU</th>
+                  <th className="py-4 px-6">KELAS</th>
+                  <th className="py-4 px-6">MU'ALLIMAH</th>
+                  <th className="py-4 px-6 text-center">SANTRI AKTIF</th>
+                  <th className="py-4 px-6 text-center">AKSI</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {halaqahs.map((halaqah) => {
+                  const dateForTemplate = getNextDateForDay(activeDay);
+                  return (
+                    <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-gray-900 font-medium">
+                          <Clock className="h-4 w-4 text-gray-400" />
                           {formatTimeShort(halaqah.start_time)} - {formatTimeShort(halaqah.end_time)} WIB
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-gray-50 text-gray-500">
-                        <BookOpen className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Mu'allimah</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {halaqah.muallimah?.full_name || '-'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-gray-50 text-gray-500">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Thalibah</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {halaqah.students?.length || 0} Santri Aktif
-                        </p>
-                      </div>
-                    </div>
-
-                    {halaqah.zoom_link && (
-                      <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-lg bg-blue-50 text-blue-500">
-                          <Video className="h-4 w-4" />
                         </div>
-                        <div className="overflow-hidden">
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Zoom Room</p>
-                          <p className="text-sm font-semibold text-blue-600 truncate">
-                            {halaqah.zoom_name || 'Link Tersedia'}
-                          </p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="font-semibold text-gray-900 mb-1 leading-tight">{halaqah.name}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            halaqah.class_type === 'pra_tahfidz' 
+                              ? 'bg-emerald-100 text-emerald-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {halaqah.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
+                          </span>
+                          {halaqah.preferred_juz && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-600 rounded-full border border-amber-100">
+                              Juz {halaqah.preferred_juz}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-1 gap-2 pt-4 border-t border-gray-100">
-                    <button
-                      onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
-                      className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 text-sm font-semibold transition-colors"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy Reminder
-                    </button>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => copyToClipboard(generateTagThalibah(halaqah, dateForTemplate), 'Tag Thalibah berhasil disalin!')}
-                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-semibold transition-colors"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Tag
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Laporan Kelas berhasil disalin!')}
-                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-semibold transition-colors"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                        Laporan
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">{halaqah.muallimah?.full_name || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <div className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">
+                            {halaqah.students?.length || 0}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex flex-col gap-2 min-w-[140px]">
+                          <button
+                            onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
+                            className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 w-full"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Reminder
+                          </button>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => copyToClipboard(generateTagThalibah(halaqah, dateForTemplate), 'Tag Thalibah berhasil disalin!')}
+                              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                            >
+                              <Tag className="h-3 w-3" />
+                              Tag
+                            </button>
+                            <button
+                              onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!')}
+                              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Berita Acara
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

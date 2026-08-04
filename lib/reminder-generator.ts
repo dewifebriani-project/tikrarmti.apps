@@ -252,7 +252,7 @@ export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = n
   const students = halaqah.students || [];
   const studentList = students.map((s, index) => `${index + 1}. ✅ ${s.full_name} Juz ${s.preferred_juz || juz}`).join('\n');
 
-  return `*LAPORAN KELAS TASHIH /UJIAN MTI Juz ${juz}.*
+  return `*BERITA ACARA KELAS ${getClassTypeLabel(halaqah.class_type)} MTI Juz ${juz}.*
 ${day}, Pukul ${time} WIB
 
 👑Ustadzah ${muallimah_name} حفظها الله تعالى
