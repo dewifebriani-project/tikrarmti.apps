@@ -166,7 +166,8 @@ export async function submitPilihPasangan(
       updated_at: new Date().toISOString()
     }
 
-    const { error: updateError } = await supabase
+    const supabaseAdmin = createSupabaseAdmin()
+    const { error: updateError } = await supabaseAdmin
       .from('daftar_ulang_submissions')
       .update(submissionData)
       .eq('id', existing.id)
@@ -177,7 +178,6 @@ export async function submitPilihPasangan(
 
     let isMutualMatch = false
     if (data.partner_type === 'self_match' && data.partner_user_id) {
-      const supabaseAdmin = createSupabaseAdmin()
       const { data: reverseSelection } = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .select('id, status, partner_status')
@@ -205,7 +205,7 @@ export async function submitPilihPasangan(
       }
 
       if (oldHalaqahIds.length > 0) {
-        await supabase.from('halaqah_students')
+        await supabaseAdmin.from('halaqah_students')
           .delete()
           .eq('thalibah_id', authUser.id)
           .in('halaqah_id', oldHalaqahIds)
@@ -230,7 +230,7 @@ export async function submitPilihPasangan(
       }
 
       if (newHalaqahEntries.length > 0) {
-        await supabase.from('halaqah_students').insert(newHalaqahEntries)
+        await supabaseAdmin.from('halaqah_students').insert(newHalaqahEntries)
       }
     }
 
