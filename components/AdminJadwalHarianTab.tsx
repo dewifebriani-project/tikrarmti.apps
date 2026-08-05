@@ -66,7 +66,7 @@ export default function AdminJadwalHarianTab() {
           end_time,
           preferred_juz,
           zoom_link,
-          zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url),
+          zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
           program:programs!inner(class_type, batch_id, batch:batches(name)),
           students:halaqah_students(status, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
@@ -84,8 +84,9 @@ export default function AdminJadwalHarianTab() {
         class_type: h.program?.class_type,
         zoom_name: h.zoom?.name || '',
         zoom_link: h.zoom?.url || h.zoom_link || '',
-        zoom_meeting_id: '',
-        zoom_passcode: '',
+        zoom_meeting_id: h.zoom?.meeting_id || '',
+        zoom_passcode: h.zoom?.passcode || '',
+        zoom_claim_host: h.zoom?.claim_host || '',
         muallimah: {
           full_name: h.muallimah?.full_name
         },
@@ -217,9 +218,24 @@ export default function AdminJadwalHarianTab() {
                   return (
                     <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
                       <td className="py-4 px-6 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-gray-900 font-medium">
-                          <Clock className="h-4 w-4 text-gray-400" />
-                          {formatTimeShort(halaqah.start_time)} - {formatTimeShort(halaqah.end_time)} WIB
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2 text-gray-900 font-medium">
+                            <Clock className="h-4 w-4 text-gray-400" />
+                            {formatTimeShort(halaqah.start_time)} - {formatTimeShort(halaqah.end_time)} WIB
+                          </div>
+                          {halaqah.zoom_name && (
+                            <div className="flex flex-col gap-0.5 mt-1">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-600">
+                                <Video className="h-3.5 w-3.5" />
+                                {halaqah.zoom_name}
+                              </div>
+                              {halaqah.zoom_claim_host && (
+                                <div className="text-[11px] text-gray-500 font-medium pl-5">
+                                  Claim Host: <span className="font-bold text-gray-700">{halaqah.zoom_claim_host}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-6">

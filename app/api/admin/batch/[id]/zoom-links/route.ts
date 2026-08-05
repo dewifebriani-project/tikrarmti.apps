@@ -68,6 +68,7 @@ export async function POST(
         url: link.url,
         meeting_id: link.meeting_id || null,
         passcode: link.passcode || null,
+        claim_host: link.claim_host || null,
         is_active: true
       }));
 

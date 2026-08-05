@@ -11,6 +11,7 @@ interface ZoomLink {
   url: string;
   meeting_id?: string;
   passcode?: string;
+  claim_host?: string;
 }
 
 export function AdminZoomTab({ batches }: { batches: Batch[] }) {
@@ -51,7 +52,7 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
   };
 
   const handleAddRow = () => {
-    setZoomList([...zoomList, { name: '', url: '', meeting_id: '', passcode: '' }]);
+    setZoomList([...zoomList, { name: '', url: '', meeting_id: '', passcode: '', claim_host: '' }]);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -173,6 +174,9 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Passcode
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Claim Host
+                      </th>
                       <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Aksi
                       </th>
@@ -180,23 +184,23 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {zoomList.map((zoom, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <tr key={index} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="text"
                             value={zoom.name}
                             onChange={(e) => handleChange(index, 'name', e.target.value)}
                             placeholder="Contoh: Room 1"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                            className="w-full bg-transparent border-0 focus:ring-0 p-0 text-sm font-medium text-gray-900 placeholder:font-normal placeholder:text-gray-400"
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4">
                           <input
                             type="text"
                             value={zoom.url}
                             onChange={(e) => handleChange(index, 'url', e.target.value)}
                             placeholder="https://zoom.us/j/..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                            className="w-full bg-transparent border-0 focus:ring-0 p-0 text-sm text-gray-600 placeholder:text-gray-400"
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -204,8 +208,8 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
                             type="text"
                             value={zoom.meeting_id || ''}
                             onChange={(e) => handleChange(index, 'meeting_id', e.target.value)}
-                            placeholder="728 7493 1909"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                            placeholder="xxx xxx xxxx"
+                            className="w-full bg-transparent border-0 focus:ring-0 p-0 text-sm text-gray-600 placeholder:text-gray-400"
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -213,14 +217,23 @@ export function AdminZoomTab({ batches }: { batches: Batch[] }) {
                             type="text"
                             value={zoom.passcode || ''}
                             onChange={(e) => handleChange(index, 'passcode', e.target.value)}
-                            placeholder="MTI4"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-mono"
+                            placeholder="passcode"
+                            className="w-full bg-transparent border-0 focus:ring-0 p-0 text-sm text-gray-600 placeholder:text-gray-400"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={zoom.claim_host || ''}
+                            onChange={(e) => handleChange(index, 'claim_host', e.target.value)}
+                            placeholder="claim host"
+                            className="w-full bg-transparent border-0 focus:ring-0 p-0 text-sm text-gray-600 placeholder:text-gray-400"
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <button
                             onClick={() => handleRemoveRow(index)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100"
                             title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />

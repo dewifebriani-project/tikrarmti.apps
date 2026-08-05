@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // INCLUDING extra fields for the marketplace UI
     const { data: rawAllThalibah, error: errTest } = await adminClient
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score')
+      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone, selection_status, oral_total_score, exam_status, exam_score')
       .eq('batch_id', registration.batch_id)
       .neq('user_id', user.id) // Exclude current user
       
@@ -78,13 +78,11 @@ export async function GET(request: NextRequest) {
       return reg.selection_status === 'selected' || reg.selection_status === 'waitlist' || score >= 80;
     })
 
-    // Fetch all submissions in this batch to determine who selected who
+    // Fetch all submissions in this batch to determine who is locked or selected who
     const { data: allSubmissions, error: errSub } = await adminClient
       .from('daftar_ulang_submissions')
-      .select('user_id, partner_user_id')
+      .select('user_id, partner_user_id, partner_type, akad_url, akad_files, status')
       .eq('batch_id', registration.batch_id)
-      .eq('partner_type', 'self_match')
-      .in('status', ['submitted', 'approved']) // Only locked submissions count
       
     if (errSub) {
       console.error('Error fetching allSubmissions:', errSub)
@@ -92,12 +90,39 @@ export async function GET(request: NextRequest) {
 
     const submissions = allSubmissions || []
     
-    // Map of user_id -> partner_user_id they selected
+    // Map of user_id -> partner_user_id they selected (for self_match)
     const userChoices = new Map<string, string>()
+    const lockedUsersSet = new Set<string>() // Users who have submitted (any type)
+    const usersWithAkadSet = new Set<string>() // Users who have uploaded akad
+
     submissions.forEach((sub: any) => {
-      if (sub.partner_user_id) {
-        userChoices.set(sub.user_id, sub.partner_user_id)
+      // Track who has uploaded akad
+      if (sub.akad_url || sub.akad_files?.length > 0) {
+        usersWithAkadSet.add(sub.user_id)
       }
+
+      // Track locks only for submitted/approved forms
+      if (sub.status === 'submitted' || sub.status === 'approved') {
+        lockedUsersSet.add(sub.user_id)
+        if (sub.partner_type === 'self_match' && sub.partner_user_id) {
+          userChoices.set(sub.user_id, sub.partner_user_id)
+        }
+      }
+    })
+
+    // Fetch who passed the akad quiz
+    const { data: allQuizAttempts, error: errQuiz } = await adminClient
+      .from('akad_quiz_attempts')
+      .select('user_id')
+      .eq('passed', true)
+
+    if (errQuiz) {
+      console.error('Error fetching allQuizAttempts:', errQuiz)
+    }
+
+    const quizPassedUsersSet = new Set<string>()
+    ;(allQuizAttempts || []).forEach((att: any) => {
+      quizPassedUsersSet.add(att.user_id)
     })
 
     // Find mutual matches
@@ -130,10 +155,10 @@ export async function GET(request: NextRequest) {
         return false
       }
       
-      // 2. If they have submitted a choice that is NOT the current user, exclude them
-      // (They are locked to someone else)
+      // 2. If they have submitted any form, unless they explicitly chose the current user via self_match, exclude them
+      // (They are locked to someone else, or to system_match/family)
       const theirChoice = userChoices.get(partnerId)
-      if (theirChoice && theirChoice !== user.id) {
+      if (lockedUsersSet.has(partnerId) && theirChoice !== user.id) {
         return false
       }
       
@@ -146,8 +171,24 @@ export async function GET(request: NextRequest) {
         reg
       )
 
+      let readiness_level = 3;
+      let status_label = '📝 Baru Lulus';
+
+      const hasWritten = (reg.exam_status === 'completed' || reg.exam_score != null) || (reg.chosen_juz || '').toUpperCase().startsWith('30');
+      const hasPassedQuiz = quizPassedUsersSet.has(reg.user_id);
+
+      if (usersWithAkadSet.has(reg.user_id)) {
+        readiness_level = 1;
+        status_label = '✅ Siap Jodoh';
+      } else if (hasWritten && hasPassedQuiz) {
+        readiness_level = 2;
+        status_label = '⏳ Menunggu Akad';
+      }
+
       return {
         user_id: reg.user_id,
+        readiness_level,
+        status_label,
         registration_id: registration.id,
         status: 'available',
         created_at: null,
@@ -167,10 +208,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Sort: Those who selected current user first, then those with matching juz/schedule
+    // Sort: Those who selected current user first, then by readiness_level, then with matching juz/schedule
     partners.sort((a: any, b: any) => {
       if (a.has_user_selected_them && !b.has_user_selected_them) return -1
       if (!a.has_user_selected_them && b.has_user_selected_them) return 1
+      if (a.readiness_level !== b.readiness_level) return a.readiness_level - b.readiness_level
       if (a.juz_compatible && !b.juz_compatible) return -1
       if (!a.juz_compatible && b.juz_compatible) return 1
       if (a.schedule_compatible && !b.schedule_compatible) return -1

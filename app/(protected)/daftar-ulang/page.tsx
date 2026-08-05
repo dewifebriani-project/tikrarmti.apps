@@ -1770,6 +1770,15 @@ function PartnerSelectionStep({
                                 Memilih Anda
                               </div>
                             )}
+                            {partner.status_label && (
+                              <div className={`text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm border ${
+                                partner.readiness_level === 1 ? 'bg-green-50 text-green-700 border-green-200' :
+                                partner.readiness_level === 2 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                'bg-gray-50 text-gray-600 border-gray-200'
+                              }`}>
+                                {partner.status_label}
+                              </div>
+                            )}
                           </div>
 
                           <div>

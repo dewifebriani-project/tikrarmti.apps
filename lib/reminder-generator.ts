@@ -10,6 +10,7 @@ export interface HalaqahForReminder {
   zoom_name?: string;
   zoom_meeting_id?: string;
   zoom_passcode?: string;
+  zoom_claim_host?: string;
   muallimah?: {
     full_name?: string;
   };
