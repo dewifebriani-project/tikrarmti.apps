@@ -175,6 +175,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <LayoutGrid className="h-5 w-5" />,
       });
       baseItems.push({
+        href: '/jadwal-harian',
+        label: 'Jadwal Harian',
+        icon: <Calendar className="h-5 w-5" />,
+      });
+      baseItems.push({
         href: '/jurnal-harian',
         label: 'Jurnal Harian',
         icon: <BookOpen className="h-5 w-5" />,

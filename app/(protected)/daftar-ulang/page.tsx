@@ -414,7 +414,7 @@ function DaftarUlangContent() {
       const hasValidPartnerType = formData.partner_type !== ''
       const hasAkadFiles = formData.akad_files && formData.akad_files.length > 0
 
-      if (hasValidPartnerType || hasAkadFiles) {
+      if (hasValidPartnerType || hasAkadFiles || existingSubmission) {
         // Build data to save, excluding empty partner_type
         // Note: Halaqah IDs are included here but will be set to null in saveDaftarUlangDraft
         const dataToSave: any = {
@@ -440,6 +440,10 @@ function DaftarUlangContent() {
         if (result.success) {
           setDraftSaved(true)
           setTimeout(() => setDraftSaved(false), 2000)
+          
+          if (!existingSubmission) {
+            setExistingSubmission({ status: 'draft', ...dataToSave })
+          }
         }
       }
     }, 1000)

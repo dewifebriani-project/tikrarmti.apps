@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { isStaff } from '@/lib/roles';
 import { 
   Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText
 } from 'lucide-react';
@@ -27,16 +29,21 @@ const DAYS = [
 ];
 
 export default function AdminJadwalHarianTab() {
+  const { user } = useAuth();
   const [activeDay, setActiveDay] = useState<number>(new Date().getDay() === 0 ? 7 : new Date().getDay());
   const [halaqahs, setHalaqahs] = useState<HalaqahForReminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeBatchName, setActiveBatchName] = useState<string>('');
   
   const supabase = createClient();
+  const userRoles = (user as any)?.primaryRole ? [(user as any).primaryRole] : (user?.roles || []);
+  const isUserStaff = isStaff(userRoles);
 
   useEffect(() => {
-    fetchSchedule();
-  }, [activeDay]);
+    if (user) {
+      fetchSchedule();
+    }
+  }, [activeDay, user]);
 
   const fetchSchedule = async () => {
     setIsLoading(true);
@@ -66,10 +73,11 @@ export default function AdminJadwalHarianTab() {
           end_time,
           preferred_juz,
           zoom_link,
+          muallimah_id,
           zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
           program:programs!inner(class_type, batch_id, batch:batches(name)),
-          students:halaqah_students(status, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
+          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
         `)
         .eq('program.batch_id', batch.id)
         .eq('day_of_week', activeDay)
@@ -78,8 +86,16 @@ export default function AdminJadwalHarianTab() {
 
       if (error) throw error;
 
+      let filteredData = halaqahData || [];
+      if (!isUserStaff) {
+        filteredData = filteredData.filter((h: any) => 
+          h.muallimah_id === user?.id || 
+          (h.students || []).some((s: any) => s.thalibah_id === user?.id && s.status === 'active')
+        );
+      }
+
       // Map to HalaqahForReminder format
-      const formattedData: HalaqahForReminder[] = (halaqahData || []).map((h: any) => ({
+      const formattedData: HalaqahForReminder[] = filteredData.map((h: any) => ({
         ...h,
         class_type: h.program?.class_type,
         zoom_name: h.zoom?.name || '',
@@ -165,18 +181,23 @@ export default function AdminJadwalHarianTab() {
             Jadwal Kelas: {DAYS.find(d => d.id === activeDay)?.name}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Menampilkan kelas aktif untuk batch {activeBatchName || '...'}
+            {isUserStaff 
+              ? `Menampilkan kelas aktif untuk batch ${activeBatchName || '...'}`
+              : `Menampilkan jadwal kelas Anda untuk batch ${activeBatchName || '...'}`
+            }
           </p>
         </div>
         
-        <button
-          onClick={handleCopyRekapan}
-          disabled={isLoading || halaqahs.length === 0}
-          className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20"
-        >
-          <Copy className="h-4 w-4" />
-          Copy Rekapan Harian
-        </button>
+        {isUserStaff && (
+          <button
+            onClick={handleCopyRekapan}
+            disabled={isLoading || halaqahs.length === 0}
+            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20"
+          >
+            <Copy className="h-4 w-4" />
+            Copy Rekapan Harian
+          </button>
+        )}
       </div>
 
       {/* Schedule Grid */}
@@ -209,7 +230,7 @@ export default function AdminJadwalHarianTab() {
                   <th className="py-4 px-6">KELAS</th>
                   <th className="py-4 px-6">MU'ALLIMAH</th>
                   <th className="py-4 px-6 text-center">SANTRI AKTIF</th>
-                  <th className="py-4 px-6 text-center">AKSI</th>
+                  {isUserStaff && <th className="py-4 px-6 text-center">AKSI</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -225,11 +246,25 @@ export default function AdminJadwalHarianTab() {
                           </div>
                           {halaqah.zoom_name && (
                             <div className="flex flex-col gap-0.5 mt-1">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-600">
+                              <a 
+                                href={halaqah.zoom_link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline w-fit"
+                                title="Klik untuk bergabung ke Zoom"
+                              >
                                 <Video className="h-3.5 w-3.5" />
                                 {halaqah.zoom_name}
-                              </div>
-                              {halaqah.zoom_claim_host && (
+                              </a>
+                              {halaqah.zoom_meeting_id && (
+                                <div className="text-[11px] text-gray-500 pl-5 leading-tight">
+                                  ID: <span className="font-medium text-gray-700">{halaqah.zoom_meeting_id}</span>
+                                  {halaqah.zoom_passcode && (
+                                    <> | Pass: <span className="font-medium text-gray-700">{halaqah.zoom_passcode}</span></>
+                                  )}
+                                </div>
+                              )}
+                              {halaqah.zoom_claim_host && isUserStaff && (
                                 <div className="text-[11px] text-gray-500 font-medium pl-5">
                                   Claim Host: <span className="font-bold text-gray-700">{halaqah.zoom_claim_host}</span>
                                 </div>
@@ -269,34 +304,36 @@ export default function AdminJadwalHarianTab() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
-                        <div className="flex flex-col gap-2 min-w-[140px]">
-                          <button
-                            onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
-                            className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 w-full"
-                          >
-                            <Copy className="h-3.5 w-3.5" />
-                            Reminder
-                          </button>
-                          
-                          <div className="grid grid-cols-2 gap-2">
+                      {isUserStaff && (
+                        <td className="py-4 px-6">
+                          <div className="flex flex-col gap-2 min-w-[140px]">
                             <button
-                              onClick={() => copyToClipboard(generateTagThalibah(halaqah, dateForTemplate), 'Tag Thalibah berhasil disalin!')}
-                              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                              onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
+                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 w-full"
                             >
-                              <Tag className="h-3 w-3" />
-                              Tag
+                              <Copy className="h-3.5 w-3.5" />
+                              Reminder
                             </button>
-                            <button
-                              onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!')}
-                              className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
-                            >
-                              <FileText className="h-3 w-3" />
-                              Berita Acara
-                            </button>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => copyToClipboard(generateTagThalibah(halaqah, dateForTemplate), 'Tag Thalibah berhasil disalin!')}
+                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                              >
+                                <Tag className="h-3 w-3" />
+                                Tag
+                              </button>
+                              <button
+                                onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!')}
+                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                              >
+                                <FileText className="h-3 w-3" />
+                                Berita Acara
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
