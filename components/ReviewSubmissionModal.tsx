@@ -157,6 +157,18 @@ export function ReviewSubmissionModal({
             </div>
           );
         })}
+
+        {/* Retake Button for Written Exam */}
+        <div className="flex justify-center pt-4">
+          <Button 
+            onClick={() => window.location.href = `/seleksi/pilihan-ganda?batchId=${registrationStatus.registration?.batch_id}`}
+            variant="outline"
+            className="rounded-2xl border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 text-emerald-600 font-bold h-12 px-6 shadow-sm"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Ulang Ujian (Jika Kesempatan Masih Ada)
+          </Button>
+        </div>
       </div>
     );
   };

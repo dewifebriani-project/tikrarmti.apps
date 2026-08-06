@@ -3,12 +3,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GraduationCap, Calendar, Users, FileText, ArrowLeft, Shield } from 'lucide-react';
+import { GraduationCap, Calendar, Users, FileText, ArrowLeft, Shield, Settings } from 'lucide-react';
 import { FinalExamSchedules } from '@/components/admin/FinalExamSchedules';
 import { FinalExamParticipants } from '@/components/admin/FinalExamParticipants';
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
 import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
+import { AdminExamConfigurations } from '@/components/admin/AdminExamConfigurations';
 import Link from 'next/link';
 
 export default function AdminExamsPage() {
@@ -76,6 +77,13 @@ export default function AdminExamsPage() {
               <FileText className="w-4 h-4 mr-2" />
               Bank Soal MCQ
             </TabsTrigger>
+            <TabsTrigger 
+              value="configurations" 
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-gray-500 hover:text-green-800 hover:bg-gray-50/50 data-[state=active]:bg-green-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all duration-300"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Pengaturan
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="schedules" className="animate-fadeInUp">
@@ -95,6 +103,10 @@ export default function AdminExamsPage() {
                 onSuccess={handleRefresh}
               />
             </Card>
+          </TabsContent>
+
+          <TabsContent value="configurations" className="animate-fadeInUp">
+            <AdminExamConfigurations />
           </TabsContent>
         </Tabs>
       </div>

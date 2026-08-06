@@ -101,8 +101,9 @@ export async function GET(request: NextRequest) {
         usersWithAkadSet.add(sub.user_id)
       }
 
-      // Track locks only for submitted/approved forms
-      if (sub.status === 'submitted' || sub.status === 'approved') {
+      // Track locks only for submitted/approved forms WHERE a partner choice was actually made.
+      // (Since completing the Akad step now sets status to 'submitted', we must check partner_type to see if they've finished the partner step).
+      if ((sub.status === 'submitted' || sub.status === 'approved') && sub.partner_type) {
         lockedUsersSet.add(sub.user_id)
         if (sub.partner_type === 'self_match' && sub.partner_user_id) {
           userChoices.set(sub.user_id, sub.partner_user_id)

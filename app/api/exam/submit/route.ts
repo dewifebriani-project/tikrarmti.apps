@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     };
     
     if (finalJuz) {
-      regUpdateData.final_juz = finalJuz;
+      regUpdateData.chosen_juz = finalJuz;
     }
     
     // Only mark it as 'completed' if they passed OR ran out of attempts.
