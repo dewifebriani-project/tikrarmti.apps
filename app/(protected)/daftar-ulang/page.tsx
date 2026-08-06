@@ -488,7 +488,11 @@ function DaftarUlangContent() {
       }
       setCurrentStep('akad')
     } else if (currentStep === 'akad') {
-      handleSubmit()
+      if (!formData.akad_files || formData.akad_files.length === 0) {
+        toast.error('Upload akad terlebih dahulu')
+        return
+      }
+      setCurrentStep('halaqah')
     } else if (currentStep === 'halaqah') {
       if (!formData.ujian_halaqah_id) {
         toast.error('Pilih halaqah terlebih dahulu')
@@ -898,7 +902,7 @@ function DaftarUlangContent() {
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700"
             >
-              {currentStep === 'akad' ? 'Kirim Daftar Ulang' : 'Lanjut'}
+              {(currentStep === 'partner' || (currentStep === 'halaqah' && isPraTikrar)) ? 'Kirim Daftar Ulang' : 'Lanjut'}
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
