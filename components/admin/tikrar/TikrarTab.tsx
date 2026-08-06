@@ -42,7 +42,8 @@ export function TikrarTab({ user }: { user: any }) {
     search: '',
     batchId: 'all',
     status: 'all',
-    selectionStatus: 'all'
+    selectionStatus: 'all',
+    daftarUlangStatus: 'all'
   });
 
   // Fetch Batches
@@ -81,7 +82,8 @@ export function TikrarTab({ user }: { user: any }) {
           *,
           user:users!pendaftaran_tikrar_tahfidz_user_id_fkey(*),
           batch:batches(*),
-          program:programs(*)
+          program:programs(*),
+          daftar_ulang_submissions(status)
         `)
         .order('submission_date', { ascending: false });
 
@@ -148,16 +150,27 @@ export function TikrarTab({ user }: { user: any }) {
         isAlumni: alumniUserIds.has(t.user_id)
       }));
 
-      // Client-side search
-      if (filters.search) {
+      // Apply Search & Additional Filters (Local)
+      if (filters.search || filters.daftarUlangStatus !== 'all') {
         const s = filters.search.toLowerCase();
-        filteredData = filteredData.filter(t => 
-          t.full_name?.toLowerCase().includes(s) ||
-          t.user?.full_name?.toLowerCase().includes(s) ||
-          t.user?.email?.toLowerCase().includes(s) ||
-          t.user?.whatsapp?.includes(s) ||
-          t.wa_phone?.includes(s)
-        );
+        filteredData = filteredData.filter(item => {
+          const nameMatch = (item.user?.full_name || item.full_name || '').toLowerCase().includes(s);
+          const emailMatch = (item.user?.email || '').toLowerCase().includes(s);
+          const waMatch = (item.user?.whatsapp || item.wa_phone || '').includes(s);
+          const searchMatch = !filters.search || nameMatch || emailMatch || waMatch;
+
+          let statusMatch = true;
+          if (filters.daftarUlangStatus !== 'all') {
+            const hasSubmitted = (item as any).daftar_ulang_submissions?.some((du: any) => du.status === 'submitted' || du.status === 'approved');
+            if (filters.daftarUlangStatus === 'submitted') {
+              statusMatch = hasSubmitted;
+            } else if (filters.daftarUlangStatus === 'none') {
+              statusMatch = !hasSubmitted;
+            }
+          }
+
+          return searchMatch && statusMatch;
+        });
       }
 
       // Client-side sort alphabetically by name (A-Z)

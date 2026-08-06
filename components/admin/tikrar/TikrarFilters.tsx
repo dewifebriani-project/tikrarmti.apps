@@ -10,6 +10,7 @@ interface TikrarFiltersProps {
     batchId: string; 
     status: string;
     selectionStatus: string;
+    daftarUlangStatus: string;
   }) => void;
   onRefresh: () => void;
   isLoading: boolean;
@@ -22,6 +23,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, d
   const [batchId, setBatchId] = useState(defaultBatchId);
   const [status, setStatus] = useState('all');
   const [selectionStatus, setSelectionStatus] = useState('all');
+  const [daftarUlangStatus, setDaftarUlangStatus] = useState('all');
 
   // Sync batchId if defaultBatchId changes (e.g. once parent fetches batches and finds active batch)
   useEffect(() => {
@@ -33,16 +35,17 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, d
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      onFilterChange({ search, batchId, status, selectionStatus });
+      onFilterChange({ search, batchId, status, selectionStatus, daftarUlangStatus });
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, batchId, status, selectionStatus]);
+  }, [search, batchId, status, selectionStatus, daftarUlangStatus, onFilterChange]);
 
   const handleClear = () => {
     setSearch('');
     setBatchId('all');
     setStatus('all');
     setSelectionStatus('all');
+    setDaftarUlangStatus('all');
   };
 
   return (
@@ -95,6 +98,16 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, d
             <option value="not_selected">Tidak Terpilih</option>
             <option value="waitlist">Waitlist</option>
           </select>
+          
+          <select
+            value={daftarUlangStatus}
+            onChange={(e) => setDaftarUlangStatus(e.target.value)}
+            className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
+          >
+            <option value="all">Semua Daftar Ulang</option>
+            <option value="submitted">Sudah Daftar Ulang</option>
+            <option value="none">Belum Daftar Ulang</option>
+          </select>
 
           <button
             onClick={onRefresh}
@@ -106,7 +119,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, d
             <span className="lg:hidden text-sm font-medium">Refresh</span>
           </button>
 
-          {(search || batchId !== 'all' || status !== 'all' || selectionStatus !== 'all') && (
+          {(search || batchId !== 'all' || status !== 'all' || selectionStatus !== 'all' || daftarUlangStatus !== 'all') && (
             <button
               onClick={handleClear}
               className="text-sm font-medium text-red-600 hover:text-red-700 px-2"

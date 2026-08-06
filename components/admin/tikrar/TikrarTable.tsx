@@ -126,6 +126,11 @@ export function TikrarTable({
                               Ganda
                             </span>
                           )}
+                          {((t as any).daftar_ulang_submissions?.some((du: any) => du.status === 'submitted' || du.status === 'approved')) && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-green-50 text-green-700 border border-green-200 select-none" title="Sudah Daftar Ulang">
+                              Daftar Ulang
+                            </span>
+                          )}
                         </div>
                         <span className="text-xs text-gray-550 truncate">{t.user?.email || '-'}</span>
                         {(t.wa_phone || t.user?.whatsapp) && (
