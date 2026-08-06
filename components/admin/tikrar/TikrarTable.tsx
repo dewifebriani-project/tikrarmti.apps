@@ -43,22 +43,7 @@ export function TikrarTable({
     return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
   };
 
-  const checkReadiness = (t: TikrarTahfidz) => {
-    const missingFields: string[] = [];
-    if (!t.understands_commitment) missingFields.push('Memahami komitmen');
-    if (!t.tried_simulation) missingFields.push('Mencoba simulasi');
-    if (!t.no_negotiation) missingFields.push('Tidak ada negosiasi');
-    if (!t.has_telegram) missingFields.push('Punya Telegram');
-    if (!t.saved_contact) missingFields.push('Simpan kontak');
-    if (!t.has_permission) missingFields.push('Punya izin');
-    if (!t.chosen_juz) missingFields.push('Juz yang dipilih');
-    if (!t.main_time_slot) missingFields.push('Waktu setoran utama');
-    
-    return {
-      isReady: missingFields.length === 0,
-      missingFields
-    };
-  };
+
 
   if (isLoading && tikrar.length === 0) {
     return (
@@ -81,7 +66,7 @@ export function TikrarTable({
             <tr className="bg-gray-50/50 border-b border-gray-100">
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Thalibah</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Tgl Daftar</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Readiness</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Daftar Ulang</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Infaq / Kader</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Juz & Slot</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Nilai VN</th>
@@ -98,11 +83,14 @@ export function TikrarTable({
               </tr>
             ) : (
               tikrar.map((t) => {
-                const readiness = checkReadiness(t);
                 const waUrl = getWhatsAppUrl(t);
+                const hasDaftarUlang = ((t as any).daftar_ulang_submissions?.some((du: any) => du.status === 'submitted' || du.status === 'approved'));
                 
                 return (
-                  <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={t.id} className={cn(
+                    "transition-colors group",
+                    hasDaftarUlang ? "bg-green-50/30 hover:bg-green-50/60" : "hover:bg-gray-50/50"
+                  )}>
                     <td className="px-6 py-4">
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -124,11 +112,6 @@ export function TikrarTable({
                           {t.isDuplicate && (
                             <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-red-50 text-red-600 border border-red-100 select-none" title="Pendaftaran Ganda Terdeteksi">
                               Ganda
-                            </span>
-                          )}
-                          {((t as any).daftar_ulang_submissions?.some((du: any) => du.status === 'submitted' || du.status === 'approved')) && (
-                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-green-50 text-green-700 border border-green-200 select-none" title="Sudah Daftar Ulang">
-                              Daftar Ulang
                             </span>
                           )}
                         </div>
@@ -155,25 +138,15 @@ export function TikrarTable({
                       <div className="text-[10px] text-gray-400 font-medium">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '-'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      {readiness.isReady ? (
+                      {hasDaftarUlang ? (
                         <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5 select-none">
                           <CheckCircle className="h-3.5 w-3.5" />
-                          READY
+                          SUDAH
                         </span>
                       ) : (
-                        <div className="relative group/tooltip inline-block cursor-help">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5 select-none">
-                            <Info className="h-3.5 w-3.5" />
-                            {readiness.missingFields.length} LEWAT
-                          </span>
-                          <div className="absolute left-0 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-3 bg-gray-900/95 backdrop-blur-sm text-white text-[10px] font-medium rounded-xl shadow-xl z-50 leading-relaxed border border-gray-800 animate-in fade-in slide-in-from-bottom-1">
-                            <p className="font-bold text-red-400 mb-1">Belum Terisi:</p>
-                            <ul className="list-disc pl-3.5 space-y-0.5">
-                              {readiness.missingFields.slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
-                              {readiness.missingFields.length > 5 && <li>...dan {readiness.missingFields.length - 5} lainnya</li>}
-                            </ul>
-                          </div>
-                        </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-0.5 select-none">
+                          BELUM
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 align-top">
