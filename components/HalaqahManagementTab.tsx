@@ -1335,34 +1335,6 @@ export function HalaqahManagementTab() {
                               <Trash2 className="w-4 h-4" />
                             </button>
 
-                            <div className="w-px h-6 bg-gray-200 mx-0.5" />
-
-                            <button
-                              onClick={() => handleCopyReminder(halaqah)}
-                              disabled={copyingId === `reminder-${halaqah.id}`}
-                              className="p-2 text-purple-600 bg-purple-50/50 hover:bg-purple-100 rounded-lg transition-all border border-purple-100 active:scale-90 shrink-0 disabled:opacity-50"
-                              title="Salin Reminder Kelas"
-                            >
-                              {copyingId === `reminder-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-                            </button>
-
-                            <button
-                              onClick={() => handleCopyTagThalibah(halaqah)}
-                              disabled={copyingId === `tag-${halaqah.id}`}
-                              className="p-2 text-teal-600 bg-teal-50/50 hover:bg-teal-100 rounded-lg transition-all border border-teal-100 active:scale-90 shrink-0 disabled:opacity-50"
-                              title="Salin Tag Thalibah"
-                            >
-                              {copyingId === `tag-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                            </button>
-
-                            <button
-                              onClick={() => handleCopyLaporan(halaqah)}
-                              disabled={copyingId === `laporan-${halaqah.id}`}
-                              className="p-2 text-orange-600 bg-orange-50/50 hover:bg-orange-100 rounded-lg transition-all border border-orange-100 active:scale-90 shrink-0 disabled:opacity-50"
-                              title="Salin Laporan Kelas"
-                            >
-                              {copyingId === `laporan-${halaqah.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1451,30 +1423,6 @@ export function HalaqahManagementTab() {
                         <Eye className="w-3.5 h-3.5" /> Detail
                       </button>
                       
-                      <button
-                        onClick={() => handleCopyReminder(halaqah)}
-                        disabled={copyingId === `reminder-${halaqah.id}`}
-                        className="flex items-center justify-center p-2.5 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all border border-purple-100 active:scale-95 disabled:opacity-50"
-                        title="Salin Reminder"
-                      >
-                        {copyingId === `reminder-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleCopyTagThalibah(halaqah)}
-                        disabled={copyingId === `tag-${halaqah.id}`}
-                        className="flex items-center justify-center p-2.5 text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-lg transition-all border border-teal-100 active:scale-95 disabled:opacity-50"
-                        title="Salin Tag"
-                      >
-                        {copyingId === `tag-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleCopyLaporan(halaqah)}
-                        disabled={copyingId === `laporan-${halaqah.id}`}
-                        className="flex items-center justify-center p-2.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-100 active:scale-95 disabled:opacity-50"
-                        title="Salin Laporan"
-                      >
-                        {copyingId === `laporan-${halaqah.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
-                      </button>
                       <button
                         onClick={() => setEditingHalaqah(halaqah)}
                         className="flex items-center justify-center p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-95"

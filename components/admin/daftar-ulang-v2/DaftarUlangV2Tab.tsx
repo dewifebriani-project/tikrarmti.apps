@@ -29,6 +29,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from '@/components/DaftarUlangHalaqahTab';
+import { EditDaftarUlangModal } from './EditDaftarUlangModal';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -61,6 +62,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [sortField, setSortField] = useState<SortField>('submitted_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [editingSubmission, setEditingSubmission] = useState<DaftarUlangSubmission | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
 
@@ -1120,8 +1122,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
 
   const handleEdit = (submission: DaftarUlangSubmission) => {
-    toast.info('Fitur edit sedang dikembangkan.');
-    // TODO: setEditingSubmission(submission);
+    setEditingSubmission(submission);
   };
 
   const handleDelete = async (submissionId: string) => {
@@ -1308,6 +1309,16 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   return (
     <div className="space-y-6 relative">
+      {editingSubmission && (
+        <EditDaftarUlangModal
+          submission={editingSubmission}
+          onClose={() => setEditingSubmission(null)}
+          onSaved={() => {
+            setEditingSubmission(null);
+            loadSubmissions();
+          }}
+        />
+      )}
       <DaftarUlangV2Stats 
         stats={stats as DaftarUlangStatsData}
         isLoading={statsLoading}

@@ -71,12 +71,15 @@ export async function GET(request: Request) {
     // Enrich with student counts using admin client for data integrity
     const enrichedData = await Promise.all(
       (halaqah || []).map(async (h: any) => {
-        // Count active students
-        const { count: activeCount } = await supabaseAdmin
+        // Fetch active students to get their IDs
+        const { data: activeStudents } = await supabaseAdmin
           .from('halaqah_students')
-          .select('*', { count: 'exact', head: true })
+          .select('user_id')
           .eq('halaqah_id', h.id)
           .eq('status', 'active');
+        
+        const activeCount = activeStudents?.length || 0;
+        const activeUserIds = new Set(activeStudents?.map(s => s.user_id) || []);
 
         // Count waitlist students
         const { count: waitlistCount } = await supabaseAdmin
@@ -92,19 +95,23 @@ export async function GET(request: Request) {
           .in('status', ['submitted', 'approved', 'draft'])
           .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
 
-        const uniqueSubmissions = new Set(submissions?.filter(s => s.status !== 'draft').map(s => s.user_id) || []);
-        const uniqueDrafts = new Set(submissions?.filter(s => s.status === 'draft').map(s => s.user_id) || []);
+        const uniqueApproved = new Set(submissions?.filter(s => s.status === 'approved' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
+        const uniqueSubmitted = new Set(submissions?.filter(s => s.status === 'submitted' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
+        const uniqueDrafts = new Set(submissions?.filter(s => s.status === 'draft' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
+
+        const totalUsed = activeCount + uniqueApproved.size + uniqueSubmitted.size;
 
         return {
           ...h,
-          students_count: (activeCount || 0) + uniqueSubmissions.size,
+          students_count: totalUsed,
           waitlist_count: waitlistCount || 0,
           quota_details: {
-            active: activeCount || 0,
+            active: activeCount,
             waitlist: waitlistCount || 0,
-            submitted: uniqueSubmissions.size,
+            approved: uniqueApproved.size,
+            submitted: uniqueSubmitted.size,
             draft: uniqueDrafts.size,
-            total_used: (activeCount || 0) + uniqueSubmissions.size
+            total_used: totalUsed
           }
         };
       })
