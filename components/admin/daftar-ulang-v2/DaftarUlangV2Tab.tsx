@@ -1042,6 +1042,34 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     );
   };
 
+  
+  const handleResetAkad = async (submissionId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus file akad dan menolak pendaftaran ini? Thalibah harus mengupload ulang akadnya.')) {
+      return;
+    }
+
+    setResettingId(submissionId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/reset-akad`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset akad');
+      }
+
+      toast.success(result.message || 'File Akad berhasil dihapus');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error resetting akad:', error);
+      toast.error('Gagal mereset akad: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
+  };
+
   const handleResetHalaqah = async (submissionId: string) => {
     if (!confirm('Apakah Anda yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
       return;
@@ -1316,6 +1344,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onEdit={handleEdit}
         onDelete={handleDelete}
         onResetHalaqah={handleResetHalaqah}
+        onResetAkad={handleResetAkad}
         onUpdateStatus={handleUpdateStatus}
         onEditExamScore={handleEditExamScore}
         onResetExamScore={(sub) => setResettingExamSubmission(sub as any)}

@@ -16,6 +16,7 @@ interface DaftarUlangV2TableProps {
   onEdit: (submission: DaftarUlangSubmission) => void;
   onDelete: (submissionId: string) => void;
   onResetHalaqah: (submissionId: string) => void;
+  onResetAkad?: (submissionId: string) => void;
   onUpdateStatus: (submissionId: string, type: 'akad' | 'partner', status: 'draft' | 'submitted' | 'approved') => void;
   resettingId: string | null;
   sortField: string;
@@ -26,7 +27,7 @@ interface DaftarUlangV2TableProps {
 }
 
 
-function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onResetHalaqah, resettingId, onResetExamScore }: any) {
+function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onResetHalaqah, onResetAkad, resettingId, onResetExamScore }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -103,6 +104,18 @@ function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onRe
             </button>
           )}
 
+          
+          {onResetAkad && (
+            <button
+              onClick={() => { setIsOpen(false); onResetAkad(submission.id); }}
+              disabled={resettingId === submission.id}
+              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+              title="Hapus file akad dan set status menjadi Draft"
+            >
+              <RotateCcw className="w-4 h-4" /> Tolak & Hapus Akad
+            </button>
+          )}
+
           <div className="h-px bg-gray-100 my-1"></div>
 
           <button
@@ -127,6 +140,7 @@ export function DaftarUlangV2Table({
   onEdit,
   onDelete,
   onResetHalaqah,
+  onResetAkad,
   onUpdateStatus,
   resettingId,
   sortField,
@@ -525,6 +539,7 @@ export function DaftarUlangV2Table({
                       onDelete={onDelete}
                       onUpdateStatus={onUpdateStatus}
                       onResetHalaqah={onResetHalaqah}
+                      onResetAkad={onResetAkad}
                       resettingId={resettingId}
                       onResetExamScore={onResetExamScore}
                     />
