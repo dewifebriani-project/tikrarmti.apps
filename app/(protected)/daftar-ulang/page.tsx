@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, ChevronRight, ChevronLeft, Info, FileText, X, ImageIcon, Trash2, Pencil } from 'lucide-react'
-import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
+import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, updateAkadFiles, approveDaftarUlangSubmission, getReregistrationQuestions, resetAkadThalibah } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
 type Step = 'confirm' | 'pengabdian' | 'akad' | 'halaqah' | 'partner' | 'success'
@@ -2357,6 +2357,23 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const canApprove = isAdmin && isSubmitted
 
   // Handle approve action
+  
+  const [isResetting, setIsResetting] = useState(false);
+  const handleResetAkad = async () => {
+    if (!existingSubmission?.id) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus file akad dan mengulang pengiriman?')) return;
+    
+    setIsResetting(true);
+    const result = await resetAkadThalibah(existingSubmission.id);
+    if (result.success) {
+      toast.success(result.message || 'File Akad berhasil dihapus');
+      window.location.reload();
+    } else {
+      toast.error(result.error || 'Gagal mereset akad');
+      setIsResetting(false);
+    }
+  };
+
   const handleApprove = async () => {
     if (!existingSubmission?.id) return
 
@@ -2437,6 +2454,18 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
               Menyetujui akan mengubah status menjadi 'approved', memastikan user memiliki role 'thalibah', dan menambahkan thalibah ke halaqah.
             </p>
           </div>
+        )}
+        
+        {!isAdmin && isSubmitted && (
+          <Button
+            onClick={handleResetAkad}
+            disabled={isResetting}
+            variant="destructive"
+            className="w-full mb-2"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {isResetting ? 'Menghapus...' : 'Hapus & Re-upload Akad'}
+          </Button>
         )}
         <Button
           onClick={() => router.push('/perjalanan-saya')}
