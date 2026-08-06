@@ -324,13 +324,23 @@ export default function PerjalananSaya() {
   const daftarUlangData = Array.isArray(daftarUlangArray) ? daftarUlangArray[0] : daftarUlangArray;
   // Check individual completion of each sub-step from daftar_ulang data
   const hasAkadFiles = !!(daftarUlangData?.akad_files && daftarUlangData.akad_files.length > 0);
-  const isAkadSubmitted = !!(daftarUlangData && (daftarUlangData.akad_status === 'submitted' || daftarUlangData.akad_status === 'approved' || daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  const isAkadSubmitted = !!(daftarUlangData && (
+    daftarUlangData.akad_status === 'submitted' || 
+    daftarUlangData.akad_status === 'approved' || 
+    (daftarUlangData.status === 'approved' && !daftarUlangData.akad_status) ||
+    (daftarUlangData.status === 'submitted' && !daftarUlangData.akad_status)
+  ));
   // hasAkad = akad files uploaded AND status is submitted/approved
   const hasAkad = hasAkadFiles && isAkadSubmitted;
   
   const hasHalaqah = !!(daftarUlangData?.ujian_halaqah_id || daftarUlangData?.tashih_halaqah_id);
   const hasPartnerSelection = !!(daftarUlangData?.partner_type);
-  const isPartnerSubmitted = !!(daftarUlangData && (daftarUlangData.partner_status === 'submitted' || daftarUlangData.partner_status === 'approved' || daftarUlangData.status === 'submitted' || daftarUlangData.status === 'approved'));
+  const isPartnerSubmitted = !!(daftarUlangData && (
+    daftarUlangData.partner_status === 'submitted' || 
+    daftarUlangData.partner_status === 'approved' || 
+    (daftarUlangData.status === 'approved' && !daftarUlangData.partner_status) ||
+    (daftarUlangData.status === 'submitted' && !daftarUlangData.partner_status)
+  ));
   const isSelfMatch = daftarUlangData?.partner_type === 'self_match';
   const isMutualSelfMatch = !!pairingData?.partner_details?.is_mutual_match;
   const isPartnerComplete = isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch);

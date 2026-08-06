@@ -315,6 +315,9 @@ function DaftarUlangContent() {
           // the akad step regardless of draft/submitted/approved status or
           // halaqah/partner completion, and don't touch any of those when saving.
           setCurrentStep('akad')
+        } else if (existingSub?.akad_status === 'draft' && (submissionStatus === 'submitted' || submissionStatus === 'approved')) {
+          // Admin rejected the akad (set to draft) but left the rest submitted
+          setCurrentStep('akad')
         } else if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
           if (!existingSub.ujian_halaqah_id || isHalaqahEditMode) {
             // Hasn't selected halaqah OR explicitly requested to edit
@@ -675,7 +678,10 @@ function DaftarUlangContent() {
   }
 
   // If user already submitted or approved, show read-only info page (not the form)
-  const isSubmissionLocked = existingSubmission?.status === 'submitted' || existingSubmission?.status === 'approved'
+  const isGlobalSubmitted = existingSubmission?.status === 'submitted' || existingSubmission?.status === 'approved'
+  const isAkadDraft = existingSubmission?.akad_status === 'draft'
+  const isPartnerDraft = existingSubmission?.partner_status === 'draft'
+  const isSubmissionLocked = isGlobalSubmitted && !isAkadEditMode && !isAkadDraft && !isPartnerDraft
 
   if (isSubmissionLocked) {
     return (
