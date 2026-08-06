@@ -38,6 +38,7 @@ import { DaftarUlangV2Stats } from './DaftarUlangV2Stats';
 import { DaftarUlangV2Filters } from './DaftarUlangV2Filters';
 import { DaftarUlangV2Table } from './DaftarUlangV2Table';
 import { DetailModal, BulkConfirmModal } from './DaftarUlangV2Modals';
+import { ResetExamModal } from './ResetExamModal';
 import { DaftarUlangSubmission, DaftarUlangStatsData, SortField, SortOrder } from './types';
 
 // Types are now imported from './types'
@@ -55,6 +56,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [submissions, setSubmissions] = useState<DaftarUlangSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
+  const [resettingExamSubmission, setResettingExamSubmission] = useState<DaftarUlangSubmission | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sortField, setSortField] = useState<SortField>('submitted_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -65,6 +67,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   // Download state
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [downloadingVCF, setDownloadingVCF] = useState(false);
   const [allSubmissionsForDownload, setAllSubmissionsForDownload] = useState<any[]>([]);
 
   // Statistics state
@@ -641,6 +644,117 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
 
   // Download PDF
+  
+  // Download VCF
+  const downloadVCF = async () => {
+    setDownloadingVCF(true);
+    try {
+      const data = await loadAllSubmissionsForDownload();
+      
+      const filteredData = data.filter(
+        (item: any) => item.status === 'approved' || item.status === 'submitted'
+      );
+
+      if (filteredData.length === 0) {
+        toast.error('Tidak ada data dengan status approved/submitted untuk diunduh');
+        return;
+      }
+
+      // Sort data alphabetically by name
+      const sortedData = [...filteredData].sort((a, b) => {
+        const aName = a.confirmed_full_name || a.user?.full_name || '';
+        const bName = b.confirmed_full_name || b.user?.full_name || '';
+        return aName.localeCompare(bName, 'id-ID');
+      });
+
+      const toProperCase = (text: string) => {
+        if (!text) return '';
+        return text.split(' ').map((word: string) => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : '').join(' ');
+      }
+
+      const getYearFromBirthDate = (birthDate: string) => {
+        if (!birthDate) return '';
+        try {
+          return new Date(birthDate).getFullYear().toString().slice(-2);
+        } catch {
+          return '';
+        }
+      }
+
+      const escapeVcfField = (field: string) => {
+        if (!field) return '';
+        return field.toString().replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+      }
+
+      const formatPhoneForVcf = (phone: string) => {
+        if (!phone) return '';
+        let cleaned = phone.replace(/\D/g, '');
+        if (cleaned.startsWith('0')) {
+          cleaned = '62' + cleaned.slice(1);
+        }
+        return '+' + cleaned;
+      }
+
+      // Identify batch number for filename
+      const batchObj = batches.find(b => b.id === (localBatchId === 'all' && batches.length > 0 ? batches[0].id : localBatchId));
+      const batchNameStr = batchObj ? batchObj.name : '';
+      const batchMatch = batchNameStr.match(/Batch\s*(\d+)/i);
+      const fileBatchNumber = batchMatch ? batchMatch[1] : 'All';
+
+      const vcfLines: string[] = [];
+
+      sortedData.forEach(item => {
+        // Identify batch number for this specific item
+        const itemBatchId = item.batch_id || (item.registration?.batch_id) || localBatchId;
+        const itemBatchObj = batches.find(b => b.id === itemBatchId);
+        const itemBatchNameStr = itemBatchObj ? itemBatchObj.name : '';
+        const itemBatchMatch = itemBatchNameStr.match(/Batch\s*(\d+)/i);
+        const itemBatchNumber = itemBatchMatch ? itemBatchMatch[1] : 'XX';
+
+        const fullName = item.confirmed_full_name || item.user?.full_name || '';
+        const waPhone = item.confirmed_wa_phone || item.user?.whatsapp || '';
+        const birthDate = item.registration?.birth_date || '';
+        const domicile = item.registration?.domicile || '';
+
+        const birthYearYY = getYearFromBirthDate(birthDate);
+        const formattedName = toProperCase(fullName);
+        const formattedDomicile = toProperCase(domicile);
+        
+        // MTI3_nama_tahun lahir_kota domisili
+        const name = `MTI${itemBatchNumber}_${formattedName}_${birthYearYY}_${formattedDomicile}`;
+
+        vcfLines.push('BEGIN:VCARD');
+        vcfLines.push('VERSION:3.0');
+        vcfLines.push(`FN:${escapeVcfField(name)}`);
+        vcfLines.push(`N:${escapeVcfField(name)};;;;`);
+        
+        const phone = formatPhoneForVcf(waPhone);
+        if (phone) {
+          vcfLines.push(`TEL;TYPE=CELL:${phone}`);
+        }
+        
+        vcfLines.push('END:VCARD');
+      });
+
+      const vcfContent = vcfLines.join('\n');
+      const blob = new Blob([vcfContent], { type: 'text/vcard;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Daftar_Ulang_MTI_Batch_${fileBatchNumber}.vcf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('File VCF berhasil diunduh');
+    } catch (error) {
+      console.error('Download VCF error:', error);
+      toast.error('Gagal mengunduh file VCF');
+    } finally {
+      setDownloadingVCF(false);
+    }
+  };
+
   const downloadPDF = async () => {
     setDownloadingPDF(true);
     try {
@@ -1066,26 +1180,22 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-  const handleResetExamScore = async (registrationId: string) => {
-    if (!window.confirm('Apakah Anda yakin ingin mereset dan menghapus riwayat ujian tulis untuk Thalibah ini? Ini akan membuat Thalibah bisa mengambil ujian kembali.')) {
-      return;
-    }
-    setResettingId(registrationId);
+  const handleResetExam = async (registrationId: string, targetJuz: string, resetStatus: boolean) => {
     try {
-      const response = await fetch(`/api/admin/daftar-ulang/exam?registrationId=${registrationId}`, {
-        method: 'DELETE'
+      const response = await fetch('/api/admin/exams/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registration_id: registrationId, target_juz: targetJuz, reset_status: resetStatus }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(data.message || 'Riwayat ujian berhasil direset');
-        setRefreshTrigger(prev => prev + 1);
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Ujian berhasil direset!');
+        loadSubmissions(); // refresh table
       } else {
-        toast.error(data.error || 'Gagal mereset ujian');
+        toast.error(result.error || 'Gagal mereset ujian');
       }
-    } catch (e: any) {
-      toast.error('Terjadi kesalahan: ' + e.message);
-    } finally {
-      setResettingId(null);
+    } catch (error: any) {
+      toast.error('Kesalahan server saat mereset ujian: ' + error.message);
     }
   };
 
@@ -1125,8 +1235,22 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   // Derived final submissions
   const filteredByStatus = useMemo(() => {
-    return submissions.filter(s => filterStatus === 'all' || s.status === filterStatus);
-  }, [submissions, filterStatus]);
+    return submissions.filter(s => {
+      const matchStatus = filterStatus === 'all' || s.status === filterStatus;
+      
+      let matchSearch = true;
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const fullName = (s.confirmed_full_name || s.user?.full_name || '').toLowerCase();
+        const wa = ((s as any).confirmed_wa_phone || s.user?.whatsapp || '').toLowerCase();
+        const juz = (s.confirmed_chosen_juz || s.registration?.chosen_juz || '').toLowerCase();
+        
+        matchSearch = fullName.includes(query) || wa.includes(query) || juz.includes(query);
+      }
+      
+      return matchStatus && matchSearch;
+    });
+  }, [submissions, filterStatus, searchQuery]);
 
   const finalSubmissions = useMemo(() => {
     return [...filteredByStatus].sort((a, b) => {
@@ -1176,8 +1300,10 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         }}
         onDownloadExcel={downloadExcel}
         onDownloadPDF={downloadPDF}
+        onDownloadVCF={downloadVCF}
         isDownloadingExcel={downloadingExcel}
         isDownloadingPDF={downloadingPDF}
+        isDownloadingVCF={downloadingVCF}
       />
 
       <DaftarUlangV2Table 
@@ -1192,7 +1318,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         onResetHalaqah={handleResetHalaqah}
         onUpdateStatus={handleUpdateStatus}
         onEditExamScore={handleEditExamScore}
-        onResetExamScore={handleResetExamScore}
+        onResetExamScore={(sub) => setResettingExamSubmission(sub as any)}
         resettingId={resettingId}
         sortField={sortField}
         sortOrder={sortOrder}
@@ -1295,6 +1421,14 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         count={selectedIds.size}
         isProcessing={isBulkProcessing}
       />
+
+      {resettingExamSubmission && (
+        <ResetExamModal
+          submission={resettingExamSubmission}
+          onClose={() => setResettingExamSubmission(null)}
+          onConfirm={handleResetExam}
+        />
+      )}
     </div>
   );
 }

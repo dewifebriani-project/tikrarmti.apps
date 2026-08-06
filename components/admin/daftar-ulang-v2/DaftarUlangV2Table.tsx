@@ -26,7 +26,7 @@ interface DaftarUlangV2TableProps {
 }
 
 
-function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onResetHalaqah, resettingId }: any) {
+function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onResetHalaqah, resettingId, onResetExamScore }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -90,6 +90,16 @@ function ActionMenu({ submission, onView, onEdit, onDelete, onUpdateStatus, onRe
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
             >
               <RotateCcw className="w-4 h-4 text-amber-500" /> Reset Halaqah
+            </button>
+          )}
+
+          {submission.exam_status === 'completed' && onResetExamScore && (
+            <button
+              onClick={() => { setIsOpen(false); onResetExamScore(submission); }}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              title="Reset ujian yang gagal agar user bisa mengulang, dan ubah juz kembali"
+            >
+              <RotateCcw className="w-4 h-4 text-amber-500" /> Reset Ujian Akhir
             </button>
           )}
 
@@ -516,6 +526,7 @@ export function DaftarUlangV2Table({
                       onUpdateStatus={onUpdateStatus}
                       onResetHalaqah={onResetHalaqah}
                       resettingId={resettingId}
+                      onResetExamScore={onResetExamScore}
                     />
                   </td>
                 </tr>

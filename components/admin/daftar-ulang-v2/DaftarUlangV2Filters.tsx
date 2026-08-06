@@ -18,8 +18,10 @@ interface DaftarUlangV2FiltersProps {
   batches: any[];
   onDownloadExcel: () => void;
   onDownloadPDF: () => void;
+  onDownloadVCF: () => void;
   isDownloadingExcel: boolean;
   isDownloadingPDF: boolean;
+  isDownloadingVCF: boolean;
 }
 
 export function DaftarUlangV2Filters({ 
@@ -32,8 +34,10 @@ export function DaftarUlangV2Filters({
   batches,
   onDownloadExcel,
   onDownloadPDF,
+  onDownloadVCF,
   isDownloadingExcel,
-  isDownloadingPDF
+  isDownloadingPDF,
+  isDownloadingVCF
 }: DaftarUlangV2FiltersProps) {
   
   const handleClear = () => {
@@ -143,6 +147,19 @@ export function DaftarUlangV2Filters({
               <Download className="w-4 h-4" />
             )}
             <span>PDF</span>
+          </button>
+          
+          <button
+            onClick={onDownloadVCF}
+            disabled={isDownloadingVCF}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl transition-colors font-semibold text-sm border border-blue-200 flex-1 lg:flex-none"
+          >
+            {isDownloadingVCF ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>VCF</span>
           </button>
         </div>
 
