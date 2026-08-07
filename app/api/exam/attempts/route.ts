@@ -246,8 +246,8 @@ export async function POST(request: NextRequest) {
     let downgradedTo30A = false;
     let newChosenJuz = registration.chosen_juz;
 
-    if (!isPassed && attemptsCount >= maxAttempts) {
-        // Failed max attempts
+    if (!isPassed) {
+        // Failed any attempt, automatically drop to Juz 30A
         newChosenJuz = '30A';
         downgradedTo30A = true;
     }
