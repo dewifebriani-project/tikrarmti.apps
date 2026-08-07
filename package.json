@@ -55,6 +55,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.35",
     "google-recaptcha-v3": "^1.1.2",
+    "html-to-image": "^1.11.13",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.555.0",

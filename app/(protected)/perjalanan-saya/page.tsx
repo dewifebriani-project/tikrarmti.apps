@@ -535,11 +535,11 @@ export default function PerjalananSaya() {
             // Once akad is uploaded, let her come back and add a file she missed —
             // but only until Fase 4 (Masa Belajar) actually starts.
             isEditAction: !isPraTikrar && hasAkadFiles,
-            isEditDisabled: isReEnrollmentDoneByDate,
+            isEditDisabled: isReEnrollmentDoneByDate || daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved',
             editUrl: hasAkad ? `/daftar-ulang?editAkad=true` : `/daftar-ulang?batchId=${batchId}`,
             editLabel: 'Edit',
             editActiveTitle: hasAkad ? 'Tambah file akad yang terlewat' : 'Lanjutkan pengisian daftar ulang',
-            editDisabledTitle: 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
+            editDisabledTitle: (daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved') ? 'Data daftar ulang telah tersimpan. Hubungi admin untuk mengubah data.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
@@ -575,11 +575,11 @@ export default function PerjalananSaya() {
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`,
             isEditAction: !isPraTikrar && hasAkad && hasHalaqah && hasPartnerSelection,
-            isEditDisabled: isReEnrollmentDoneByDate,
+            isEditDisabled: isReEnrollmentDoneByDate || daftarUlangData?.partner_status === 'submitted' || daftarUlangData?.partner_status === 'approved',
             editUrl: `/pilih-pasangan?batchId=${batchId}`,
             editLabel: 'Edit',
             editActiveTitle: 'Ubah Pilihan Halaqah & Pasangan',
-            editDisabledTitle: 'Sudah masuk Masa Belajar, halaqah tidak bisa diubah lagi'
+            editDisabledTitle: (daftarUlangData?.partner_status === 'submitted' || daftarUlangData?.partner_status === 'approved') ? 'Data pilihan Halaqah & Pasangan telah tersimpan. Hubungi admin untuk mereset status.' : 'Sudah masuk Masa Belajar, halaqah tidak bisa diubah lagi'
           },
           { 
             name: 'Verifikasi', 

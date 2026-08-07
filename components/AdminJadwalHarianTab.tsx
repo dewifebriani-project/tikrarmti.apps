@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isStaff } from '@/lib/roles';
 import { 
-  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText
+  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -17,6 +17,8 @@ import {
   formatTimeShort,
   HalaqahForReminder
 } from '@/lib/reminder-generator';
+import { toPng } from 'html-to-image';
+import { JadwalPoster } from './JadwalPoster';
 
 const DAYS = [
   { id: 1, name: 'Senin' },
@@ -153,6 +155,40 @@ export default function AdminJadwalHarianTab() {
     return date;
   };
 
+  const posterRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleDownloadPoster = async () => {
+    if (!posterRef.current || halaqahs.length === 0) return;
+    
+    setIsGenerating(true);
+    const dayName = DAYS.find(d => d.id === activeDay)?.name || '';
+    
+    try {
+      toast.loading('Menyiapkan gambar poster...', { id: 'poster-gen' });
+      
+      const dataUrl = await toPng(posterRef.current, {
+        cacheBust: true,
+        pixelRatio: 2, // Higher quality
+        style: {
+          transform: 'none', // Prevent layout shifts during capture
+        },
+      });
+      
+      const link = document.createElement('a');
+      link.download = `Jadwal-Halaqah-${dayName}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      toast.success('Poster berhasil di-download!', { id: 'poster-gen' });
+    } catch (err) {
+      console.error('Error generating poster:', err);
+      toast.error('Gagal men-generate poster. Silakan coba lagi.', { id: 'poster-gen' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Day Selector */}
@@ -189,15 +225,39 @@ export default function AdminJadwalHarianTab() {
         </div>
         
         {isUserStaff && (
-          <button
-            onClick={handleCopyRekapan}
-            disabled={isLoading || halaqahs.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20"
-          >
-            <Copy className="h-4 w-4" />
-            Copy Rekapan Harian
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleDownloadPoster}
+              disabled={isLoading || halaqahs.length === 0 || isGenerating}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-emerald-500/20 w-full sm:w-auto"
+            >
+              {isGenerating ? (
+                <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+              Download Poster
+            </button>
+            <button
+              onClick={handleCopyRekapan}
+              disabled={isLoading || halaqahs.length === 0}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20 w-full sm:w-auto"
+            >
+              <Copy className="h-4 w-4" />
+              Copy Rekapan Harian
+            </button>
+          </div>
         )}
+      </div>
+
+      {/* Hidden Poster Template for html-to-image */}
+      <div className="absolute left-[-9999px] top-0 overflow-hidden opacity-0 pointer-events-none">
+        <JadwalPoster 
+          ref={posterRef} 
+          halaqahs={halaqahs} 
+          dayName={DAYS.find(d => d.id === activeDay)?.name || ''} 
+          dayNum={activeDay}
+        />
       </div>
 
       {/* Schedule Grid */}

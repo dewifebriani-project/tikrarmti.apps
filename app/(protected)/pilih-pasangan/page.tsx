@@ -199,16 +199,27 @@ export default function PilihPasanganPage() {
     )
   }
 
-  const isLocked = () => {
-    if (!registrationData?.batch?.opening_class_date) return false;
+  const getLockStatus = () => {
+    if (existingSubmission?.partner_status === 'submitted' || existingSubmission?.partner_status === 'approved' || existingSubmission?.status === 'submitted' || existingSubmission?.status === 'approved') {
+      return { locked: true, reason: 'submitted' };
+    }
+
+    if (!registrationData?.batch?.opening_class_date) return { locked: false, reason: '' };
     const openingDate = new Date(registrationData.batch.opening_class_date);
     openingDate.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return today >= openingDate;
+    
+    if (today >= openingDate) {
+      return { locked: true, reason: 'date' };
+    }
+    
+    return { locked: false, reason: '' };
   };
 
-  if (isLocked() && existingSubmission?.ujian_halaqah_id) {
+  const lockStatus = getLockStatus();
+
+  if (lockStatus.locked && existingSubmission?.ujian_halaqah_id) {
     const chosenHalaqah = halaqahData.find(h => h.id === existingSubmission.ujian_halaqah_id)
     
     return (
@@ -218,7 +229,9 @@ export default function PilihPasanganPage() {
             <Clock className="w-16 h-16 mx-auto mb-4 text-blue-100" />
             <h2 className="text-2xl font-bold mb-2">Pilihan Anda Telah Terkunci</h2>
             <p className="text-blue-100 opacity-90">
-              Masa belajar telah dimulai. Anda tidak dapat mengubah pilihan halaqah dan pasangan lagi.
+              {lockStatus.reason === 'submitted' 
+                ? 'Data pilihan Halaqah dan Pasangan Anda telah tersimpan (submitted). Jika ada perubahan, silakan hubungi admin untuk mereset status Anda.'
+                : 'Masa belajar telah dimulai. Anda tidak dapat mengubah pilihan halaqah dan pasangan lagi.'}
             </p>
           </div>
           <CardContent className="p-6 md:p-8">
@@ -275,12 +288,18 @@ export default function PilihPasanganPage() {
     )
   }
 
-  if (isLocked() && !existingSubmission?.ujian_halaqah_id) {
+  if (lockStatus.locked && !existingSubmission?.ujian_halaqah_id) {
     return (
-      <div className="text-center py-12">
-        <Clock className="w-16 h-16 mx-auto mb-4 text-red-500" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Masa Pemilihan Telah Berakhir</h2>
-        <p className="text-gray-600 mb-8">Masa belajar telah dimulai. Anda terlambat memilih halaqah dan pasangan. Silakan hubungi admin.</p>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
+          <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h2 className="text-2xl font-bold mb-2">Masa Pemilihan Telah Berakhir</h2>
+          <p className="text-gray-600 mb-8">
+            {lockStatus.reason === 'submitted'
+              ? 'Anda telah melakukan submit pilihan Anda.'
+              : 'Masa belajar telah dimulai. Anda terlambat memilih halaqah dan pasangan. Silakan hubungi admin.'}
+          </p>
+        </div>
         <Button onClick={() => router.push('/perjalanan-saya')} className="bg-emerald-600 hover:bg-emerald-700">
           Kembali ke Perjalanan Saya
         </Button>
