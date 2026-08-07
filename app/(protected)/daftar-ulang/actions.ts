@@ -632,6 +632,7 @@ export async function updateAkadFiles(
       .from('daftar_ulang_submissions')
       .update({
         akad_files: akadFiles,
+        akad_status: 'submitted',
         updated_at: new Date().toISOString()
       })
       .eq('id', existing.id)

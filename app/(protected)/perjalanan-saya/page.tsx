@@ -535,11 +535,14 @@ export default function PerjalananSaya() {
             // Once akad is uploaded, let her come back and add a file she missed —
             // but only until Fase 4 (Masa Belajar) actually starts.
             isEditAction: !isPraTikrar && hasAkadFiles,
-            isEditDisabled: isReEnrollmentDoneByDate || daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved',
+            isEditDisabled: isReEnrollmentDoneByDate || 
+              (daftarUlangData?.akad_status 
+                ? (daftarUlangData.akad_status === 'submitted' || daftarUlangData.akad_status === 'approved') 
+                : (daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved')),
             editUrl: hasAkad ? `/daftar-ulang?editAkad=true` : `/daftar-ulang?batchId=${batchId}`,
             editLabel: 'Edit',
             editActiveTitle: hasAkad ? 'Tambah file akad yang terlewat' : 'Lanjutkan pengisian daftar ulang',
-            editDisabledTitle: (daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved') ? 'Data daftar ulang telah tersimpan. Hubungi admin untuk mengubah data.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
+            editDisabledTitle: (daftarUlangData?.akad_status === 'submitted' || daftarUlangData?.akad_status === 'approved' || daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved') ? 'Data daftar ulang telah tersimpan. Hubungi admin untuk mengubah data.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
