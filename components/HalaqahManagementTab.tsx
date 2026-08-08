@@ -27,7 +27,8 @@ import {
   Video,
   Copy,
   ClipboardList,
-  MessageSquare
+  MessageSquare,
+  MoreVertical
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -174,6 +175,7 @@ export function HalaqahManagementTab() {
 
   // Modals
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [editingHalaqah, setEditingHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
@@ -1141,7 +1143,7 @@ export function HalaqahManagementTab() {
                     <tr>
                       <th
                         onClick={() => handleSort('name')}
-                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors w-[300px]"
                       >
                         <div className="flex items-center gap-1">
                           Name
@@ -1208,7 +1210,7 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[280px] sticky right-0 z-10 backdrop-blur-sm">
+                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none min-w-[80px] w-[80px] sticky right-0 z-10 backdrop-blur-sm">
                         Actions
                       </th>
                     </tr>
@@ -1288,53 +1290,56 @@ export function HalaqahManagementTab() {
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(halaqah.status)}
-                        </td>
-                        <td className="px-6 py-4 sticky right-0 bg-white group-hover:bg-gray-50 shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)] border-l border-gray-100 z-10">
-                          <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1.5 relative">
                             <button
-                              onClick={() => setSelectedHalaqah(halaqah)}
-                              className="p-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 active:scale-90 shrink-0"
-                              title="View details"
+                              onClick={() => setOpenActionId(openActionId === halaqah.id ? null : halaqah.id)}
+                              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                             >
-                              <Eye className="w-4 h-4" />
+                              <MoreVertical className="w-5 h-5" />
                             </button>
-
-                            <button
-                              onClick={() => setEditingHalaqah(halaqah)}
-                              className="p-2 text-blue-600 bg-blue-50/50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-90 shrink-0"
-                              title="Edit halaqah"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-
-                            {halaqah.status === 'inactive' && (
-                              <button
-                                onClick={() => handleStatusChange(halaqah.id, 'active')}
-                                className="p-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-100 active:scale-90 shrink-0"
-                                title="Activate halaqah"
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                              </button>
+                            
+                            {openActionId === halaqah.id && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setOpenActionId(null)}></div>
+                                <div className="absolute right-10 top-0 w-48 bg-white border border-gray-100 rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] z-50 py-1 overflow-hidden">
+                                  <button
+                                    onClick={() => { setSelectedHalaqah(halaqah); setOpenActionId(null); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+                                  >
+                                    <Eye className="w-4 h-4 text-gray-400" /> Detail
+                                  </button>
+                                  <button
+                                    onClick={() => { setEditingHalaqah(halaqah); setOpenActionId(null); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+                                  >
+                                    <Edit className="w-4 h-4 text-gray-400" /> Edit
+                                  </button>
+                                  {halaqah.status === 'inactive' && (
+                                    <button
+                                      onClick={() => { handleStatusChange(halaqah.id, 'active'); setOpenActionId(null); }}
+                                      className="w-full text-left px-4 py-2.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" /> Aktifkan
+                                    </button>
+                                  )}
+                                  {halaqah.status === 'active' && (
+                                    <button
+                                      onClick={() => { handleStatusChange(halaqah.id, 'inactive'); setOpenActionId(null); }}
+                                      className="w-full text-left px-4 py-2.5 text-sm font-medium text-amber-600 hover:bg-amber-50 flex items-center gap-2.5 transition-colors"
+                                    >
+                                      <XCircle className="w-4 h-4" /> Nonaktifkan
+                                    </button>
+                                  )}
+                                  <div className="h-px bg-gray-100 my-1"></div>
+                                  <button
+                                    onClick={() => { handleDeleteHalaqah(halaqah.id); setOpenActionId(null); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" /> Hapus
+                                  </button>
+                                </div>
+                              </>
                             )}
-
-                            {halaqah.status === 'active' && (
-                              <button
-                                onClick={() => handleStatusChange(halaqah.id, 'inactive')}
-                                className="p-2 text-amber-600 bg-amber-50/50 hover:bg-amber-100 rounded-lg transition-all border border-amber-100 active:scale-90 shrink-0"
-                                title="Deactivate halaqah"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleDeleteHalaqah(halaqah.id)}
-                              className="p-2 text-red-600 bg-red-50/50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-90 shrink-0"
-                              title="Delete halaqah"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-
                           </div>
                         </td>
                       </tr>
