@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import { removeSubmissionFromHalaqahStudents } from '@/lib/halaqah-students-sync';
 
 /**
  * POST /api/admin/daftar-ulang/revert
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Get current submission
     const { data: submission, error: fetchError } = await supabaseAdmin
       .from('daftar_ulang_submissions')
-      .select('id, status, user_id, confirmed_full_name')
+      .select('id, status, user_id, confirmed_full_name, ujian_halaqah_id, tashih_halaqah_id')
       .eq('id', submission_id)
       .single();
 
@@ -71,6 +72,10 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('[Revert Daftar Ulang] Update error:', updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    if (submission.status === 'approved') {
+      await removeSubmissionFromHalaqahStudents(supabaseAdmin, submission);
     }
 
     return NextResponse.json({

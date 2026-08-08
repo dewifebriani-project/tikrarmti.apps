@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import { syncApprovedSubmissionToHalaqahStudents } from '@/lib/halaqah-students-sync';
 
 /**
  * POST /api/admin/daftar-ulang/[id]/approve
@@ -44,7 +45,12 @@ export async function POST(
     }
 
     if (submission.status === 'approved') {
-      return NextResponse.json({ error: 'Submission already approved' }, { status: 400 });
+      await syncApprovedSubmissionToHalaqahStudents(supabaseAdmin, submission, user.id);
+      return NextResponse.json({
+        success: true,
+        message: 'Submission sudah approved dan keanggotaan halaqah telah disinkronkan.',
+        data: submission
+      });
     }
 
     // Update submission status to approved
@@ -63,6 +69,8 @@ export async function POST(
       console.error('[Approve Daftar Ulang] Update error:', updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    await syncApprovedSubmissionToHalaqahStudents(supabaseAdmin, updated, user.id);
 
     // Ensure user has 'thalibah' role and legacy roles are removed
     const userRoles = submission.user?.roles || [];

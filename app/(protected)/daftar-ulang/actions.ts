@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
+import { syncApprovedSubmissionToHalaqahStudents } from '@/lib/halaqah-students-sync'
 
 const parseDonationAmount = (value: string | number | null | undefined): number | null => {
   if (value === null || value === undefined || value === '') return null
@@ -421,42 +422,6 @@ export async function submitDaftarUlang(
         .eq('id', authUser.id)
     }
 
-    // 6. Automatically add to halaqah_students if halaqah IDs are provided
-    const halaqahEntries: any[] = []
-
-    if (data.ujian_halaqah_id) {
-      halaqahEntries.push({
-        halaqah_id: data.ujian_halaqah_id,
-        thalibah_id: authUser.id,
-        assigned_by: authUser.id, // Auto assigned by user
-        status: 'active'
-      })
-    }
-
-    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
-      halaqahEntries.push({
-        halaqah_id: data.tashih_halaqah_id,
-        thalibah_id: authUser.id,
-        assigned_by: authUser.id,
-        status: 'active'
-      })
-    }
-
-    if (halaqahEntries.length > 0) {
-      // Clean up previous assignments for this user in this batch first (to avoid duplicates if they changed it)
-      // Actually, since they can only submit once after picking, we can just insert, but we should handle conflict gracefully.
-      const supabaseAdmin = createSupabaseAdmin()
-      for (const entry of halaqahEntries) {
-        const { error: halaqahError } = await supabaseAdmin
-          .from('halaqah_students')
-          .upsert(entry, { onConflict: 'halaqah_id,thalibah_id' })
-        
-        if (halaqahError) {
-          console.error('Error upserting into halaqah_students:', halaqahError)
-        }
-      }
-    }
-
     // Revalidate paths
     revalidatePath('/dashboard')
     revalidatePath('/perjalanan-saya')
@@ -743,37 +708,12 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
       return { success: false, error: 'Gagal mengupdate role user.' }
     }
 
-    // 5. Add to halaqah_students for ujian and tashih halaqah
-    const halaqahEntries: any[] = []
-
-    if (submission.ujian_halaqah_id) {
-      halaqahEntries.push({
-        halaqah_id: submission.ujian_halaqah_id,
-        thalibah_id: userId,
-        assigned_by: authUser.id,
-        status: 'active'
-      })
-    }
-
-    if (submission.tashih_halaqah_id) {
-      halaqahEntries.push({
-        halaqah_id: submission.tashih_halaqah_id,
-        thalibah_id: userId,
-        assigned_by: authUser.id,
-        status: 'active'
-      })
-    }
-
-    if (halaqahEntries.length > 0) {
-      const { error: halaqahError } = await supabase
-        .from('halaqah_students')
-        .insert(halaqahEntries)
-
-      if (halaqahError) {
-        console.error('Error inserting into halaqah_students:', halaqahError)
-        return { success: false, error: 'Gagal menambahkan thalibah ke halaqah.' }
-      }
-    }
+    // 5. Add/reactivate the approved thalibah without creating duplicates
+    await syncApprovedSubmissionToHalaqahStudents(
+      createSupabaseAdmin(),
+      submission,
+      authUser.id
+    )
 
     return {
       success: true,

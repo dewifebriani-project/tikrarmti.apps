@@ -1,6 +1,10 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  removeSubmissionFromHalaqahStudents,
+  syncApprovedSubmissionToHalaqahStudents
+} from '@/lib/halaqah-students-sync';
 
 /**
  * POST /api/admin/daftar-ulang/[id]/update-status
@@ -92,6 +96,12 @@ export async function POST(
     if (updateError) {
       console.error('[Update Status Daftar Ulang] Update error:', updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    if (globalStatus === 'approved') {
+      await syncApprovedSubmissionToHalaqahStudents(supabaseAdmin, updated, user.id);
+    } else if (submission.status === 'approved') {
+      await removeSubmissionFromHalaqahStudents(supabaseAdmin, submission);
     }
 
     // If fully approved, ensure user has 'thalibah' role

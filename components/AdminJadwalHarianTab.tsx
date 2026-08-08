@@ -38,6 +38,7 @@ export default function AdminJadwalHarianTab() {
   const [activeBatchName, setActiveBatchName] = useState<string>('');
   const [zoomLinks, setZoomLinks] = useState<any[]>([]);
   const [editingHalaqah, setEditingHalaqah] = useState<any>(null);
+  const [studentListHalaqah, setStudentListHalaqah] = useState<HalaqahForReminder | null>(null);
   const [editForm, setEditForm] = useState({ start_time: '', end_time: '', zoom_link_id: '' });
   const [isSaving, setIsSaving] = useState(false);
   
@@ -435,12 +436,18 @@ export default function AdminJadwalHarianTab() {
                         </div>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setStudentListHalaqah(halaqah)}
+                          className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
+                          title="Lihat daftar thalibah"
+                          aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
+                        >
                           <Users className="h-4 w-4 text-gray-400" />
                           <span className="font-medium text-gray-900">
                             {halaqah.students?.length || 0}
                           </span>
-                        </div>
+                        </button>
                       </td>
                       {isUserStaff && (
                         <td className="py-4 px-6">
@@ -477,6 +484,67 @@ export default function AdminJadwalHarianTab() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {studentListHalaqah && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="student-list-title"
+          onClick={() => setStudentListHalaqah(null)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
+              <div className="pr-6">
+                <h3 id="student-list-title" className="text-lg font-bold text-gray-900">
+                  Daftar Thalibah Aktif
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">{studentListHalaqah.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStudentListHalaqah(null)}
+                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Tutup daftar thalibah"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
+              {!studentListHalaqah.students?.length ? (
+                <div className="py-8 text-center">
+                  <Users className="mx-auto h-10 w-10 text-gray-300" />
+                  <p className="mt-3 font-medium text-gray-700">Belum ada thalibah aktif</p>
+                </div>
+              ) : (
+                <ol className="space-y-2">
+                  {studentListHalaqah.students.map((student, index) => (
+                    <li
+                      key={`${student.full_name}-${index}`}
+                      className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                        {index + 1}
+                      </span>
+                      <span className="font-medium text-gray-900">
+                        {student.full_name || 'Nama belum tersedia'}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+
+            <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 text-sm font-medium text-gray-600">
+              Total: {studentListHalaqah.students?.length || 0} thalibah aktif
+            </div>
           </div>
         </div>
       )}

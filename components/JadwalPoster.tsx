@@ -1,3 +1,5 @@
+'use client';
+
 import { forwardRef } from 'react';
 import { formatTimeShort, HalaqahForReminder } from '@/lib/reminder-generator';
 
@@ -106,7 +108,7 @@ const ArabesqueCorner = () => (
 
     {/* Small circle accents */}
     <circle cx={300} cy={40} r={5} fill="white" opacity="0.5" />
-    <circle cx={390} cy={110} r={4} fill="white" opacity="0.4} />
+    <circle cx={390} cy={110} r={4} fill="white" opacity="0.4" />
     <circle cx={270} cy={100} r={3} fill="white" opacity="0.4" />
     <circle cx={360} cy={200} r={4} fill="white" opacity="0.35" />
     <circle cx={230} cy={170} r={3} fill="white" opacity="0.3" />

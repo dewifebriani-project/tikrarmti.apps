@@ -15,7 +15,8 @@ interface Student {
   status: 'active' | 'waitlist' | 'graduated' | 'dropped';
   joined_waitlist_at?: string;
   promoted_from_waitlist_at?: string;
-  created_at: string;
+  assigned_at?: string;
+  created_at?: string;
   thalibah?: {
     id: string;
     full_name?: string;
@@ -234,7 +235,9 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
                     {student.thalibah?.email || 'No email'}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Joined: {formatDate(student.created_at)}
+                    Joined: {student.assigned_at || student.created_at
+                      ? formatDate(student.assigned_at || student.created_at || '')
+                      : '-'}
                   </p>
                 </div>
                 <button

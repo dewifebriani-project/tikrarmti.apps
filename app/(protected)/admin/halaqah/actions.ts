@@ -5,6 +5,7 @@ import { createSupabaseAdmin } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { getClientIp, getUserAgent, logAudit } from '@/lib/audit-log'
 import { headers } from 'next/headers'
+import { syncApprovedSubmissionToHalaqahStudents } from '@/lib/halaqah-students-sync'
 
 /**
  * HALAQAH SERVER ACTIONS
@@ -1217,7 +1218,7 @@ async function performAssignment(
  * This function:
  * 1. Verifies thalibah exists in enrolment table and has selection_status = 'selected'
  * 2. Updates or creates daftar_ulang_submissions with the halaqah_id based on halaqahType
- * 3. Does NOT use halaqah_students table - only updates daftar_ulang_submissions
+ * 3. Synchronizes approved submissions into halaqah_students
  *
  * @param halaqahId - Target halaqah ID
  * @param thalibahIds - Array of thalibah (user) IDs to add
@@ -1431,6 +1432,16 @@ export async function addThalibahToHalaqah(params: {
 
           console.log('[addThalibahToHalaqah] Created daftar_ulang_submissions for', enrolment.full_name)
         }
+
+        await syncApprovedSubmissionToHalaqahStudents(
+          supabaseAdmin,
+          {
+            user_id: thalibahId,
+            ujian_halaqah_id: halaqahType === 'ujian' || halaqahType === 'both' ? halaqahId : null,
+            tashih_halaqah_id: halaqahType === 'tashih' || halaqahType === 'both' ? halaqahId : null
+          },
+          user.id
+        )
 
         results.success.push({
           thalibah_id: thalibahId,

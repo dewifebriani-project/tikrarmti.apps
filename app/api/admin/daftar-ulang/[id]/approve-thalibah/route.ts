@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
+import { syncApprovedSubmissionToHalaqahStudents } from '@/lib/halaqah-students-sync'
 
 /**
  * Approve daftar ulang submission
@@ -14,6 +16,7 @@ export async function POST(
 ) {
   const { id: submissionId } = await params
   const supabase = createClient()
+  const supabaseAdmin = createSupabaseAdmin()
 
   // 1. Validasi Auth - hanya admin
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
@@ -89,39 +92,8 @@ export async function POST(
       }
     }
 
-    // 5. Add thalibah to halaqah_students
-    const halaqahStudentsToAdd = []
-
-    // Add ujian halaqah
-    if (submission.ujian_halaqah_id) {
-      halaqahStudentsToAdd.push({
-        halaqah_id: submission.ujian_halaqah_id,
-        thalibah_id: submission.user_id,
-        assigned_by: authUser.id,
-        status: 'active'
-      })
-    }
-
-    // Add tashih halaqah (if different from ujian)
-    if (submission.tashih_halaqah_id && submission.tashih_halaqah_id !== submission.ujian_halaqah_id) {
-      halaqahStudentsToAdd.push({
-        halaqah_id: submission.tashih_halaqah_id,
-        thalibah_id: submission.user_id,
-        assigned_by: authUser.id,
-        status: 'active'
-      })
-    }
-
-    if (halaqahStudentsToAdd.length > 0) {
-      const { error: studentsError } = await supabase
-        .from('halaqah_students')
-        .insert(halaqahStudentsToAdd)
-
-      if (studentsError) {
-        console.error('Error adding to halaqah_students:', studentsError)
-        return NextResponse.json({ success: false, error: 'Gagal menambahkan thalibah ke halaqah.' }, { status: 500 })
-      }
-    }
+    // 5. Add/reactivate thalibah in halaqah_students without creating duplicates
+    await syncApprovedSubmissionToHalaqahStudents(supabaseAdmin, submission, authUser.id)
 
     // Revalidate paths
     revalidatePath('/dashboard')

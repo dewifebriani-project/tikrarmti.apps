@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import {
+  removeSubmissionFromHalaqahStudents,
+  syncApprovedSubmissionToHalaqahStudents
+} from '@/lib/halaqah-students-sync';
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,6 +71,12 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         console.error(`[Bulk Action] Error updating submission ${submission.id}:`, updateError);
         continue;
+      }
+
+      if (action === 'approve') {
+        await syncApprovedSubmissionToHalaqahStudents(supabaseAdmin, submission, user.id);
+      } else if (submission.status === 'approved') {
+        await removeSubmissionFromHalaqahStudents(supabaseAdmin, submission);
       }
 
       // If fully approved, ensure user has 'thalibah' role

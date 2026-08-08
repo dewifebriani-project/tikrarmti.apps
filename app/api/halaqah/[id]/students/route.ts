@@ -76,7 +76,7 @@ export async function GET(
       .from('halaqah_students')
       .select('*')
       .eq('halaqah_id', halaqahId)
-      .order('created_at', { ascending: true })
+      .order('assigned_at', { ascending: true })
 
     if (studentsError) {
       console.error('Error fetching students:', studentsError)
