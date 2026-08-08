@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
-import { getRoleRank, ROLE_RANKS } from '@/lib/auth';
+import { hasRequiredRank, ROLE_RANKS } from '@/lib/roles';
 
 export async function PUT(
   request: NextRequest,
@@ -21,8 +21,7 @@ export async function PUT(
       .eq('id', user.id)
       .single();
 
-    const primaryRole = userProfile?.roles?.[0] || 'thalibah';
-    if (getRoleRank(primaryRole) < ROLE_RANKS.admin) {
+    if (!hasRequiredRank(userProfile?.roles || [], ROLE_RANKS.admin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

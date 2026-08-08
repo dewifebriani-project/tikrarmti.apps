@@ -193,14 +193,21 @@ export default function AdminJadwalHarianTab() {
     return date;
   };
 
-  const posterRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const tikrarPosterRef = useRef<HTMLDivElement>(null);
+  const praTikrarPosterRef = useRef<HTMLDivElement>(null);
+  const [generatingPoster, setGeneratingPoster] = useState<'tikrar' | 'pra_tikrar' | null>(null);
 
-  const handleDownloadPoster = async () => {
-    if (!posterRef.current || halaqahs.length === 0) return;
+  const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz');
+  const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz');
+
+  const handleDownloadPoster = async (variant: 'tikrar' | 'pra_tikrar') => {
+    const posterRef = variant === 'tikrar' ? tikrarPosterRef : praTikrarPosterRef;
+    const posterHalaqahs = variant === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
+    if (!posterRef.current || posterHalaqahs.length === 0) return;
     
-    setIsGenerating(true);
+    setGeneratingPoster(variant);
     const dayName = DAYS.find(d => d.id === activeDay)?.name || '';
+    const posterLabel = variant === 'tikrar' ? 'Tikrar' : 'Pra-Tikrar';
     
     try {
       toast.loading('Menyiapkan gambar poster...', { id: 'poster-gen' });
@@ -214,16 +221,16 @@ export default function AdminJadwalHarianTab() {
       });
       
       const link = document.createElement('a');
-      link.download = `Jadwal-Halaqah-${dayName}.png`;
+      link.download = `Jadwal-${posterLabel}-${dayName}.png`;
       link.href = dataUrl;
       link.click();
       
-      toast.success('Poster berhasil di-download!', { id: 'poster-gen' });
+      toast.success(`Poster ${posterLabel} berhasil di-download!`, { id: 'poster-gen' });
     } catch (err) {
       console.error('Error generating poster:', err);
       toast.error('Gagal men-generate poster. Silakan coba lagi.', { id: 'poster-gen' });
     } finally {
-      setIsGenerating(false);
+      setGeneratingPoster(null);
     }
   };
 
@@ -306,16 +313,28 @@ export default function AdminJadwalHarianTab() {
         {isUserStaff && (
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <button
-              onClick={handleDownloadPoster}
-              disabled={isLoading || halaqahs.length === 0 || isGenerating}
+              onClick={() => handleDownloadPoster('tikrar')}
+              disabled={isLoading || tikrarHalaqahs.length === 0 || generatingPoster !== null}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-emerald-500/20 w-full sm:w-auto"
             >
-              {isGenerating ? (
+              {generatingPoster === 'tikrar' ? (
                 <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               ) : (
                 <ImageIcon className="h-4 w-4" />
               )}
-              Download Poster
+              Poster Tikrar
+            </button>
+            <button
+              onClick={() => handleDownloadPoster('pra_tikrar')}
+              disabled={isLoading || praTikrarHalaqahs.length === 0 || generatingPoster !== null}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-fuchsia-700 hover:bg-fuchsia-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-fuchsia-700/20 w-full sm:w-auto"
+            >
+              {generatingPoster === 'pra_tikrar' ? (
+                <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+              Poster Pra-Tikrar
             </button>
             <button
               onClick={handleCopyRekapan}
@@ -332,10 +351,18 @@ export default function AdminJadwalHarianTab() {
       {/* Hidden Poster Template for html-to-image */}
       <div className="absolute left-[-9999px] top-[-9999px] overflow-hidden pointer-events-none">
         <JadwalPoster 
-          ref={posterRef} 
-          halaqahs={halaqahs} 
+          ref={tikrarPosterRef}
+          halaqahs={tikrarHalaqahs}
           dayName={DAYS.find(d => d.id === activeDay)?.name || ''} 
           dayNum={activeDay}
+          variant="tikrar"
+        />
+        <JadwalPoster
+          ref={praTikrarPosterRef}
+          halaqahs={praTikrarHalaqahs}
+          dayName={DAYS.find(d => d.id === activeDay)?.name || ''}
+          dayNum={activeDay}
+          variant="pra_tikrar"
         />
       </div>
 
