@@ -251,7 +251,7 @@ export default function AdminJadwalHarianTab() {
       </div>
 
       {/* Hidden Poster Template for html-to-image */}
-      <div className="absolute left-[-9999px] top-0 overflow-hidden opacity-0 pointer-events-none">
+      <div className="absolute left-[-9999px] top-[-9999px] overflow-hidden pointer-events-none">
         <JadwalPoster 
           ref={posterRef} 
           halaqahs={halaqahs} 

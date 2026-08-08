@@ -537,12 +537,12 @@ export default function PerjalananSaya() {
             isEditAction: !isPraTikrar && hasAkadFiles,
             isEditDisabled: isReEnrollmentDoneByDate || 
               (daftarUlangData?.akad_status 
-                ? (daftarUlangData.akad_status === 'submitted' || daftarUlangData.akad_status === 'approved') 
-                : (daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved')),
+                ? (daftarUlangData.akad_status === 'approved') 
+                : (daftarUlangData?.status === 'approved')),
             editUrl: hasAkad ? `/daftar-ulang?editAkad=true` : `/daftar-ulang?batchId=${batchId}`,
             editLabel: 'Edit',
-            editActiveTitle: hasAkad ? 'Tambah file akad yang terlewat' : 'Lanjutkan pengisian daftar ulang',
-            editDisabledTitle: (daftarUlangData?.akad_status === 'submitted' || daftarUlangData?.akad_status === 'approved' || daftarUlangData?.status === 'submitted' || daftarUlangData?.status === 'approved') ? 'Data daftar ulang telah tersimpan. Hubungi admin untuk mengubah data.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
+            editActiveTitle: hasAkad ? 'Tambah/Ubah file akad' : 'Lanjutkan pengisian daftar ulang',
+            editDisabledTitle: (daftarUlangData?.akad_status === 'approved' || daftarUlangData?.status === 'approved') ? 'Data akad telah disetujui. Hubungi admin untuk mengubah.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
