@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isStaff } from '@/lib/roles';
 import { 
-  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon, Pencil, X
+  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -36,10 +36,6 @@ export default function AdminJadwalHarianTab() {
   const [halaqahs, setHalaqahs] = useState<HalaqahForReminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeBatchName, setActiveBatchName] = useState<string>('');
-  const [zoomLinks, setZoomLinks] = useState<any[]>([]);
-  const [editingHalaqah, setEditingHalaqah] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ start_time: '', end_time: '', zoom_link_id: '' });
-  const [isSaving, setIsSaving] = useState(false);
   
   const supabase = createClient();
   const userRoles = (user as any)?.primaryRole ? [(user as any).primaryRole] : (user?.roles || []);
@@ -67,8 +63,6 @@ export default function AdminJadwalHarianTab() {
       }
       
       setActiveBatchName(batch.name);
-      const { data: links } = await supabase.from('batch_zoom_links').select('id, name').eq('batch_id', batch.id).order('name');
-      setZoomLinks(links || []);
 
       // 2. Get halaqahs for this batch and day
       const { data: halaqahData, error } = await supabase
@@ -81,7 +75,6 @@ export default function AdminJadwalHarianTab() {
           end_time,
           preferred_juz,
           zoom_link,
-          zoom_link_id,
           muallimah_id,
           zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
@@ -109,7 +102,6 @@ export default function AdminJadwalHarianTab() {
         class_type: h.program?.class_type,
         zoom_name: h.zoom?.name || '',
         zoom_link: h.zoom?.url || h.zoom_link || '',
-        zoom_link_id: h.zoom_link_id,
         zoom_meeting_id: h.zoom?.meeting_id || '',
         zoom_passcode: h.zoom?.passcode || '',
         zoom_claim_host: h.zoom?.claim_host || '',
@@ -146,35 +138,6 @@ export default function AdminJadwalHarianTab() {
       toast.success(successMessage);
     } catch (err) {
       toast.error('Gagal menyalin teks. Silakan coba lagi.');
-    }
-  };
-
-  const openEditModal = (h: any) => {
-    setEditingHalaqah(h);
-    setEditForm({
-      start_time: h.start_time || '',
-      end_time: h.end_time || '',
-      zoom_link_id: h.zoom_link_id || ''
-    });
-  };
-
-  const saveEdit = async () => {
-    if (!editingHalaqah) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch(`/api/admin/halaqah/${editingHalaqah.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
-      });
-      if (!res.ok) throw new Error('Gagal');
-      toast.success('Jadwal berhasil diupdate');
-      setEditingHalaqah(null);
-      fetchSchedule();
-    } catch(err) {
-      toast.error('Gagal menyimpan perubahan');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -228,47 +191,6 @@ export default function AdminJadwalHarianTab() {
 
   return (
     <div className="space-y-6">
-      {/* Edit Modal Overlay */}
-      {editingHalaqah && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-bold text-gray-900">Edit Jadwal: {editingHalaqah.name}</h3>
-              <button onClick={() => setEditingHalaqah(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Jam Mulai</label>
-                  <input type="time" value={editForm.start_time} onChange={e => setEditForm({...editForm, start_time: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Jam Selesai</label>
-                  <input type="time" value={editForm.end_time} onChange={e => setEditForm({...editForm, end_time: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Link Zoom</label>
-                <select value={editForm.zoom_link_id} onChange={e => setEditForm({...editForm, zoom_link_id: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500">
-                  <option value="">Pilih Zoom Link</option>
-                  {zoomLinks.map(zl => (
-                    <option key={zl.id} value={zl.id}>{zl.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/50">
-              <button onClick={() => setEditingHalaqah(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-              <button onClick={saveEdit} disabled={isSaving} className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50">
-                {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Day Selector */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-wrap gap-2">
