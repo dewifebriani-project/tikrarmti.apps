@@ -212,7 +212,20 @@ export async function GET(request: Request) {
 
     const userIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
     if (userIds.length === 0) {
-      return ApiResponses.success([], 'No thalibah found');
+      return ApiResponses.success({
+        entries: [],
+        meta: {
+          totalCount: 0,
+          page,
+          limit,
+          totalPages: 0,
+          stats: {
+            total_active_thalibah: 0,
+            total_blacklist: 0,
+            overall_avg_progress: 0
+          }
+        }
+      }, 'No thalibah found');
     }
 
     // Fetch user data separately
