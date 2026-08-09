@@ -143,31 +143,34 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
   const day_name = new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date).toUpperCase();
   const date_masehi = getMasehiDate(date).toUpperCase();
   
-  const tikrarHalaqahs = halaqahs.filter(h => h.class_type === 'tikrar_tahfidz' || h.class_type === 'tikrar_berbayar').sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-  const praTahfidzHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz').sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+  const sortedHalaqahs = [...halaqahs].sort((a, b) => {
+    const timeComparison = (a.start_time || '99:99').localeCompare(b.start_time || '99:99');
+    if (timeComparison !== 0) return timeComparison;
+    return (a.muallimah?.full_name || a.name || '').localeCompare(
+      b.muallimah?.full_name || b.name || '',
+      'id'
+    );
+  });
 
-  const tikrarStr = tikrarHalaqahs.map(h => `👑  Ustadzah ${h.muallimah?.full_name || ''}  
-📚  Juz ${h.preferred_juz || ''}
-⏰  ${formatTimeShort(h.start_time)} WIB
-🎗️  Roisah : ........................ 
+  const scheduleStr = sortedHalaqahs.map(h => {
+    const isPraTikrar = h.class_type === 'pra_tahfidz';
+    const classLabel = isPraTikrar
+      ? '𝗞𝗘𝗟𝗔𝗦 𝗣𝗥𝗔 𝗧𝗜𝗞𝗥𝗔𝗥 𝗨𝗠𝗨𝗠'
+      : `𝗞𝗘𝗟𝗔𝗦 𝗧𝗜𝗞𝗥𝗔𝗥${h.preferred_juz ? ` 𝗝𝗨𝗭 ${h.preferred_juz}` : ''}`;
+    const coordinatorLabel = isPraTikrar ? 'Musyrifah' : 'Roisah';
+
+    return `🛡️  ${classLabel}
+⏰  *${formatTimeShort(h.start_time)} WIB*
+👑  Ustadzah ${h.muallimah?.full_name || ''}
+🎗️  ${coordinatorLabel} : ........................
 🌐  Link Zoom ${getZoomEmoji(h.zoom_name)}
 ${h.zoom_link || ''}
 
 *ID Rapat: ${h.zoom_meeting_id || ''}*
 *Kode Sandi: ${h.zoom_passcode || ''}*
 
-🔸🔸🔸🔸🔸🔸🔸`).join('\n\n');
-
-  const praTahfidzStr = praTahfidzHalaqahs.map(h => `👑  Ustadzah ${h.muallimah?.full_name || ''} 
-⏰  ${formatTimeShort(h.start_time)} WIB
-🎗️  Musyrifah : ........................ 
-🌐  Link Zoom ${getZoomEmoji(h.zoom_name)}
-${h.zoom_link || ''}
-
-*ID Rapat: ${h.zoom_meeting_id || ''}*
-*Kode Sandi: ${h.zoom_passcode || ''}*
-
-🔸🔸🔸🔸🔸🔸🔸`).join('\n\n');
+🔸🔸🔸🔸🔸🔸🔸`;
+  }).join('\n\n');
 
   return `╔❀◎🎓◎❀════════════╗
 𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
@@ -185,16 +188,7 @@ ${h.zoom_link || ''}
 🗓️  *${day_name}, ${date_masehi}*
 
 
-🛡️  𝗞𝗘𝗟𝗔𝗦 𝗧𝗜𝗞𝗥𝗔𝗥
-
-${tikrarStr}
-
-🔹🔹🔹🔹🔹🔹🔹
-
-
-🛡️  𝗞𝗘𝗟𝗔𝗦 𝗣𝗥𝗔 𝗧𝗜𝗞𝗥𝗔𝗥 𝗨𝗠𝗨𝗠
-
-${praTahfidzStr}
+${scheduleStr}
 
 جزاكن الله خيرا وبارك الله فيكن  🌹🌹🌹
 

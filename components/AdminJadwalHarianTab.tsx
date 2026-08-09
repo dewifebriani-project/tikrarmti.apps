@@ -32,6 +32,7 @@ const DAYS = [
 
 export default function AdminJadwalHarianTab() {
   const { user } = useAuth();
+  const [programTab, setProgramTab] = useState<'tikrar' | 'pra_tikrar'>('tikrar');
   const [activeDay, setActiveDay] = useState<number>(new Date().getDay() === 0 ? 7 : new Date().getDay());
   const [halaqahs, setHalaqahs] = useState<HalaqahForReminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,7 +181,7 @@ export default function AdminJadwalHarianTab() {
   };
 
   const handleCopyRekapan = () => {
-    const text = generateDailyReminder(activeBatchName, halaqahs, getNextDateForDay(activeDay));
+    const text = generateDailyReminder(activeBatchName, activeProgramHalaqahs, getNextDateForDay(activeDay));
     copyToClipboard(text, 'Rekapan Harian berhasil disalin!');
   };
 
@@ -199,6 +200,7 @@ export default function AdminJadwalHarianTab() {
 
   const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz');
   const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz');
+  const activeProgramHalaqahs = programTab === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
 
   const handleDownloadPoster = async (variant: 'tikrar' | 'pra_tikrar') => {
     const posterRef = variant === 'tikrar' ? tikrarPosterRef : praTikrarPosterRef;
@@ -277,6 +279,34 @@ export default function AdminJadwalHarianTab() {
         </div>
       )}
 
+      {/* Program Selector */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setProgramTab('tikrar')}
+          className={`flex min-h-[72px] items-center justify-center gap-3 rounded-xl px-5 py-4 text-base font-bold transition-all ${
+            programTab === 'tikrar'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'bg-gray-50 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
+          }`}
+        >
+          <BookOpen className="h-5 w-5" />
+          Tikrar Tahfidz
+        </button>
+        <button
+          type="button"
+          onClick={() => setProgramTab('pra_tikrar')}
+          className={`flex min-h-[72px] items-center justify-center gap-3 rounded-xl px-5 py-4 text-base font-bold transition-all ${
+            programTab === 'pra_tikrar'
+              ? 'bg-fuchsia-700 text-white shadow-lg shadow-fuchsia-700/20'
+              : 'bg-gray-50 text-gray-600 hover:bg-fuchsia-50 hover:text-fuchsia-700'
+          }`}
+        >
+          <BookOpen className="h-5 w-5" />
+          Pra Tikrar Tahfidz
+        </button>
+      </div>
+
       {/* Day Selector */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-wrap gap-2">
@@ -304,8 +334,8 @@ export default function AdminJadwalHarianTab() {
           </h2>
           <p className="text-sm text-gray-500 mt-1">
             {isUserStaff 
-              ? `Menampilkan kelas aktif untuk batch ${activeBatchName || '...'}`
-              : `Menampilkan jadwal kelas Anda untuk batch ${activeBatchName || '...'}`
+              ? `Menampilkan kelas ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} untuk batch ${activeBatchName || '...'}`
+              : `Menampilkan jadwal ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} Anda untuk batch ${activeBatchName || '...'}`
             }
           </p>
         </div>
@@ -313,32 +343,24 @@ export default function AdminJadwalHarianTab() {
         {isUserStaff && (
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <button
-              onClick={() => handleDownloadPoster('tikrar')}
-              disabled={isLoading || tikrarHalaqahs.length === 0 || generatingPoster !== null}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-emerald-500/20 w-full sm:w-auto"
+              onClick={() => handleDownloadPoster(programTab)}
+              disabled={isLoading || activeProgramHalaqahs.length === 0 || generatingPoster !== null}
+              className={`flex items-center justify-center gap-2 px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm w-full sm:w-auto ${
+                programTab === 'tikrar'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
+                  : 'bg-fuchsia-700 hover:bg-fuchsia-800 shadow-fuchsia-700/20'
+              }`}
             >
-              {generatingPoster === 'tikrar' ? (
+              {generatingPoster === programTab ? (
                 <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               ) : (
                 <ImageIcon className="h-4 w-4" />
               )}
-              Poster Tikrar
-            </button>
-            <button
-              onClick={() => handleDownloadPoster('pra_tikrar')}
-              disabled={isLoading || praTikrarHalaqahs.length === 0 || generatingPoster !== null}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-fuchsia-700 hover:bg-fuchsia-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-fuchsia-700/20 w-full sm:w-auto"
-            >
-              {generatingPoster === 'pra_tikrar' ? (
-                <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              ) : (
-                <ImageIcon className="h-4 w-4" />
-              )}
-              Poster Pra-Tikrar
+              Poster {programTab === 'tikrar' ? 'Tikrar' : 'Pra-Tikrar'}
             </button>
             <button
               onClick={handleCopyRekapan}
-              disabled={isLoading || halaqahs.length === 0}
+              disabled={isLoading || activeProgramHalaqahs.length === 0}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20 w-full sm:w-auto"
             >
               <Copy className="h-4 w-4" />
@@ -380,11 +402,13 @@ export default function AdminJadwalHarianTab() {
             </div>
           ))}
         </div>
-      ) : halaqahs.length === 0 ? (
+      ) : activeProgramHalaqahs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-900">Tidak Ada Jadwal</h3>
-          <p className="text-gray-500 mt-1">Belum ada kelas halaqah aktif di hari ini.</p>
+          <p className="text-gray-500 mt-1">
+            Belum ada kelas {programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} aktif di hari ini.
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -400,7 +424,7 @@ export default function AdminJadwalHarianTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {halaqahs.map((halaqah) => {
+                {activeProgramHalaqahs.map((halaqah) => {
                   const dateForTemplate = getNextDateForDay(activeDay);
                   return (
                     <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
