@@ -29,14 +29,7 @@ export function MatchModal({
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
 
-  if (!isOpen || !selectedUser) return null
-
-  const getSortIndicator = (key: string) => {
-    const config = matchSortConfigs.find(c => c.key === key)
-    if (!config) return null
-    return config.direction === 'asc' ? '↑' : '↓'
-  }
-
+  // Must be before early return to follow Rules of Hooks
   const filteredCandidates = useMemo(() => {
     if (!matchData?.candidates) return []
     if (!searchQuery.trim()) return matchData.candidates
@@ -49,6 +42,15 @@ export function MatchModal({
       c.zona_waktu?.toLowerCase().includes(q)
     )
   }, [matchData?.candidates, searchQuery])
+
+  if (!isOpen || !selectedUser) return null
+
+
+  const getSortIndicator = (key: string) => {
+    const config = matchSortConfigs.find(c => c.key === key)
+    if (!config) return null
+    return config.direction === 'asc' ? '↑' : '↓'
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
