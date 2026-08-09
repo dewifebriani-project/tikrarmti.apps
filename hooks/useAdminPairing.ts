@@ -22,6 +22,7 @@ export function useAdminPairing() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<PairingStats>({
     total: 0,
+    totalApproved: 0,
     selfMatch: { submitted: 0, approved: 0 },
     systemMatch: { submitted: 0, approved: 0 },
     tarteel: { submitted: 0, approved: 0 },
