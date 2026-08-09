@@ -91,6 +91,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject'>('approve');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPairing, setFilterPairing] = useState('all');
 
   // Local batch filter state
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -173,6 +174,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
       if (filterStatus !== 'all') params.append('akad_status', filterStatus);
+      if (filterPairing !== 'all') params.append('partner_status', filterPairing);
 
       // If searching, load all data. Otherwise use pagination.
       if (searchQuery.trim()) {
@@ -1269,6 +1271,12 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       const akadStatus = s.akad_status || s.status;
       const matchStatus = filterStatus === 'all' || akadStatus === filterStatus;
       
+      let matchPairing = true;
+      if (filterPairing !== 'all') {
+        const partnerStatus = s.partner_status || s.status;
+        matchPairing = partnerStatus === filterPairing;
+      }
+
       let matchSearch = true;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
@@ -1280,9 +1288,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         matchSearch = fullName.includes(query) || email.includes(query) || wa.includes(query) || juz.includes(query);
       }
       
-      return matchStatus && matchSearch;
+      return matchStatus && matchPairing && matchSearch;
     });
-  }, [submissions, filterStatus, searchQuery]);
+  }, [submissions, filterStatus, filterPairing, searchQuery]);
 
   const finalSubmissions = useMemo(() => {
     return [...filteredByStatus].sort((a, b) => {
@@ -1306,6 +1314,36 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         const aHal = a.ujian_halaqah?.name || '';
         const bHal = b.ujian_halaqah?.name || '';
         return sortOrder === 'asc' ? aHal.localeCompare(bHal) : bHal.localeCompare(aHal);
+      }
+      if (sortField === 'score_test') {
+        const aScore = a.registration?.exam_score ?? -1;
+        const bScore = b.registration?.exam_score ?? -1;
+        return sortOrder === 'asc' ? aScore - bScore : bScore - aScore;
+      }
+      if (sortField === 'pengabdian') {
+        const aPeng = (a.pengabdian_type || a.pengabdian_choice || '').toLowerCase();
+        const bPeng = (b.pengabdian_type || b.pengabdian_choice || '').toLowerCase();
+        return sortOrder === 'asc' ? aPeng.localeCompare(bPeng) : bPeng.localeCompare(aPeng);
+      }
+      if (sortField === 'akad_files') {
+        const aHasFile = a.akad_files && a.akad_files.length > 0 ? a.akad_files.length : 0;
+        const bHasFile = b.akad_files && b.akad_files.length > 0 ? b.akad_files.length : 0;
+        return sortOrder === 'asc' ? aHasFile - bHasFile : bHasFile - aHasFile;
+      }
+      if (sortField === 'partner') {
+        const aPartner = a.partner_type || '';
+        const bPartner = b.partner_type || '';
+        return sortOrder === 'asc' ? aPartner.localeCompare(bPartner) : bPartner.localeCompare(aPartner);
+      }
+      if (sortField === 'partner_status') {
+        const aPartnerStatus = a.partner_status || a.status || 'draft';
+        const bPartnerStatus = b.partner_status || b.status || 'draft';
+        return sortOrder === 'asc' ? aPartnerStatus.localeCompare(bPartnerStatus) : bPartnerStatus.localeCompare(aPartnerStatus);
+      }
+      if (sortField === 'partner_submitted_at') {
+        const aPartnerDate = new Date(a.submitted_at || a.created_at).getTime();
+        const bPartnerDate = new Date(b.submitted_at || b.created_at).getTime();
+        return sortOrder === 'asc' ? aPartnerDate - bPartnerDate : bPartnerDate - aPartnerDate;
       }
       return 0;
     });
@@ -1333,6 +1371,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         searchQuery={searchQuery}
         batchId={localBatchId}
         status={filterStatus}
+        pairingStatus={filterPairing}
         batches={batches}
         onRefresh={loadSubmissions}
         isLoading={loading}
@@ -1340,6 +1379,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           setSearchQuery(filters.search);
           setLocalBatchId(filters.batchId);
           setFilterStatus(filters.status);
+          setFilterPairing(filters.pairingStatus);
           setCurrentPage(1);
         }}
         onDownloadExcel={downloadExcel}

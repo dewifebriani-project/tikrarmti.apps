@@ -58,6 +58,11 @@ export function formatTimeShort(time?: string): string {
   return time.substring(0, 5).replace(':', '.');
 }
 
+export function toTitleCase(str: string): string {
+  if (!str) return '';
+  return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+}
+
 export function getClassTypeLabel(classType?: string): string {
   if (classType === 'tikrar_tahfidz') return 'TIKRAR';
   if (classType === 'pra_tahfidz') return 'PRA TIKRAR UMUM';
@@ -102,21 +107,16 @@ ${title}
 بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
 السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
 
-
 In syaa Allaahu Ta'alaa bersama:
 
 👑  *Ustadzah :  ${muallimah_name} حفظها الله تعالى*
 📆  *Hari/Tanggal : ${day_name}, ${tanggal_masehi}*
         *${tanggal_hijri}*
 ⏰  *Pukul : ${time} WIB - selesai*
-
-
-🪩  *LINK ZOOM ${zoom_emoji}* 
-
+🪩  *LINK ZOOM${zoom_emoji ? ' ' + zoom_emoji : ''}* 
 ${zoom_url}
 *ID Rapat: ${meeting_id}*
 *Kode sandi : ${passcode}*
-
 
 📜 *TATA TERTIB KELAS ${class_type_label}*
 * Niatkan ikhlas Lillaahi Ta'alaa
@@ -129,10 +129,7 @@ ${zoom_url}
 * Membuka mic pada saat dipanggil
 
 ⛔ *FREE SHARE LINK KELUAR MTI*
-
-
 ━━━━━━━━━━━━━━━━❁❁
-
 𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
 
 📱 *MTI OFFICIAL : 081330000784*
@@ -163,7 +160,7 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
 ⏰  *${formatTimeShort(h.start_time)} WIB*
 👑  Ustadzah ${h.muallimah?.full_name || ''}
 🎗️  ${coordinatorLabel} : ........................
-🌐  Link Zoom ${getZoomEmoji(h.zoom_name)}
+🌐  Link Zoom${getZoomEmoji(h.zoom_name) ? ' ' + getZoomEmoji(h.zoom_name) : ''}
 ${h.zoom_link || ''}
 
 *ID Rapat: ${h.zoom_meeting_id || ''}*
@@ -176,22 +173,18 @@ ${h.zoom_link || ''}
 𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
 ╚════════════❀◎🎓◎❀╝
 
-
-
 بِسْــــــــــــــــــمِ اللهِ الرَّحْمَنِ الرَّحِيْمِ
 
 السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
 
-
-📍  𝗥𝗘𝗠𝗜𝗡𝗗𝗘𝗥 𝗝𝗔𝗗𝗪𝗔𝗟 𝗛𝗔𝗟𝗔𝗤𝗔𝗛 𝗠𝗧𝗜 ${batchName.toUpperCase()}
+📍  𝗥𝗘𝗠𝗜𝗡𝗗𝗘𝗥 𝗝𝗔𝗗𝗪𝗔𝗟 𝗛𝗔𝗟𝗔𝗤𝗔𝗛 𝗠𝗧𝗜 
+*${batchName.toUpperCase()}*
 
 🗓️  *${day_name}, ${date_masehi}*
-
 
 ${scheduleStr}
 
 جزاكن الله خيرا وبارك الله فيكن  🌹🌹🌹
-
 
 ━━━━━━━━━━━━━━━━❁❁
 
@@ -204,7 +197,7 @@ ${scheduleStr}
 
 export function generateTagThalibah(halaqah: HalaqahForReminder, date: Date = new Date()): string {
   const juz = halaqah.preferred_juz || '';
-  const muallimah_name = halaqah.muallimah?.full_name || '';
+  const muallimah_name = toTitleCase(halaqah.muallimah?.full_name || '');
   const time = formatTimeShort(halaqah.start_time);
   const day = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   const dateStr = getMasehiDate(date);
@@ -212,48 +205,66 @@ export function generateTagThalibah(halaqah: HalaqahForReminder, date: Date = ne
   const students = halaqah.students || [];
   const count = students.length;
   
-  const studentList = students.map((s, index) => `${index + 1}. ${s.full_name} (${s.preferred_juz || juz})`).join('\n');
+  const studentList = students.map((s, index) => {
+    const studentJuz = s.preferred_juz || juz;
+    const juzLabel = studentJuz ? `(Juz ${studentJuz})` : '';
+    return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
+  }).join('\n');
 
-  return `Bismillaahi
+  const classLabel = halaqah.class_type === 'pra_tahfidz' 
+    ? '𝗞𝗘𝗟𝗔𝗦 𝗣𝗥𝗔 𝗧𝗜𝗞𝗥𝗔𝗥 𝗨𝗠𝗨𝗠' 
+    : `𝗞𝗘𝗟𝗔𝗦 𝗧𝗜𝗞𝗥𝗔𝗥 𝗝𝗨𝗭 ${juz}`;
+  
+  const tanggal_hijri = getHijriDate(date);
 
-Izin tag Thalibah 
-𝗞𝗲𝗹𝗮𝘀 𝗧𝗶𝗸𝗿𝗮𝗿 𝗝𝘂𝘇 ${juz} 𝗨𝘀𝘁𝗮𝗱𝘇𝗮𝗵 ${muallimah_name.toUpperCase()}
-𝗣𝘂𝗸𝘂𝗹 ${time} 𝗪𝗜𝗕
+  return `بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
+السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
+
+*REMINDER ${classLabel}*
 
 👑 *Ustadzah ${muallimah_name}*
-🗓️  ${day}, ${dateStr}
+🗓️  ${day}, ${dateStr} | ${tanggal_hijri}
+⏰  Pukul ${time} WIB
 🎗️  ........................ 
+Izin tag Thalibah 
 👥  ${count} Tholibah :
 
 ${studentList}
 
-
 ✨ _Zadanallah 'ilman wa hirsha._
 _Semoga ALLAH ﷻ  menambahkan ilmu & semangat untuk kita._ ✨
 
-Yassarallaahu lanaa
+_Yassarallaahu lanaa_
 
-Jazaakunnallaahu khayran wa baarakallaahu fiykunna.. 
+_Jazaakunnallaahu khayran wa baarakallaahu fiikunna.._ 
 
 🌷🌷🌷🌷🌷`;
 }
 
 export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = new Date()): string {
   const juz = halaqah.preferred_juz || '';
-  const muallimah_name = halaqah.muallimah?.full_name || '';
+  const muallimah_name = toTitleCase(halaqah.muallimah?.full_name || '');
   const time = formatTimeShort(halaqah.start_time);
   const day = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   const dateStr = getMasehiDate(date);
+  const tanggal_hijri = getHijriDate(date);
   
   const students = halaqah.students || [];
-  const studentList = students.map((s, index) => `${index + 1}. ✅ ${s.full_name} Juz ${s.preferred_juz || juz}`).join('\n');
+  const studentList = students.map((s, index) => {
+    const studentJuz = s.preferred_juz || juz;
+    const juzLabel = studentJuz ? `(Juz ${studentJuz})` : '';
+    return `${index + 1}. ✅ ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
+  }).join('\n');
 
-  return `*BERITA ACARA KELAS ${getClassTypeLabel(halaqah.class_type)} MTI Juz ${juz}.*
+  const isPraTikrar = halaqah.class_type === 'pra_tahfidz';
+  const classLabel = isPraTikrar ? 'PRA TIKRAR UMUM MTI' : `TIKRAR MTI Juz ${juz}`;
+
+  return `*BERITA ACARA KELAS ${classLabel}.*
 ${day}, Pukul ${time} WIB
 
 👑Ustadzah ${muallimah_name} حفظها الله تعالى
 🏅Raisah : ........................ 
-🗓 ${day}, ${dateStr}
+🗓 ${day}, ${dateStr} | ${tanggal_hijri}
 
 Keterangan:
 ✅Hadir tepat waktu
@@ -264,10 +275,7 @@ Keterangan:
 Tholibah :
 ${studentList}
 
-
-
-
-Semoga Allah Subhaanahu wa Ta'aala mengangkat derajat dan membalas dengan sebaik-baik pahala kepada Ustadzah ${muallimah_name}  حفظها الله تعا لى atas ilmu dan waktunya yang telah diberikan. 
+Semoga Allah Subhaanahu wa Ta'aala mengangkat derajat dan membalas dengan sebaik-baik pahala kepada Ustadzah ${muallimah_name} حفظها الله تعالى atas ilmu dan waktunya yang telah diberikan. 
 
 Dan juga kepada seluruh thallibah, _jazaakunallah khayran_ atas kehadirannya, semoga Allah berikan keberkahan ilmu dan waktunya. امين اللّهم امين
 

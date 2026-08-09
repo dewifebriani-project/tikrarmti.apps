@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -8,10 +8,12 @@ interface DaftarUlangV2FiltersProps {
   searchQuery: string;
   batchId: string;
   status: string;
+  pairingStatus: string;
   onChange: (filters: { 
     search: string; 
     batchId: string; 
     status: string;
+    pairingStatus: string;
   }) => void;
   onRefresh: () => void;
   isLoading: boolean;
@@ -28,6 +30,7 @@ export function DaftarUlangV2Filters({
   searchQuery,
   batchId,
   status,
+  pairingStatus,
   onChange,
   onRefresh, 
   isLoading, 
@@ -41,7 +44,7 @@ export function DaftarUlangV2Filters({
 }: DaftarUlangV2FiltersProps) {
   
   const handleClear = () => {
-    onChange({ search: '', batchId: 'all', status: 'all' });
+    onChange({ search: '', batchId: 'all', status: 'all', pairingStatus: 'all' });
   };
 
   return (
@@ -57,12 +60,12 @@ export function DaftarUlangV2Filters({
               type="text"
               placeholder="Cari Nama, Email, WhatsApp..."
               value={searchQuery}
-              onChange={(e) => onChange({ search: e.target.value, batchId, status })}
+              onChange={(e) => onChange({ search: e.target.value, batchId, status, pairingStatus })}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all text-sm font-medium"
             />
             {searchQuery && (
               <button
-                onClick={() => onChange({ search: '', batchId, status })}
+                onClick={() => onChange({ search: '', batchId, status, pairingStatus })}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
@@ -76,7 +79,7 @@ export function DaftarUlangV2Filters({
               <Award className="h-4 w-4 text-gray-500" />
               <select
                 value={batchId}
-                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, status })}
+                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, status, pairingStatus })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Batch</option>
@@ -90,10 +93,25 @@ export function DaftarUlangV2Filters({
               <Filter className="h-4 w-4 text-gray-500" />
               <select
                 value={status}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value })}
+                onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value, pairingStatus })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Status Akad</option>
+                <option value="draft">Draft</option>
+                <option value="submitted">Submitted</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-gray-500" />
+              <select
+                value={pairingStatus}
+                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus: e.target.value })}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
+              >
+                <option value="all">Semua Status Pasangan</option>
                 <option value="draft">Draft</option>
                 <option value="submitted">Submitted</option>
                 <option value="approved">Approved</option>
@@ -110,7 +128,7 @@ export function DaftarUlangV2Filters({
               <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
             </button>
 
-            {(searchQuery || batchId !== 'all' || status !== 'all') && (
+            {(searchQuery || batchId !== 'all' || status !== 'all' || pairingStatus !== 'all') && (
               <button
                 onClick={handleClear}
                 className="text-sm font-bold text-red-600 hover:text-red-700 px-2"

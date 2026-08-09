@@ -1,5 +1,5 @@
 export type DaftarUlangSubTab = 'submissions' | 'halaqah' | 'per_juz';
-export type SortField = 'name' | 'juz' | 'halaqah' | 'status' | 'submitted_at';
+export type SortField = 'name' | 'juz' | 'halaqah' | 'status' | 'submitted_at' | 'score_test' | 'pengabdian' | 'akad_files' | 'partner' | 'partner_status' | 'partner_submitted_at';
 export type SortOrder = 'asc' | 'desc';
 
 export interface DaftarUlangSubmission {

@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');
     const akadStatus = searchParams.get('akad_status');
+    const partnerStatus = searchParams.get('partner_status');
 
-    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus });
+    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus, partnerStatus });
 
     // Build query - get ALL fields from all tables
     let query = supabaseAdmin
@@ -71,9 +72,13 @@ export async function GET(request: NextRequest) {
     if (akadStatus && VALID_DAFTAR_ULANG_STATUSES.includes(akadStatus)) {
       query = query.eq('akad_status', akadStatus);
     }
+    
+    // partnerStatus will be filtered in memory later to avoid PostgREST syntax errors with nested and/or
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
+    // We don't apply pagination here if partnerStatus is present, because we need to filter in memory first
+    if (!partnerStatus || !VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     const { data, error } = await query;
 
@@ -222,25 +227,39 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    const dataWithPartners = dataWithMuallimah;
+    let dataWithPartners = dataWithMuallimah || [];
 
-    // Get total count
-    let countQuery = supabaseAdmin
-      .from('daftar_ulang_submissions')
-      .select('*', { count: 'estimated', head: true });
+    // IN-MEMORY FILTER FOR PARTNER STATUS
+    let totalCount = 0;
+    
+    if (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
+      dataWithPartners = dataWithPartners.filter((s: any) => {
+        const ps = s.partner_status || s.status;
+        return ps === partnerStatus;
+      });
+      totalCount = dataWithPartners.length;
+      
+      // Apply pagination in memory
+      dataWithPartners = dataWithPartners.slice(offset, offset + limit);
+    } else {
+      // Get total count from DB since we didn't filter in memory
+      let countQuery = supabaseAdmin
+        .from('daftar_ulang_submissions')
+        .select('*', { count: 'estimated', head: true });
 
-    if (batchId && batchId !== 'all') {
-      countQuery = countQuery.eq('batch_id', batchId);
-    }
-    if (status && VALID_DAFTAR_ULANG_STATUSES.includes(status)) {
-      countQuery = countQuery.eq('status', status);
-    }
-    if (akadStatus && VALID_DAFTAR_ULANG_STATUSES.includes(akadStatus)) {
-      countQuery = countQuery.eq('akad_status', akadStatus);
-    }
+      if (batchId && batchId !== 'all') {
+        countQuery = countQuery.eq('batch_id', batchId);
+      }
+      if (status && VALID_DAFTAR_ULANG_STATUSES.includes(status)) {
+        countQuery = countQuery.eq('status', status);
+      }
+      if (akadStatus && VALID_DAFTAR_ULANG_STATUSES.includes(akadStatus)) {
+        countQuery = countQuery.eq('akad_status', akadStatus);
+      }
 
-    const { count } = await countQuery;
-    const totalCount = count || 0;
+      const { count } = await countQuery;
+      totalCount = count || 0;
+    }
 
     console.log('[Daftar Ulang Admin] Success, submissions count:', dataWithMuallimah?.length || 0, 'total:', totalCount);
     console.log('[Daftar Ulang Admin] Submissions by status:', dataWithMuallimah?.reduce((acc: any, s: any) => {

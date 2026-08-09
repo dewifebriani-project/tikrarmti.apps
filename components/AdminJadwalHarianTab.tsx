@@ -22,6 +22,7 @@ import { toPng } from 'html-to-image';
 import { JadwalPoster } from './JadwalPoster';
 
 const DAYS = [
+  { id: 0, name: 'Sepekan' },
   { id: 1, name: 'Senin' },
   { id: 2, name: 'Selasa' },
   { id: 3, name: 'Rabu' },
@@ -222,14 +223,14 @@ export default function AdminJadwalHarianTab() {
   const praTikrarPosterRef = useRef<HTMLDivElement>(null);
   const [generatingPoster, setGeneratingPoster] = useState<'tikrar' | 'pra_tikrar' | null>(null);
 
-  const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz' && h.day_of_week === activeDay);
-  const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz' && h.day_of_week === activeDay);
+  const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz' && (activeDay === 0 || h.day_of_week === activeDay));
+  const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz' && (activeDay === 0 || h.day_of_week === activeDay));
   const activeProgramHalaqahs = programTab === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
 
   const filteredAndSortedHalaqahs = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase('id-ID');
     
-    // Filter globally if there is a search query, otherwise filter by active day and program
+    // Filter globally if there is a search query, otherwise filter by active day (or all week) and program
     let baseHalaqahs = halaqahs;
     if (!query) {
       baseHalaqahs = activeProgramHalaqahs;
@@ -250,6 +251,12 @@ export default function AdminJadwalHarianTab() {
 
     return [...filtered].sort((a, b) => {
       let comparison = 0;
+      
+      // If viewing whole week and sorting by time, group by day first
+      if (activeDay === 0 && sortField === 'time' && a.day_of_week !== b.day_of_week) {
+        return (a.day_of_week || 99) - (b.day_of_week || 99);
+      }
+      
       if (sortField === 'time') {
         if (query && a.day_of_week !== b.day_of_week) {
            comparison = (a.day_of_week || 0) - (b.day_of_week || 0);
@@ -265,10 +272,12 @@ export default function AdminJadwalHarianTab() {
   }, [halaqahs, activeProgramHalaqahs, searchQuery, sortField, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage));
-  const paginatedHalaqahs = filteredAndSortedHalaqahs.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const paginatedHalaqahs = activeDay === 0 
+    ? filteredAndSortedHalaqahs
+    : filteredAndSortedHalaqahs.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -402,19 +411,30 @@ export default function AdminJadwalHarianTab() {
       {/* Day Selector */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-wrap gap-2">
-          {DAYS.map((day) => (
-            <button
-              key={day.id}
-              onClick={() => setActiveDay(day.id)}
-              className={`flex-1 min-w-[80px] py-2.5 px-4 rounded-xl text-sm font-semibold transition-all ${
-                activeDay === day.id
-                  ? 'bg-green-600 text-white shadow-md shadow-green-600/20'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {day.name}
-            </button>
-          ))}
+          {DAYS.map((day) => {
+            const isTikrar = programTab === 'tikrar';
+            const count = halaqahs.filter(h => 
+              (isTikrar ? h.class_type !== 'pra_tahfidz' : h.class_type === 'pra_tahfidz') && 
+              (day.id === 0 || h.day_of_week === day.id)
+            ).length;
+
+            return (
+              <button
+                key={day.id}
+                onClick={() => setActiveDay(day.id)}
+                className={`flex-1 min-w-[80px] py-2 px-3 flex flex-col items-center justify-center rounded-xl transition-all ${
+                  activeDay === day.id
+                    ? 'bg-green-600 text-white shadow-md shadow-green-600/20'
+                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-sm font-semibold">{day.name}</span>
+                <span className={`text-[10px] leading-tight font-medium ${activeDay === day.id ? 'text-green-100' : 'text-gray-400'}`}>
+                  {count} Kelas
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -436,7 +456,7 @@ export default function AdminJadwalHarianTab() {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <button
               onClick={() => handleDownloadPoster(programTab)}
-              disabled={isLoading || activeProgramHalaqahs.length === 0 || generatingPoster !== null}
+              disabled={isLoading || activeProgramHalaqahs.length === 0 || generatingPoster !== null || activeDay === 0}
               className={`flex items-center justify-center gap-2 px-5 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm w-full sm:w-auto ${
                 programTab === 'tikrar'
                   ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
@@ -452,7 +472,7 @@ export default function AdminJadwalHarianTab() {
             </button>
             <button
               onClick={handleCopyRekapan}
-              disabled={isLoading || activeProgramHalaqahs.length === 0}
+              disabled={isLoading || activeProgramHalaqahs.length === 0 || activeDay === 0}
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-sm shadow-amber-500/20 w-full sm:w-auto"
             >
               <Copy className="h-4 w-4" />
@@ -508,16 +528,18 @@ export default function AdminJadwalHarianTab() {
             <option value="students-desc">Thalibah terbanyak</option>
             <option value="students-asc">Thalibah tersedikit</option>
           </select>
-          <select
-            value={itemsPerPage}
-            onChange={(event) => setItemsPerPage(Number(event.target.value))}
-            aria-label="Jumlah jadwal per halaman"
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500"
-          >
-            <option value={10}>10 / halaman</option>
-            <option value={20}>20 / halaman</option>
-            <option value={50}>50 / halaman</option>
-          </select>
+          {activeDay !== 0 && (
+            <select
+              value={itemsPerPage}
+              onChange={(event) => setItemsPerPage(Number(event.target.value))}
+              aria-label="Jumlah jadwal per halaman"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500"
+            >
+              <option value={10}>10 / halaman</option>
+              <option value={20}>20 / halaman</option>
+              <option value={50}>50 / halaman</option>
+            </select>
+          )}
         </div>
       </div>
 
@@ -571,6 +593,7 @@ export default function AdminJadwalHarianTab() {
             <table className="w-full text-left text-sm text-gray-600">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
+                  <th className="py-4 px-6 w-12 text-center text-xs font-bold tracking-wider">NO</th>
                   <th className="py-4 px-6 whitespace-nowrap">
                     <button type="button" onClick={() => toggleSort('time')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
                       WAKTU {sortIcon('time')}
@@ -595,10 +618,16 @@ export default function AdminJadwalHarianTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {paginatedHalaqahs.map((halaqah) => {
+                {paginatedHalaqahs.map((halaqah, index) => {
                   const dateForTemplate = getNextDateForDay(activeDay);
+                  const overallIndex = activeDay === 0 
+                    ? index + 1 
+                    : (currentPage - 1) * itemsPerPage + index + 1;
                   return (
                     <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
+                      <td className="py-4 px-6 text-center font-medium text-gray-500">
+                        {overallIndex}
+                      </td>
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="flex flex-col gap-1.5">
                           {searchQuery && (
@@ -712,32 +741,34 @@ export default function AdminJadwalHarianTab() {
               </tbody>
             </table>
           </div>
-          <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-medium text-gray-500">
-              Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedHalaqahs.length)} dari {filteredAndSortedHalaqahs.length} jadwal
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" /> Sebelumnya
-              </button>
-              <span className="min-w-[110px] text-center text-sm font-semibold text-gray-600">
-                Halaman {currentPage} dari {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Selanjutnya <ChevronRight className="h-4 w-4" />
-              </button>
+          {activeDay !== 0 && (
+            <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-medium text-gray-500">
+                Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedHalaqahs.length)} dari {filteredAndSortedHalaqahs.length} jadwal
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Sebelumnya
+                </button>
+                <span className="min-w-[110px] text-center text-sm font-semibold text-gray-600">
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Selanjutnya <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

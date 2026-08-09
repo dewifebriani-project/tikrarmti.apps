@@ -7,16 +7,36 @@ interface Props {
   onApprove: (request: SelfMatchRequest) => void
   onManualPair: (request: SelfMatchRequest) => void
   onReject: (id: string) => void
+  onBulkApprove: () => void
 }
 
-export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Props) {
+export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBulkApprove }: Props) {
   const safeRequests = Array.isArray(requests) ? requests : []
+
+  const sortedRequests = [...safeRequests].sort((a, b) => {
+    if (a.is_paired === b.is_paired) return 0
+    return a.is_paired ? 1 : -1
+  })
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Request Pasangan Sendiri
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Request Pasangan Sendiri
+        </h3>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">{safeRequests.length} permintaan</span>
+          {safeRequests.some(r => r.is_mutual_match && !r.is_paired) && (
+            <button
+              onClick={onBulkApprove}
+              className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm font-medium shadow-sm"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve Mutual Match
+            </button>
+          )}
+        </div>
+      </div>
 
       {safeRequests.length === 0 ? (
         <div className="text-center py-12">
@@ -25,7 +45,7 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
         </div>
       ) : (
         <div className="space-y-4">
-          {safeRequests.map((request) => (
+          {sortedRequests.map((request, index) => (
             <div
               key={request.id}
               className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
@@ -33,13 +53,14 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
                   ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
                   : request.is_mutual_match
                     ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50'
-                    : 'border-gray-200'
+                    : 'border-orange-200 bg-gradient-to-r from-orange-50 to-red-50'
               }`}
             >
               {/* Paired Header */}
               {request.is_paired && (
                 <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-white">
+                    <span className="font-bold text-sm bg-white/20 px-2 py-0.5 rounded">#{index + 1}</span>
                     <CheckCircle className="w-4 h-4" />
                     <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
                   </div>
@@ -50,10 +71,22 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
               {!request.is_paired && request.is_mutual_match && (
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-white">
+                    <span className="font-bold text-sm bg-white/20 px-2 py-0.5 rounded">#{index + 1}</span>
                     <Heart className="w-4 h-4" />
-                    <span className="font-semibold text-sm">MUTUAL MATCH</span>
+                    <span className="font-semibold text-sm">MUTUAL MATCH (PENDING)</span>
                   </div>
                   <span className="text-white/90 text-xs">Keduanya saling memilih</span>
+                </div>
+              )}
+              {/* Pending Single Match Header */}
+              {!request.is_paired && !request.is_mutual_match && (
+                <div className="bg-gradient-to-r from-orange-400 to-red-400 px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white">
+                    <span className="font-bold text-sm bg-white/20 px-2 py-0.5 rounded">#{index + 1}</span>
+                    <Clock className="w-4 h-4" />
+                    <span className="font-semibold text-sm">MENUNGGU (PENDING)</span>
+                  </div>
+                  <span className="text-white/90 text-xs">Pilihan sepihak</span>
                 </div>
               )}
 
@@ -155,10 +188,15 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
 
                   {/* Actions */}
                   <div className="flex flex-col gap-2">
-                    {request.is_mutual_match ? (
+                    {request.is_paired ? (
+                      <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 cursor-not-allowed">
+                        <CheckCircle className="w-4 h-4" />
+                        Approved
+                      </span>
+                    ) : request.is_mutual_match ? (
                       <button
                         onClick={() => onApprove(request)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Approve
@@ -167,7 +205,7 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
                       <>
                         <button
                           onClick={() => onManualPair(request)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
                           title="Pasangkan manual dengan thalibah lain"
                         >
                           <Users className="w-4 h-4" />
@@ -175,7 +213,7 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
                         </button>
                         <button
                           onClick={() => onReject(request.id)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm font-medium shadow-sm"
                         >
                           <XCircle className="w-4 h-4" />
                           Reject

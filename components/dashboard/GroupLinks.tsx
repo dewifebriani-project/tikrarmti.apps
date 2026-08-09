@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MapPin, Users, Video, MessageCircle, Info, Calendar } from 'lucide-react';
+import { MapPin, Users, Video, MessageCircle, Info, Calendar, ExternalLink } from 'lucide-react';
 import { getDayNameIndo } from '@/lib/utils/date-helpers';
 
 export const GroupLinks = ({ 
@@ -88,13 +88,18 @@ export const GroupLinks = ({
               {/* WA Group Link */}
               {batchData?.whatsapp_group_link ? (
                 <a href={batchData.whatsapp_group_link} target="_blank" rel="noopener noreferrer" className="block">
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors group">
-                    <div className="bg-green-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
-                      <MessageCircle className="w-5 h-5" />
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-green-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
+                        <MessageCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-green-900">Grup WhatsApp (Info Zoom)</p>
+                        <p className="text-xs text-green-700">Untuk membagikan link Zoom kelas harian</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-green-900">Grup WhatsApp (Info Zoom)</p>
-                      <p className="text-xs text-green-700">Untuk membagikan link Zoom kelas harian</p>
+                    <div className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-full opacity-80 group-hover:opacity-100 group-hover:bg-green-200 transition-all">
+                      Gabung <ExternalLink className="w-3 h-3" />
                     </div>
                   </div>
                 </a>
@@ -112,13 +117,18 @@ export const GroupLinks = ({
 
               {batchData?.group_reminder_link ? (
                 <a href={batchData.group_reminder_link} target="_blank" rel="noopener noreferrer" className="block">
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group">
-                    <div className="bg-amber-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
-                      <Calendar className="w-5 h-5" />
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-amber-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-amber-900">Grup Reminder</p>
+                        <p className="text-xs text-amber-700">Pengingat kegiatan penting (One-way)</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-amber-900">Grup Reminder</p>
-                      <p className="text-xs text-amber-700">Pengingat kegiatan penting (One-way)</p>
+                    <div className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100/50 border border-amber-200 px-3 py-1.5 rounded-full opacity-80 group-hover:opacity-100 group-hover:bg-amber-200 transition-all">
+                      Gabung <ExternalLink className="w-3 h-3" />
                     </div>
                   </div>
                 </a>
@@ -136,13 +146,18 @@ export const GroupLinks = ({
 
               {batchData?.group_diskusi_link ? (
                 <a href={batchData.group_diskusi_link} target="_blank" rel="noopener noreferrer" className="block">
-                  <div className="flex items-center gap-4 p-4 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors group">
-                    <div className="bg-blue-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
-                      <Users className="w-5 h-5" />
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-500 p-2.5 rounded-lg text-white group-hover:scale-110 transition-transform">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-blue-900">Grup Diskusi (Asatidzah)</p>
+                        <p className="text-xs text-blue-700">Tanya jawab materi bersama ustadzah</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-blue-900">Grup Diskusi (Asatidzah)</p>
-                      <p className="text-xs text-blue-700">Tanya jawab materi bersama ustadzah</p>
+                    <div className="flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100/50 border border-blue-200 px-3 py-1.5 rounded-full opacity-80 group-hover:opacity-100 group-hover:bg-blue-200 transition-all">
+                      Gabung <ExternalLink className="w-3 h-3" />
                     </div>
                   </div>
                 </a>

@@ -8,16 +8,29 @@ interface Props {
   onRevert: (request: FamilyRequest) => void
   onChangePartnerType: (user: any, type: 'system_match') => void
   calculateAge: (date: string | undefined | null) => number | string
+  onBulkApprove: () => void
 }
 
-export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge }: Props) {
+export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge, onBulkApprove }: Props) {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Home className="w-5 h-5 text-amber-600" />
           Request Pasangan Family
         </h3>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">{requests.length} permintaan</span>
+          {requests.some(r => !r.is_paired) && (
+            <button
+              onClick={onBulkApprove}
+              className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm font-medium shadow-sm"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve Semua
+            </button>
+          )}
+        </div>
       </div>
 
       {requests.length === 0 ? (

@@ -67,7 +67,10 @@ export default function AdminPairingTab() {
     handleFindMatches,
     handleCreatePairing,
     handleApproveTarteel,
+    handleBulkApproveTarteel,
     handleApproveFamily,
+    handleBulkApproveFamily,
+    handleBulkApproveSelfMatch,
     handleViewPairingDetail,
     handleRevertPairing,
     handleRevertTarteelPairing,
@@ -246,6 +249,7 @@ export default function AdminPairingTab() {
             <SelfMatchTab
               requests={selfMatchRequests}
               onApprove={handleApprove}
+              onBulkApprove={handleBulkApproveSelfMatch}
               onManualPair={(user) => { setManualPairUser1(user); setShowManualPairModal(true); }}
               onReject={(id) => { setRejectingId(id); setShowRejectModal(true); }}
             />
@@ -273,6 +277,7 @@ export default function AdminPairingTab() {
             <TarteelTab
               requests={tarteelRequests}
               onApprove={handleApproveTarteel}
+              onBulkApprove={handleBulkApproveTarteel}
               onRevert={handleRevertTarteelPairing}
               onChangePartnerType={(user, type) => handleChangePartnerType(user, type as any)}
               calculateAge={calculateAge}
@@ -283,6 +288,7 @@ export default function AdminPairingTab() {
             <FamilyTab
               requests={familyRequests}
               onApprove={handleApproveFamily}
+              onBulkApprove={handleBulkApproveFamily}
               onRevert={handleRevertFamilyPairing}
               onChangePartnerType={(user, type) => handleChangePartnerType(user, type as any)}
               calculateAge={calculateAge}

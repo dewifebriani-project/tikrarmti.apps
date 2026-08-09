@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 /**
  * GET /api/admin/pairing/statistics
  *
@@ -127,6 +130,16 @@ export async function GET(request: Request) {
       if (pairing.user_2_id) target.add(pairing.user_2_id)
       if (pairing.user_3_id) target.add(pairing.user_3_id)
     }
+
+    // Also include those whose submission pairing_status is 'paired' (fallback for Tarteel/Family)
+    userSubmissions.forEach((sub, userId) => {
+      if (sub.pairing_status === 'paired') {
+        const type = (sub.effective_partner_type || sub.partner_type) as keyof typeof pairedUsers
+        if (pairedUsers[type]) {
+          pairedUsers[type].add(userId)
+        }
+      }
+    })
 
     statistics.selfMatch.approved = pairedUsers.self_match.size
     statistics.systemMatch.approved = pairedUsers.system_match.size

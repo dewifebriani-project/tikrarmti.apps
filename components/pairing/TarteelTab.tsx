@@ -8,16 +8,28 @@ interface Props {
   onRevert: (request: TarteelRequest) => void
   onChangePartnerType: (user: any, type: 'system_match') => void
   calculateAge: (date: string | undefined | null) => number | string
+  onBulkApprove: () => void
 }
 
-export function TarteelTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge }: Props) {
+export function TarteelTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge, onBulkApprove }: Props) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Request Pasangan Tarteel
         </h3>
-        <span className="text-sm text-gray-600">{requests.length} permintaan</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600">{requests.length} permintaan</span>
+          {requests.some(r => !r.is_paired) && (
+            <button
+              onClick={onBulkApprove}
+              className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm font-medium shadow-sm"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Approve Semua
+            </button>
+          )}
+        </div>
       </div>
 
       {requests.length === 0 ? (

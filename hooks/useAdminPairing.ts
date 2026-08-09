@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 import { 
   Batch, 
   PairingStats, 
@@ -256,8 +256,8 @@ export function useAdminPairing() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           submission_id: request.id,
-          user_id: request.user_id,
-          partner_id: request.partner_id,
+          user_1_id: request.user_id,
+          user_2_id: request.partner_id,
           batch_id: selectedBatchId,
         }),
       })
@@ -272,6 +272,43 @@ export function useAdminPairing() {
     } catch (error) {
       console.error('Error approving pairing:', error)
       toast.error('Gagal menyetujui pasangan', { id: toastId })
+    }
+  }
+
+  const handleBulkApproveSelfMatch = async () => {
+    const pendingRequests = selfMatchRequests.filter(r => r.is_mutual_match && !r.is_paired);
+    if (pendingRequests.length === 0) return;
+    
+    const toastId = toast.loading(`Approving ${pendingRequests.length} mutual matches...`);
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const request of pendingRequests) {
+        const response = await fetch('/api/admin/pairing/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: request.id,
+            user_1_id: request.user_id,
+            user_2_id: request.partner_id,
+            batch_id: selectedBatchId,
+          }),
+        })
+        const result = await response.json()
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+      
+      toast.success(`Bulk approve selesai. ${successCount} berhasil, ${failCount} gagal.`, { id: toastId })
+      loadPairingRequests()
+      loadStatistics()
+    } catch (error) {
+      console.error('Error bulk approving self matches:', error)
+      toast.error('Gagal melakukan bulk approve', { id: toastId })
     }
   }
 
@@ -421,17 +458,58 @@ export function useAdminPairing() {
     }
   }
 
+  const handleBulkApproveTarteel = async () => {
+    const pendingRequests = tarteelRequests.filter(r => !r.is_paired);
+    if (pendingRequests.length === 0) return;
+    
+    const toastId = toast.loading(`Approving ${pendingRequests.length} tarteel pairings...`);
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const request of pendingRequests) {
+        const response = await fetch('/api/admin/pairing/approve-tarteel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: request.id,
+            user_id: request.user_id,
+            partner_name: request.partner_name,
+            partner_relationship: request.partner_relationship,
+            partner_notes: request.partner_notes,
+            partner_wa_phone: request.partner_wa_phone,
+          }),
+        })
+        const result = await response.json()
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+      
+      toast.success(`Bulk approve selesai. ${successCount} berhasil, ${failCount} gagal.`, { id: toastId })
+      loadPairingRequests()
+      loadStatistics()
+    } catch (error) {
+      console.error('Error bulk approving tarteel pairings:', error)
+      toast.error('Gagal melakukan bulk approve', { id: toastId })
+    }
+  }
+
   const handleApproveFamily = async (request: FamilyRequest) => {
     const toastId = toast.loading('Approving family pairing...')
     try {
-      const response = await fetch('/api/admin/pairing/approve', {
+      const response = await fetch('/api/admin/pairing/approve-family', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           submission_id: request.id,
           user_id: request.user_id,
-          pairing_type: 'family',
-          batch_id: selectedBatchId,
+          partner_name: request.partner_name,
+          partner_relationship: request.partner_relationship,
+          partner_notes: request.partner_notes,
+          partner_wa_phone: request.partner_wa_phone,
         }),
       })
       const result = await response.json()
@@ -443,6 +521,45 @@ export function useAdminPairing() {
     } catch (error) {
       console.error('Error approving family pairing:', error)
       toast.error('Failed to approve family pairing', { id: toastId })
+    }
+  }
+
+  const handleBulkApproveFamily = async () => {
+    const pendingRequests = familyRequests.filter(r => !r.is_paired);
+    if (pendingRequests.length === 0) return;
+    
+    const toastId = toast.loading(`Approving ${pendingRequests.length} family pairings...`);
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const request of pendingRequests) {
+        const response = await fetch('/api/admin/pairing/approve-family', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: request.id,
+            user_id: request.user_id,
+            partner_name: request.partner_name,
+            partner_relationship: request.partner_relationship,
+            partner_notes: request.partner_notes,
+            partner_wa_phone: request.partner_wa_phone,
+          }),
+        })
+        const result = await response.json()
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+      
+      toast.success(`Bulk approve selesai. ${successCount} berhasil, ${failCount} gagal.`, { id: toastId })
+      loadPairingRequests()
+      loadStatistics()
+    } catch (error) {
+      console.error('Error bulk approving family pairings:', error)
+      toast.error('Gagal melakukan bulk approve', { id: toastId })
     }
   }
 
@@ -702,7 +819,10 @@ export function useAdminPairing() {
     handleFindMatches,
     handleCreatePairing,
     handleApproveTarteel,
+    handleBulkApproveTarteel,
     handleApproveFamily,
+    handleBulkApproveFamily,
+    handleBulkApproveSelfMatch,
     handleViewPairingDetail,
     handleRevertPairing,
     handleRevertTarteelPairing,

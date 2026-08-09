@@ -70,12 +70,12 @@ export const JadwalPoster = forwardRef<HTMLDivElement, JadwalPosterProps>(
           <img src="/logo.jpg" alt="Markaz Tikrar Indonesia" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 12 }} />
         </div>
 
-        <main style={{ position: 'relative', zIndex: 2, padding: '178px 68px 112px' }}>
+        <main style={{ position: 'relative', zIndex: 2, padding: '110px 68px 112px' }}>
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ margin: '0 0 12px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
               {theme.label}
             </h1>
-            <h1 style={{ margin: '0 0 55px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
+            <h1 style={{ margin: '0 0 120px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
               Jadwal Halaqah {dayName}
             </h1>
           </div>

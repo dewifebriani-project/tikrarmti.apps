@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 /**
  * GET /api/admin/pairing
  *
@@ -277,7 +280,7 @@ export async function GET(request: Request) {
         backup_time_slot: registrations?.[0]?.backup_time_slot,
         exam_score: registrations?.[0]?.oral_total_score,
         partner_type: submission.partner_type,
-        partner_user_id: submission.partner_user_id,
+        partner_id: submission.partner_user_id,
         partner_name: submission.partner_name,
         partner_relationship: submission.partner_relationship,
         partner_notes: submission.partner_notes,
@@ -333,7 +336,7 @@ export async function GET(request: Request) {
             is_mutual_match: isMutualMatch,
             partner_submission_id: partnerSubmissionId,
             // Pairing status from study_partners
-            is_paired: !!selfPairingInfo,
+            is_paired: !!selfPairingInfo || submission.pairing_status === 'paired',
             paired_partner_name: selfPartnerNames.length > 0 ? selfPartnerNames.join(', ') : null,
             paired_partner_names: selfPartnerNames,
             pairing_id: selfPairingInfo?.pairingId || null,
@@ -395,7 +398,7 @@ export async function GET(request: Request) {
 
         tarteelRequests.push({
           ...requestData,
-          is_paired: !!tarteelPairingInfo,
+          is_paired: !!tarteelPairingInfo || submission.pairing_status === 'paired',
           paired_partner_name: tarteelPartnerNames.length > 0 ? tarteelPartnerNames.join(', ') : null,
           paired_partner_names: tarteelPartnerNames,
           pairing_id: tarteelPairingInfo?.pairingId || null,
@@ -409,7 +412,7 @@ export async function GET(request: Request) {
 
         familyRequests.push({
           ...requestData,
-          is_paired: !!familyPairingInfo,
+          is_paired: !!familyPairingInfo || submission.pairing_status === 'paired',
           paired_partner_name: familyPartnerNames.length > 0 ? familyPartnerNames.join(', ') : null,
           paired_partner_names: familyPartnerNames,
           pairing_id: familyPairingInfo?.pairingId || null,

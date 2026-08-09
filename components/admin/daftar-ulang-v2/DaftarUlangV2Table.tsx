@@ -293,9 +293,15 @@ export function DaftarUlangV2Table({
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('name')}>
                 <div className="flex items-center gap-2">Thalibah {getSortIcon('name')}</div>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Score Test</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pengabdian</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Akad Files</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('score_test')}>
+                <div className="flex items-center gap-2">Score Test {getSortIcon('score_test')}</div>
+              </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('pengabdian')}>
+                <div className="flex items-center gap-2">Pengabdian {getSortIcon('pengabdian')}</div>
+              </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('akad_files')}>
+                <div className="flex items-center gap-2">Akad Files {getSortIcon('akad_files')}</div>
+              </th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('status')}>
                 <div className="flex items-center gap-2">Status Akad {getSortIcon('status')}</div>
               </th>
@@ -305,9 +311,15 @@ export function DaftarUlangV2Table({
               <th className="px-8 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[250px] cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('halaqah')}>
                 <div className="flex items-center gap-2">Halaqah {getSortIcon('halaqah')}</div>
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Partner</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status Pasangan</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Submitted At</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('partner')}>
+                <div className="flex items-center gap-2">Partner {getSortIcon('partner')}</div>
+              </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('partner_status')}>
+                <div className="flex items-center gap-2">Status Pasangan {getSortIcon('partner_status')}</div>
+              </th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group" onClick={() => onSort('partner_submitted_at')}>
+                <div className="flex items-center gap-2">Submitted At {getSortIcon('partner_submitted_at')}</div>
+              </th>
               <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
