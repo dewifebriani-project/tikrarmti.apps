@@ -52,6 +52,7 @@ export async function GET(request: Request) {
     // approved = paired, submitted = waiting.
     const statistics = {
       total: 0,
+      totalApproved: 0,
       selfMatch: { submitted: 0, approved: 0 },
       systemMatch: { submitted: 0, approved: 0 },
       tarteel: { submitted: 0, approved: 0 },
@@ -87,6 +88,7 @@ export async function GET(request: Request) {
 
     console.log('[STATS DEBUG] Unique users:', userSubmissions.size)
     statistics.total = userSubmissions.size
+    statistics.totalApproved = Array.from(userSubmissions.values()).filter(s => s.status === 'approved').length
 
     // Determine effective partner type based on mutual match
     userSubmissions.forEach((sub, userId) => {

@@ -8,6 +8,7 @@ export interface Batch {
 
 export interface PairingStats {
   total: number
+  totalApproved: number
   selfMatch: { submitted: number; approved: number }
   systemMatch: { submitted: number; approved: number }
   tarteel: { submitted: number; approved: number }

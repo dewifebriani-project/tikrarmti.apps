@@ -15,8 +15,11 @@ export function PairingStatsCard({ stats }: Props) {
           <p className="text-sm font-medium text-indigo-100">Total Daftar Ulang</p>
           <h3 className="text-3xl font-black tracking-tight text-white">
             {stats.total || 0}
+            {stats.totalApproved !== undefined && (
+              <span className="text-indigo-200 text-sm font-normal"> / {stats.totalApproved}</span>
+            )}
           </h3>
-          <p className="text-indigo-200 text-[10px] uppercase font-bold tracking-wider">Thalibah Unik</p>
+          <p className="text-indigo-200 text-[10px] uppercase font-bold tracking-wider">Thalibah Unik / Approved</p>
         </div>
         <div className="p-4 rounded-xl text-indigo-600 bg-white shadow-lg shadow-indigo-400/50 transition-transform duration-300 group-hover:scale-110">
           <UserCheck className="h-6 w-6" />
