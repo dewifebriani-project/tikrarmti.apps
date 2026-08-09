@@ -75,25 +75,25 @@ export const JadwalPoster = forwardRef<HTMLDivElement, JadwalPosterProps>(
             <h1 style={{ margin: '0 0 12px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
               {theme.label}
             </h1>
-            <h1 style={{ margin: '0 0 35px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
+            <h1 style={{ margin: '0 0 55px', color: theme.title, fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 61, lineHeight: 1, fontWeight: 700, letterSpacing: -.8, textShadow: '0 2px 0 rgba(255,255,255,.8)' }}>
               Jadwal Halaqah {dayName}
             </h1>
           </div>
 
           <section style={{ overflow: 'hidden', borderRadius: 8, boxShadow: '0 12px 38px rgba(54,50,33,.14)', border: '1px solid rgba(255,255,255,.8)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '75px 1.15fr 1.35fr 165px', minHeight: 64, alignItems: 'center', background: theme.header, fontSize: 20, fontWeight: 900, textTransform: 'uppercase' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '75px 165px 1.15fr 1.35fr', minHeight: 64, alignItems: 'center', background: theme.header, fontSize: 20, fontWeight: 900, textTransform: 'uppercase' }}>
               <div style={{ textAlign: 'center' }}>No</div>
+              <div style={{ padding: '0 16px', textAlign: 'center', borderLeft: `2px dotted ${theme.accent}` }}>Waktu (WIB)</div>
               <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}` }}>Halaqah</div>
               <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}` }}>Nama Ustadzah</div>
-              <div style={{ padding: '0 16px', textAlign: 'center', borderLeft: `2px dotted ${theme.accent}` }}>Waktu (WIB)</div>
             </div>
 
-            {halaqahs.map((halaqah, index) => (
-              <div key={halaqah.id || index} style={{ display: 'grid', gridTemplateColumns: '75px 1.15fr 1.35fr 165px', minHeight: rowHeight, alignItems: 'center', background: index % 2 === 0 ? theme.row : theme.rowAlt, fontSize: bodyFont }}>
+            {[...halaqahs].sort((a, b) => (a.start_time || '').localeCompare(b.start_time || '')).map((halaqah, index) => (
+              <div key={halaqah.id || index} style={{ display: 'grid', gridTemplateColumns: '75px 165px 1.15fr 1.35fr', minHeight: rowHeight, alignItems: 'center', background: index % 2 === 0 ? theme.row : theme.rowAlt, fontSize: bodyFont }}>
                 <div style={{ textAlign: 'center', fontWeight: 900 }}>{index + 1}</div>
+                <div style={{ padding: '0 16px', textAlign: 'center', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 800 }}>{formatTimeShort(halaqah.start_time)}</div>
                 <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 650 }}>{classLabel(halaqah, variant)}</div>
                 <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 650 }}>{halaqah.muallimah?.full_name || '-'}</div>
-                <div style={{ padding: '0 16px', textAlign: 'center', borderLeft: `2px dotted ${theme.accent}`, fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 800 }}>{formatTimeShort(halaqah.start_time)}</div>
               </div>
             ))}
 
