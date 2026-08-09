@@ -93,7 +93,7 @@ export function DaftarUlangV2Filters({
                 onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
-                <option value="all">Semua Status</option>
+                <option value="all">Semua Status Akad</option>
                 <option value="draft">Draft</option>
                 <option value="submitted">Submitted</option>
                 <option value="approved">Approved</option>

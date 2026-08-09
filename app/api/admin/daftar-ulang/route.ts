@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');
+    const akadStatus = searchParams.get('akad_status');
 
-    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status });
+    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus });
 
     // Build query - get ALL fields from all tables
     let query = supabaseAdmin
@@ -66,6 +67,9 @@ export async function GET(request: NextRequest) {
     const VALID_DAFTAR_ULANG_STATUSES = ['draft', 'submitted', 'approved', 'rejected'];
     if (status && VALID_DAFTAR_ULANG_STATUSES.includes(status)) {
       query = query.eq('status', status);
+    }
+    if (akadStatus && VALID_DAFTAR_ULANG_STATUSES.includes(akadStatus)) {
+      query = query.eq('akad_status', akadStatus);
     }
 
     // Apply pagination
@@ -228,8 +232,11 @@ export async function GET(request: NextRequest) {
     if (batchId && batchId !== 'all') {
       countQuery = countQuery.eq('batch_id', batchId);
     }
-    if (status) {
+    if (status && VALID_DAFTAR_ULANG_STATUSES.includes(status)) {
       countQuery = countQuery.eq('status', status);
+    }
+    if (akadStatus && VALID_DAFTAR_ULANG_STATUSES.includes(akadStatus)) {
+      countQuery = countQuery.eq('akad_status', akadStatus);
     }
 
     const { count } = await countQuery;

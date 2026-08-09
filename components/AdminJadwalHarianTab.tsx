@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isStaff } from '@/lib/roles';
 import { 
-  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon, Pencil, X
+  Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon, Pencil, X,
+  Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -42,6 +43,11 @@ export default function AdminJadwalHarianTab() {
   const [studentListHalaqah, setStudentListHalaqah] = useState<HalaqahForReminder | null>(null);
   const [editForm, setEditForm] = useState({ start_time: '', end_time: '', zoom_link_id: '' });
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<'time' | 'class' | 'muallimah' | 'students'>('time');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const supabase = createClient();
   const userRoles = (user as any)?.primaryRole ? [(user as any).primaryRole] : (user?.roles || []);
@@ -233,6 +239,60 @@ export default function AdminJadwalHarianTab() {
   const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz');
   const activeProgramHalaqahs = programTab === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
 
+  const filteredAndSortedHalaqahs = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase('id-ID');
+    const filtered = activeProgramHalaqahs.filter((halaqah) => {
+      if (!query) return true;
+      const searchableText = [
+        halaqah.name,
+        halaqah.muallimah?.full_name,
+        halaqah.preferred_juz,
+        halaqah.zoom_name,
+        ...(halaqah.students || []).map(student => student.full_name)
+      ].filter(Boolean).join(' ').toLocaleLowerCase('id-ID');
+      return searchableText.includes(query);
+    });
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'time') comparison = (a.start_time || '').localeCompare(b.start_time || '');
+      if (sortField === 'class') comparison = (a.name || '').localeCompare(b.name || '', 'id-ID');
+      if (sortField === 'muallimah') comparison = (a.muallimah?.full_name || '').localeCompare(b.muallimah?.full_name || '', 'id-ID');
+      if (sortField === 'students') comparison = (a.students?.length || 0) - (b.students?.length || 0);
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [activeProgramHalaqahs, searchQuery, sortField, sortOrder]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage));
+  const paginatedHalaqahs = filteredAndSortedHalaqahs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeDay, programTab, searchQuery, sortField, sortOrder, itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const toggleSort = (field: 'time' | 'class' | 'muallimah' | 'students') => {
+    if (sortField === field) {
+      setSortOrder(order => order === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const sortIcon = (field: 'time' | 'class' | 'muallimah' | 'students') => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 text-gray-300" />;
+    return sortOrder === 'asc'
+      ? <ArrowUp className="h-3.5 w-3.5 text-emerald-600" />
+      : <ArrowDown className="h-3.5 w-3.5 text-emerald-600" />;
+  };
+
   const handleDownloadPoster = async (variant: 'tikrar' | 'pra_tikrar') => {
     const posterRef = variant === 'tikrar' ? tikrarPosterRef : praTikrarPosterRef;
     const posterHalaqahs = variant === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
@@ -401,6 +461,65 @@ export default function AdminJadwalHarianTab() {
         )}
       </div>
 
+      {/* Search, sort, and page-size controls */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:max-w-xl">
+          <Search className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Cari kelas, mu'allimah, juz, Zoom, atau nama thalibah..."
+            className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-10 text-sm font-medium outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Hapus pencarian"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wide text-gray-500" htmlFor="schedule-sort">
+            Urutkan
+          </label>
+          <select
+            id="schedule-sort"
+            value={`${sortField}-${sortOrder}`}
+            onChange={(event) => {
+              const [field, order] = event.target.value.split('-') as [typeof sortField, typeof sortOrder];
+              setSortField(field);
+              setSortOrder(order);
+            }}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500"
+          >
+            <option value="time-asc">Waktu paling awal</option>
+            <option value="time-desc">Waktu paling akhir</option>
+            <option value="class-asc">Kelas A–Z</option>
+            <option value="class-desc">Kelas Z–A</option>
+            <option value="muallimah-asc">Mu'allimah A–Z</option>
+            <option value="muallimah-desc">Mu'allimah Z–A</option>
+            <option value="students-desc">Thalibah terbanyak</option>
+            <option value="students-asc">Thalibah tersedikit</option>
+          </select>
+          <select
+            value={itemsPerPage}
+            onChange={(event) => setItemsPerPage(Number(event.target.value))}
+            aria-label="Jumlah jadwal per halaman"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 outline-none focus:border-emerald-500"
+          >
+            <option value={10}>10 / halaman</option>
+            <option value={20}>20 / halaman</option>
+            <option value={50}>50 / halaman</option>
+          </select>
+        </div>
+      </div>
+
       {/* Hidden Poster Template for html-to-image */}
       <div className="absolute left-[-9999px] top-[-9999px] overflow-hidden pointer-events-none">
         <JadwalPoster 
@@ -433,12 +552,16 @@ export default function AdminJadwalHarianTab() {
             </div>
           ))}
         </div>
-      ) : activeProgramHalaqahs.length === 0 ? (
+      ) : filteredAndSortedHalaqahs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">Tidak Ada Jadwal</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            {searchQuery ? 'Jadwal Tidak Ditemukan' : 'Tidak Ada Jadwal'}
+          </h3>
           <p className="text-gray-500 mt-1">
-            Belum ada kelas {programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} aktif di hari ini.
+            {searchQuery
+              ? `Tidak ada jadwal yang cocok dengan “${searchQuery}”.`
+              : `Belum ada kelas ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} aktif di hari ini.`}
           </p>
         </div>
       ) : (
@@ -447,15 +570,31 @@ export default function AdminJadwalHarianTab() {
             <table className="w-full text-left text-sm text-gray-600">
               <thead className="bg-gray-50/50 text-gray-500 font-medium border-b border-gray-100">
                 <tr>
-                  <th className="py-4 px-6 whitespace-nowrap">WAKTU</th>
-                  <th className="py-4 px-6">KELAS</th>
-                  <th className="py-4 px-6">MU'ALLIMAH</th>
-                  <th className="py-4 px-6 text-center">SANTRI AKTIF</th>
+                  <th className="py-4 px-6 whitespace-nowrap">
+                    <button type="button" onClick={() => toggleSort('time')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                      WAKTU {sortIcon('time')}
+                    </button>
+                  </th>
+                  <th className="py-4 px-6">
+                    <button type="button" onClick={() => toggleSort('class')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                      KELAS {sortIcon('class')}
+                    </button>
+                  </th>
+                  <th className="py-4 px-6">
+                    <button type="button" onClick={() => toggleSort('muallimah')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                      MU'ALLIMAH {sortIcon('muallimah')}
+                    </button>
+                  </th>
+                  <th className="py-4 px-6 text-center">
+                    <button type="button" onClick={() => toggleSort('students')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                      THALIBAH AKTIF {sortIcon('students')}
+                    </button>
+                  </th>
                   {isUserStaff && <th className="py-4 px-6 text-center">AKSI</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {activeProgramHalaqahs.map((halaqah) => {
+                {paginatedHalaqahs.map((halaqah) => {
                   const dateForTemplate = getNextDateForDay(activeDay);
                   return (
                     <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
@@ -566,6 +705,32 @@ export default function AdminJadwalHarianTab() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-medium text-gray-500">
+              Menampilkan {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedHalaqahs.length)} dari {filteredAndSortedHalaqahs.length} jadwal
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" /> Sebelumnya
+              </button>
+              <span className="min-w-[110px] text-center text-sm font-semibold text-gray-600">
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Selanjutnya <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

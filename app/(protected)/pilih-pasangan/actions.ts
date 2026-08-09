@@ -67,114 +67,60 @@ export async function submitPilihPasangan(
   }
 
   try {
-    // 4. CHECK QUOTA FOR SELECTED HALAQAH
-    const selectedHalaqahIds = [data.ujian_halaqah_id]
-    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
-      selectedHalaqahIds.push(data.tashih_halaqah_id)
-    }
+    // 4. Reserve quota and save the selection in one database transaction.
+    // The RPC locks the selected halaqah rows, so concurrent users cannot take
+    // the same final slot.
+    const { data: reservationResult, error: reservationError } = await supabase.rpc(
+      'reserve_halaqah_and_partner',
+      {
+        p_registration_id: registrationId,
+        p_ujian_halaqah_id: data.ujian_halaqah_id,
+        p_tashih_halaqah_id: data.tashih_halaqah_id || data.ujian_halaqah_id,
+        p_partner_type: data.partner_type,
+        p_partner_user_id: data.partner_user_id || null,
+        p_partner_name: data.partner_name || null,
+        p_partner_relationship: data.partner_relationship || null,
+        p_partner_wa_phone: data.partner_wa_phone || null,
+        p_partner_notes: data.partner_notes || null
+      }
+    )
 
-    const { data: halaqahInfo } = await supabase
-      .from('halaqah')
-      .select('id, name, max_students')
-      .in('id', selectedHalaqahIds)
-
-    if (!halaqahInfo || halaqahInfo.length === 0) {
+    if (reservationError) {
+      const isRpcUnavailable = reservationError.message.includes('reserve_halaqah_and_partner')
       return {
         success: false,
-        error: 'Halaqah tidak ditemukan'
+        error: isRpcUnavailable
+          ? 'Sistem reservasi halaqah belum aktif. Silakan hubungi admin.'
+          : reservationError.message
       }
     }
 
-    // Check how many students are in the halaqah right now
-    const { data: submittedSubmissions } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('ujian_halaqah_id, tashih_halaqah_id, user_id')
-      .eq('batch_id', registration.batch_id)
+    const reservation = reservationResult as {
+      success?: boolean
+      error?: string
+      halaqah_name?: string
+    } | null
 
-    const { data: halaqahStudents } = await supabase
-      .from('halaqah_students')
-      .select('halaqah_id, thalibah_id')
-      .eq('status', 'active')
-      .in('halaqah_id', selectedHalaqahIds)
-
-    const halaqahStudentMap = new Map<string, Set<string>>()
-
-    if (submittedSubmissions) {
-      for (const sub of submittedSubmissions) {
-        if (sub.user_id === authUser.id) continue
-
-        const uniqueHalaqahIds: string[] = []
-        if (sub.ujian_halaqah_id) uniqueHalaqahIds.push(sub.ujian_halaqah_id)
-        if (sub.tashih_halaqah_id && !uniqueHalaqahIds.includes(sub.tashih_halaqah_id)) {
-          uniqueHalaqahIds.push(sub.tashih_halaqah_id)
-        }
-
-        for (const halaqahId of uniqueHalaqahIds) {
-          if (!halaqahStudentMap.has(halaqahId)) {
-            halaqahStudentMap.set(halaqahId, new Set())
-          }
-          halaqahStudentMap.get(halaqahId)!.add(sub.user_id)
-        }
+    if (!reservation?.success) {
+      const errorMessages: Record<string, string> = {
+        UNAUTHORIZED: 'Sesi Anda berakhir. Silakan login kembali.',
+        HALAQAH_REQUIRED: 'Pilih paket kelas halaqah.',
+        HALAQAH_INVALID: 'Halaqah tidak valid, tidak aktif, atau bukan bagian dari batch ini.',
+        REGISTRATION_INVALID: 'Pendaftaran tidak valid.',
+        NOT_SELECTED: 'Anda belum lolos seleksi.',
+        SUBMISSION_NOT_FOUND: 'Data daftar ulang tidak ditemukan. Silakan selesaikan Review Akad terlebih dahulu.',
+        PARTNER_TYPE_INVALID: 'Jenis pasangan belajar tidak valid.',
+        PARTNER_INVALID: 'Data pasangan belajar tidak valid.'
       }
-    }
 
-    if (halaqahStudents) {
-      for (const student of halaqahStudents) {
-        if (student.thalibah_id === authUser.id) continue
+      const message = reservation?.error === 'HALAQAH_FULL'
+        ? `Maaf, kelas "${reservation.halaqah_name || 'yang dipilih'}" sudah penuh. Silakan pilih kelas lain.`
+        : errorMessages[reservation?.error || ''] || 'Pilihan halaqah gagal disimpan.'
 
-        if (!halaqahStudentMap.has(student.halaqah_id)) {
-          halaqahStudentMap.set(student.halaqah_id, new Set())
-        }
-        halaqahStudentMap.get(student.halaqah_id)!.add(student.thalibah_id)
-      }
-    }
-
-    for (const halaqah of halaqahInfo) {
-      const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
-      const maxStudents = halaqah.max_students || 5
-
-      if (currentStudents >= maxStudents) {
-        return {
-          success: false,
-          error: `Maaf, kelas "${halaqah.name}" sudah penuh. Silakan pilih kelas lain.`
-        }
-      }
-    }
-
-    // 5. Update daftar_ulang_submissions
-    const { data: existing, error: existingError } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('id, status, ujian_halaqah_id, tashih_halaqah_id')
-      .eq('user_id', authUser.id)
-      .eq('registration_id', registrationId)
-      .maybeSingle()
-      
-    if (existingError || !existing) {
-        return { success: false, error: 'Data daftar ulang tidak ditemukan. Silakan selesaikan Review Akad terlebih dahulu.' }
-    }
-
-    const submissionData = {
-      ujian_halaqah_id: data.ujian_halaqah_id,
-      tashih_halaqah_id: data.tashih_halaqah_id || data.ujian_halaqah_id,
-      partner_type: data.partner_type,
-      partner_user_id: data.partner_user_id || null,
-      partner_name: data.partner_name || null,
-      partner_relationship: data.partner_relationship || null,
-      partner_wa_phone: data.partner_wa_phone || null,
-      partner_notes: data.partner_notes || null,
-      partner_status: 'submitted',
-      updated_at: new Date().toISOString()
+      return { success: false, error: message }
     }
 
     const supabaseAdmin = createSupabaseAdmin()
-    const { error: updateError } = await supabaseAdmin
-      .from('daftar_ulang_submissions')
-      .update(submissionData)
-      .eq('id', existing.id)
-
-    if (updateError) {
-      return { success: false, error: updateError.message }
-    }
 
     let isMutualMatch = false
     if (data.partner_type === 'self_match' && data.partner_user_id) {
@@ -194,44 +140,6 @@ export async function submitPilihPasangan(
           reverseSelection.status === 'submitted' ||
           reverseSelection.status === 'approved')
       )
-    }
-
-    // 6. Sync halaqah_students if already approved
-    if (existing.status === 'approved') {
-      const oldHalaqahIds: string[] = []
-      if (existing.ujian_halaqah_id) oldHalaqahIds.push(existing.ujian_halaqah_id)
-      if (existing.tashih_halaqah_id && existing.tashih_halaqah_id !== existing.ujian_halaqah_id) {
-        oldHalaqahIds.push(existing.tashih_halaqah_id)
-      }
-
-      if (oldHalaqahIds.length > 0) {
-        await supabaseAdmin.from('halaqah_students')
-          .delete()
-          .eq('thalibah_id', authUser.id)
-          .in('halaqah_id', oldHalaqahIds)
-      }
-
-      const newHalaqahEntries = []
-      if (data.ujian_halaqah_id) {
-        newHalaqahEntries.push({
-          halaqah_id: data.ujian_halaqah_id,
-          thalibah_id: authUser.id,
-          assigned_by: authUser.id,
-          status: 'active'
-        })
-      }
-      if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
-        newHalaqahEntries.push({
-          halaqah_id: data.tashih_halaqah_id,
-          thalibah_id: authUser.id,
-          assigned_by: authUser.id,
-          status: 'active'
-        })
-      }
-
-      if (newHalaqahEntries.length > 0) {
-        await supabaseAdmin.from('halaqah_students').insert(newHalaqahEntries)
-      }
     }
 
     revalidatePath('/dashboard')

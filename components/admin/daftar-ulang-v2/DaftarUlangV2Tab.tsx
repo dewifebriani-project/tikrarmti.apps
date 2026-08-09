@@ -172,6 +172,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       // Build query params
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
+      if (filterStatus !== 'all') params.append('akad_status', filterStatus);
 
       // If searching, load all data. Otherwise use pagination.
       if (searchQuery.trim()) {
@@ -874,7 +875,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   // Load submissions when batch changes, page changes, or refresh triggers
   useEffect(() => {
     loadSubmissions();
-  }, [localBatchId, refreshTrigger, currentPage]);
+  }, [localBatchId, filterStatus, refreshTrigger, currentPage]);
 
   // Debounced search effect
   useEffect(() => {
@@ -938,7 +939,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           compareValue = aHalaqah.localeCompare(bHalaqah);
           break;
         case 'status':
-          compareValue = a.status.localeCompare(b.status);
+          compareValue = (a.akad_status || a.status).localeCompare(b.akad_status || b.status);
           break;
         case 'submitted_at':
           const aDate = new Date(a.submitted_at || a.created_at).getTime();
@@ -1265,16 +1266,18 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   // Derived final submissions
   const filteredByStatus = useMemo(() => {
     return submissions.filter(s => {
-      const matchStatus = filterStatus === 'all' || s.status === filterStatus;
+      const akadStatus = s.akad_status || s.status;
+      const matchStatus = filterStatus === 'all' || akadStatus === filterStatus;
       
       let matchSearch = true;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const fullName = (s.confirmed_full_name || s.user?.full_name || '').toLowerCase();
+        const email = (s.user?.email || '').toLowerCase();
         const wa = ((s as any).confirmed_wa_phone || s.user?.whatsapp || '').toLowerCase();
         const juz = (s.confirmed_chosen_juz || s.registration?.chosen_juz || '').toLowerCase();
         
-        matchSearch = fullName.includes(query) || wa.includes(query) || juz.includes(query);
+        matchSearch = fullName.includes(query) || email.includes(query) || wa.includes(query) || juz.includes(query);
       }
       
       return matchStatus && matchSearch;
@@ -1290,7 +1293,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         return sortOrder === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName);
       }
       if (sortField === 'status') {
-        return sortOrder === 'asc' ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status);
+        const aStatus = a.akad_status || a.status;
+        const bStatus = b.akad_status || b.status;
+        return sortOrder === 'asc' ? aStatus.localeCompare(bStatus) : bStatus.localeCompare(aStatus);
       }
       if (sortField === 'submitted_at') {
         const aDate = new Date(a.submitted_at || a.created_at).getTime();
