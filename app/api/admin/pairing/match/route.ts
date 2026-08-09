@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     // 4. Fetch existing pairings to exclude already paired users
     const { data: existingPairings } = await supabase
       .from('study_partners')
-      .select('user_1_id, user_2_id')
+      .select('user_1_id, user_2_id, user_3_id')
       .eq('batch_id', batchId)
       .eq('pairing_status', 'active')
 
@@ -114,7 +114,8 @@ export async function GET(request: Request) {
     const pairedUserIds = new Set<string>()
     for (const pairing of existingPairings || []) {
       pairedUserIds.add(pairing.user_1_id)
-      pairedUserIds.add(pairing.user_2_id)
+      if (pairing.user_2_id) pairedUserIds.add(pairing.user_2_id)
+      if (pairing.user_3_id) pairedUserIds.add(pairing.user_3_id)
     }
 
     console.log('[MATCH API] Paired users to exclude:', pairedUserIds.size)
@@ -125,18 +126,23 @@ export async function GET(request: Request) {
       .from('daftar_ulang_submissions')
       .select('user_id')
       .eq('batch_id', batchId)
+      .eq('partner_type', 'system_match')
       .in('status', ['submitted', 'approved']) // Include both submitted and approved
       .neq('user_id', userId) // Exclude self
 
     if (submissionsError) throw submissionsError
 
     // Filter out already paired users
-    const availableSubmissions = (submissions || []).filter(s => !pairedUserIds.has(s.user_id))
+    const availableUserIds = Array.from(new Set(
+      (submissions || [])
+        .filter(s => !pairedUserIds.has(s.user_id))
+        .map(s => s.user_id)
+    ))
 
-    console.log('[MATCH API] Submissions found:', submissions?.length || 0, 'After filtering paired:', availableSubmissions.length)
+    console.log('[MATCH API] Submissions found:', submissions?.length || 0, 'After filtering paired:', availableUserIds.length)
 
     // Get all user_ids from available submissions
-    const userIds = availableSubmissions.map(s => s.user_id)
+    const userIds = availableUserIds
     console.log('[MATCH API] User IDs to fetch:', userIds)
 
     // Fetch user data for all candidates
@@ -167,12 +173,12 @@ export async function GET(request: Request) {
     // 6. Calculate matches with scoring
     const matches = []
 
-    for (const submission of availableSubmissions) {
-      const user = usersMap.get(submission.user_id)
-      const registration = registrationsMap.get(submission.user_id)
+    for (const candidateUserId of availableUserIds) {
+      const user = usersMap.get(candidateUserId)
+      const registration = registrationsMap.get(candidateUserId)
 
       console.log('[MATCH API] Processing candidate:', {
-        user_id: submission.user_id,
+        user_id: candidateUserId,
         hasUser: !!user,
         hasRegistration: !!registration,
         user,
@@ -180,7 +186,7 @@ export async function GET(request: Request) {
       })
 
       if (!user) {
-        console.log('[MATCH API] Skipping candidate - no user data:', submission.user_id)
+        console.log('[MATCH API] Skipping candidate - no user data:', candidateUserId)
         continue
       }
 
@@ -188,7 +194,7 @@ export async function GET(request: Request) {
       const candidateTimezone = registration?.timezone || user.zona_waktu || 'WIB'
 
       const candidateData = {
-        user_id: submission.user_id,
+        user_id: candidateUserId,
         full_name: user.full_name,
         email: user.email,
         zona_waktu: candidateTimezone,
@@ -295,6 +301,7 @@ export async function GET(request: Request) {
           zona_waktu_cadangan_juz_beda: zonaWaktuCadanganJuzBedaMatches, // Zona + Waktu Cadangan + Juz Beda
           cross_zona: crossZonaMatches,   // Lintas zona waktu
         },
+        candidates: matches,
         total_matches: matches.length,
       },
     })
@@ -310,11 +317,12 @@ export async function GET(request: Request) {
 /**
  * Calculate match score between two users
  *
- * Scoring:
- * - Zona waktu sama: +1000
- * - Waktu utama cocok: +100
+ * Scoring uses lexicographic weights so a higher-priority criterion always
+ * beats every possible combination below it:
+ * - Waktu utama cocok: +1000
+ * - Waktu cadangan cocok: +100
  * - Juz option sama: +10
- * - Waktu cadangan cocok: +1
+ * - Zona waktu sama: +1
  */
 function calculateMatchScore(user1: any, user2: any): number {
   let score = 0
@@ -325,25 +333,25 @@ function calculateMatchScore(user1: any, user2: any): number {
   const user1Juz = user1.chosen_juz
   const user2Juz = user2.chosen_juz
 
-  // Priority 1: Zona waktu sama (+1000 points)
-  if (user1Zona && user2Zona && user1Zona === user2Zona) {
+  // Priority 1: Waktu utama cocok
+  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
     score += 1000
   }
 
-  // Priority 2: Waktu utama cocok (+100 points)
-  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
+  // Priority 2: Waktu cadangan cocok
+  if (hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
+      hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
+      hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
     score += 100
   }
 
-  // Priority 3: Juz option sama (+10 points)
+  // Priority 3: Juz sama
   if (user1Juz && user2Juz && user1Juz === user2Juz) {
     score += 10
   }
 
-  // Priority 4: Waktu cadangan cocok (+1 points)
-  if (hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
-      hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
-      hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
+  // Priority 4: Zona waktu sama
+  if (user1Zona && user2Zona && user1Zona === user2Zona) {
     score += 1
   }
 
@@ -362,22 +370,24 @@ function getMatchReasons(user1: any, user2: any): string[] {
   const user1Juz = user1.chosen_juz
   const user2Juz = user2.chosen_juz
 
-  if (user1Zona && user2Zona && user1Zona === user2Zona) {
-    reasons.push(`Zona waktu sama: ${user1Zona}`)
+  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
+    reasons.push('Waktu utama cocok')
+  }
+
+  if (
+    hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
+    hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
+    hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)
+  ) {
+    reasons.push('Waktu cadangan cocok')
   }
 
   if (user1Juz && user2Juz && user1Juz === user2Juz) {
     reasons.push(`Juz sama: ${user1Juz}`)
   }
 
-  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
-    reasons.push('Waktu utama cocok')
-  } else if (
-    hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
-    hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
-    hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)
-  ) {
-    reasons.push('Waktu cadangan cocok')
+  if (user1Zona && user2Zona && user1Zona === user2Zona) {
+    reasons.push(`Zona waktu sama: ${user1Zona}`)
   }
 
   return reasons

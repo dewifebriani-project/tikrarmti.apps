@@ -101,7 +101,8 @@ export async function POST(request: Request) {
     const usersMap = new Map((usersData || []).map(u => [u.id, u]))
     const registrationsMap = new Map((registrationsData || []).map(r => [r.user_id, r]))
 
-    // 6. Group matches by priority level
+    // 6. Group matches by strict priority:
+    // Waktu Utama > Waktu Cadangan > Juz > Zona Waktu.
     interface UserMatch {
       user1_id: string
       user2_id: string
@@ -113,8 +114,8 @@ export async function POST(request: Request) {
       priority: number
     }
 
-    // Priority buckets (1-8)
-    const priorityBuckets: UserMatch[][] = [[], [], [], [], [], [], [], []]
+    // Four boolean criteria produce 16 lexicographic combinations.
+    const priorityBuckets: UserMatch[][] = Array.from({ length: 16 }, () => [])
 
     for (let i = 0; i < availableUserIds.length; i++) {
       for (let j = i + 1; j < availableUserIds.length; j++) {
@@ -141,46 +142,20 @@ export async function POST(request: Request) {
                                hasTimeSlotOverlap(reg1.backup_time_slot, reg2.main_time_slot) ||
                                hasTimeSlotOverlap(reg1.backup_time_slot, reg2.backup_time_slot)
 
-        // Determine priority and score
-        let priority = 0
-        let score = 0
+        // Binary rank guarantees that any main-time match outranks every
+        // non-main match; the same rule cascades to backup, juz, then zone.
+        const priority = 1
+          + (mainTimeMatch ? 0 : 8)
+          + (backupTimeMatch ? 0 : 4)
+          + (juzMatch ? 0 : 2)
+          + (zonaMatch ? 0 : 1)
+        const score = (mainTimeMatch ? 1000 : 0)
+          + (backupTimeMatch ? 100 : 0)
+          + (juzMatch ? 10 : 0)
+          + (zonaMatch ? 1 : 0)
 
-        if (zonaMatch && mainTimeMatch && juzMatch) {
-          // Priority 1: Zona Sama + Waktu Utama + Juz Sama
-          priority = 1
-          score = 150
-        } else if (zonaMatch && mainTimeMatch && !juzMatch) {
-          // Priority 2: Zona Sama + Waktu Utama + Juz Beda
-          priority = 2
-          score = 100
-        } else if (zonaMatch && !mainTimeMatch && backupTimeMatch && juzMatch) {
-          // Priority 3: Zona Sama + Waktu Cadangan + Juz Sama
-          priority = 3
-          score = 85
-        } else if (zonaMatch && !mainTimeMatch && backupTimeMatch && !juzMatch) {
-          // Priority 4: Zona Sama + Waktu Cadangan + Juz Beda
-          priority = 4
-          score = 70
-        } else if (!zonaMatch && mainTimeMatch && juzMatch) {
-          // Priority 5: Lintas Zona + Waktu Utama + Juz Sama
-          priority = 5
-          score = 60
-        } else if (!zonaMatch && mainTimeMatch && !juzMatch) {
-          // Priority 6: Lintas Zona + Waktu Utama + Juz Beda
-          priority = 6
-          score = 40
-        } else if (!zonaMatch && !mainTimeMatch && backupTimeMatch && juzMatch) {
-          // Priority 7: Lintas Zona + Waktu Cadangan + Juz Sama
-          priority = 7
-          score = 30
-        } else if (!zonaMatch && !mainTimeMatch && backupTimeMatch && !juzMatch) {
-          // Priority 8: Lintas Zona + Waktu Cadangan + Juz Beda
-          priority = 8
-          score = 20
-        } else {
-          // No valid match, skip
-          continue
-        }
+        // Do not force together two users with no matching criterion at all.
+        if (score === 0) continue
 
         const match: UserMatch = {
           user1_id: user1Id,
@@ -199,7 +174,7 @@ export async function POST(request: Request) {
     }
 
     // Log summary of matches per priority
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < priorityBuckets.length; i++) {
       console.log(`[BULK PAIR] Priority ${i + 1}: ${priorityBuckets[i].length} matches`)
     }
 
@@ -209,7 +184,7 @@ export async function POST(request: Request) {
     const pairingAnalysis = []
 
     // Process each priority level in order
-    for (let priority = 1; priority <= 8; priority++) {
+    for (let priority = 1; priority <= priorityBuckets.length; priority++) {
       const bucket = priorityBuckets[priority - 1]
 
       // Shuffle within bucket to ensure fairness when multiple pairs have same priority
@@ -316,31 +291,18 @@ export async function POST(request: Request) {
 }
 
 function getMatchType(match: any): string {
-  if (match.zona_match && match.juz_match && match.main_time_match) {
-    return 'Priority 1: Zona Sama + Waktu Utama + Juz Sama'
-  }
-  if (match.zona_match && match.main_time_match && !match.juz_match) {
-    return 'Priority 2: Zona Sama + Waktu Utama + Juz Beda'
-  }
-  if (match.zona_match && match.juz_match && !match.main_time_match && match.backup_time_match) {
-    return 'Priority 3: Zona Sama + Waktu Cadangan + Juz Sama'
-  }
-  if (match.zona_match && match.backup_time_match && !match.main_time_match && !match.juz_match) {
-    return 'Priority 4: Zona Sama + Waktu Cadangan + Juz Beda'
-  }
-  if (!match.zona_match && match.main_time_match && match.juz_match) {
-    return 'Priority 5: Lintas Zona + Waktu Utama + Juz Sama'
-  }
-  if (!match.zona_match && match.main_time_match && !match.juz_match) {
-    return 'Priority 6: Lintas Zona + Waktu Utama + Juz Beda'
-  }
-  if (!match.zona_match && !match.main_time_match && match.backup_time_match && match.juz_match) {
-    return 'Priority 7: Lintas Zona + Waktu Cadangan + Juz Sama'
-  }
-  if (!match.zona_match && !match.main_time_match && match.backup_time_match && !match.juz_match) {
-    return 'Priority 8: Lintas Zona + Waktu Cadangan + Juz Beda'
-  }
-  return 'Unknown Priority'
+  const priority = 1
+    + (match.main_time_match ? 0 : 8)
+    + (match.backup_time_match ? 0 : 4)
+    + (match.juz_match ? 0 : 2)
+    + (match.zona_match ? 0 : 1)
+  const criteria = [
+    match.main_time_match ? 'Waktu Utama Sama' : 'Waktu Utama Beda',
+    match.backup_time_match ? 'Waktu Cadangan Cocok' : 'Waktu Cadangan Tidak Cocok',
+    match.juz_match ? 'Juz Sama' : 'Juz Beda',
+    match.zona_match ? 'Zona Sama' : 'Zona Beda',
+  ]
+  return `Priority ${priority}: ${criteria.join(' + ')}`
 }
 
 function hasTimeSlotOverlap(slot1: string, slot2: string): boolean {

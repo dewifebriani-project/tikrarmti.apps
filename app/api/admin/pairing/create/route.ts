@@ -55,6 +55,8 @@ export async function POST(request: Request) {
       .from('study_partners')
       .select('id')
       .or(`user_1_id.eq.${user_1_id},user_2_id.eq.${user_1_id},user_1_id.eq.${user_2_id},user_2_id.eq.${user_2_id}`)
+      .eq('batch_id', batch_id)
+      .eq('pairing_status', 'active')
       .maybeSingle()
 
     if (existingPairing) {
@@ -88,11 +90,13 @@ export async function POST(request: Request) {
       .from('daftar_ulang_submissions')
       .update({ pairing_status: 'paired' })
       .eq('user_id', user_1_id)
+      .eq('batch_id', batch_id)
 
     await supabase
       .from('daftar_ulang_submissions')
       .update({ pairing_status: 'paired' })
       .eq('user_id', user_2_id)
+      .eq('batch_id', batch_id)
 
     // 6. Revalidate paths
     revalidatePath('/admin')

@@ -340,11 +340,20 @@ export function useAdminPairing() {
     setSelectedMatch(null)
     try {
       const response = await fetch(
-        `/api/admin/pairing/find-match?user_id=${request.user_id}&batch_id=${selectedBatchId}`,
+        `/api/admin/pairing/match?user_id=${request.user_id}&batch_id=${selectedBatchId}`,
         { cache: 'no-store' }
       )
       const result = await response.json()
-      if (result.success) setMatchData(result.data)
+      if (result.success) {
+        const candidates = Array.isArray(result.data?.candidates)
+          ? result.data.candidates
+          : Object.values(result.data?.matches || {}).flat()
+        setMatchData({
+          user: result.data.user,
+          candidates: candidates as MatchCandidate[],
+          total_matches: candidates.length,
+        })
+      }
       else toast.error(result.error || 'Gagal mencari kandidat pasangan')
     } catch (error) {
       console.error('Error searching for matches:', error)
@@ -356,15 +365,13 @@ export function useAdminPairing() {
     if (!selectedUser || !selectedMatch) return
     const toastId = toast.loading('Membuat pasangan...')
     try {
-      const response = await fetch('/api/admin/pairing/approve', {
+      const response = await fetch('/api/admin/pairing/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          submission_id: selectedUser.id,
-          user_id: selectedUser.user_id,
-          partner_id: selectedMatch.user_id,
+          user_1_id: selectedUser.user_id,
+          user_2_id: selectedMatch.user_id,
           batch_id: selectedBatchId,
-          pairing_type: 'system_match',
         }),
       })
       const result = await response.json()
