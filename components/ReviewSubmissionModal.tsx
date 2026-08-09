@@ -526,9 +526,21 @@ export function ReviewSubmissionModal({
       </div>
     );
 
-    const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
+    let partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
     const reg = registrationStatus?.registration;
     const currentUser = pairingData?.current_user;
+    
+    // Construct partner from partner_details if in pending state
+    if (!partner && pairingData?.partner_details?.partner_user_id) {
+      partner = {
+        full_name: pairingData.partner_details.partner_name,
+        whatsapp: pairingData.partner_details.whatsapp,
+        zona_waktu: pairingData.partner_details.zona_waktu,
+        chosen_juz: pairingData.partner_details.chosen_juz,
+        main_time_slot: pairingData.partner_details.main_time_slot,
+        backup_time_slot: pairingData.partner_details.backup_time_slot,
+      }
+    }
 
     const isMainSlotMatch = currentUser?.main_time_slot === partner?.main_time_slot;
     const isBackupSlotMatch = currentUser?.backup_time_slot === partner?.backup_time_slot;
@@ -582,11 +594,11 @@ export function ReviewSubmissionModal({
                   </div>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Utama</p>
-                    <p className={cn("text-xs font-black", isMainSlotMatch ? "text-emerald-700" : "text-amber-700")}>
-                      {isMainSlotMatch ? 'Sama ✓' : 'Berbeda'}
+                    <p className="text-sm font-black text-gray-900 leading-tight">
+                      {partner?.main_time_slot || '-'} {partner?.main_time_slot && partner.main_time_slot !== 'N/A' ? (partner.zona_waktu || 'WIB') : ''}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                      {partner?.main_time_slot || '-'} {partner?.main_time_slot ? (partner.zona_waktu || 'WIB') : ''}
+                    <p className={cn("text-[10px] font-bold mt-0.5", isMainSlotMatch ? "text-emerald-600" : "text-amber-600")}>
+                      {isMainSlotMatch ? 'Cocok (Sama)' : 'Berbeda'}
                     </p>
                   </div>
                 </div>
@@ -603,11 +615,11 @@ export function ReviewSubmissionModal({
                   </div>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Waktu Cadangan</p>
-                    <p className={cn("text-xs font-black", isBackupSlotMatch ? "text-emerald-700" : "text-amber-700")}>
-                      {isBackupSlotMatch ? 'Sama ✓' : 'Berbeda'}
+                    <p className="text-sm font-black text-gray-900 leading-tight">
+                      {partner?.backup_time_slot || '-'} {partner?.backup_time_slot && partner.backup_time_slot !== 'N/A' ? (partner.zona_waktu || 'WIB') : ''}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                      {partner?.backup_time_slot || '-'} {partner?.backup_time_slot ? (partner.zona_waktu || 'WIB') : ''}
+                    <p className={cn("text-[10px] font-bold mt-0.5", isBackupSlotMatch ? "text-emerald-600" : "text-amber-600")}>
+                      {isBackupSlotMatch ? 'Cocok (Sama)' : 'Berbeda'}
                     </p>
                   </div>
                 </div>
@@ -623,12 +635,12 @@ export function ReviewSubmissionModal({
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Kecocokan Juz</p>
-                    <p className={cn("text-xs font-black", isJuzMatch ? "text-emerald-700" : "text-blue-700")}>
-                      {isJuzMatch ? 'Juz Sama ✓' : 'Juz Berbeda'}
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Target Juz</p>
+                    <p className="text-sm font-black text-gray-900 leading-tight">
+                      {partner?.chosen_juz ? `Juz ${partner.chosen_juz}` : '-'}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                      Target: {partner?.chosen_juz ? `Juz ${partner.chosen_juz}` : '-'}
+                    <p className={cn("text-[10px] font-bold mt-0.5", isJuzMatch ? "text-emerald-600" : "text-blue-600")}>
+                      {isJuzMatch ? 'Cocok (Sama)' : 'Berbeda'}
                     </p>
                   </div>
                 </div>
@@ -645,11 +657,11 @@ export function ReviewSubmissionModal({
                   </div>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Zona Waktu</p>
-                    <p className={cn("text-xs font-black", isTimezoneMatch ? "text-emerald-700" : "text-purple-700")}>
-                      {isTimezoneMatch ? 'Satu Wilayah ✓' : 'Luar Wilayah'}
+                    <p className="text-sm font-black text-gray-900 leading-tight">
+                      {partner?.zona_waktu || 'WIB'}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                      Lokasi: {partner?.zona_waktu || 'WIB'}
+                    <p className={cn("text-[10px] font-bold mt-0.5", isTimezoneMatch ? "text-emerald-600" : "text-purple-600")}>
+                      {isTimezoneMatch ? 'Satu Wilayah' : 'Luar Wilayah'}
                     </p>
                   </div>
                 </div>

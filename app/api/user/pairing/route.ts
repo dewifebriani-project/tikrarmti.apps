@@ -91,15 +91,33 @@ export async function GET(request: Request) {
         
       let partnerName = submissionData.partner_name;
       let isMutualMatch = false;
+      let partnerDetailsExt: any = null;
 
       if (submissionData.partner_type === 'self_match' && submissionData.partner_user_id) {
-        const { data: partnerDetails } = await supabase
+        const { data: pDetails } = await supabase
           .from('users')
-          .select('full_name')
+          .select('full_name, zona_waktu, whatsapp')
           .eq('id', submissionData.partner_user_id)
           .single()
-        if (partnerDetails) {
-          partnerName = partnerDetails.full_name;
+        if (pDetails) {
+          partnerName = pDetails.full_name;
+        }
+
+        const { data: pReg } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
+          .eq('user_id', submissionData.partner_user_id)
+          .eq('batch_id', batchId)
+          .maybeSingle()
+
+        if (pDetails || pReg) {
+          partnerDetailsExt = {
+            zona_waktu: pReg?.timezone || pDetails?.zona_waktu || 'WIB',
+            chosen_juz: pReg?.chosen_juz || 'N/A',
+            main_time_slot: pReg?.main_time_slot || 'N/A',
+            backup_time_slot: pReg?.backup_time_slot || 'N/A',
+            whatsapp: pDetails?.whatsapp,
+          }
         }
 
         // Check mutual match
@@ -149,6 +167,11 @@ export async function GET(request: Request) {
             partner_type: submissionData.partner_type,
             partner_user_id: submissionData.partner_user_id,
             is_mutual_match: isMutualMatch,
+            zona_waktu: partnerDetailsExt?.zona_waktu,
+            chosen_juz: partnerDetailsExt?.chosen_juz,
+            main_time_slot: partnerDetailsExt?.main_time_slot,
+            backup_time_slot: partnerDetailsExt?.backup_time_slot,
+            whatsapp: partnerDetailsExt?.whatsapp,
           },
         }
       })
