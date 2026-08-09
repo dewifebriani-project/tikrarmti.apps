@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Users,
   Calendar,
@@ -20,7 +20,6 @@ import {
   ChevronLeft,
   ChevronRight,
   UserPlus,
-  Calculator,
   Download,
   FileSpreadsheet,
   FileText,
@@ -28,7 +27,8 @@ import {
   Copy,
   ClipboardList,
   MessageSquare,
-  MoreVertical
+  MoreVertical,
+  ArrowRightLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -42,7 +42,6 @@ import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/Halaq
 import { ScheduleOverlapAnalysis } from '@/components/admin/halaqah/ScheduleOverlapAnalysis';
 import {
   generateHalaqahReminder,
-  generateDailyReminder,
   generateTagThalibah,
   generateLaporanKelas,
   type HalaqahForReminder
@@ -165,6 +164,7 @@ export function HalaqahManagementTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
+  const [emptyOnly, setEmptyOnly] = useState(false);
   const [activeTab, setActiveTab] = useState<'tikrar_tahfidz' | 'pra_tahfidz' | 'tikrar_berbayar'>('tikrar_tahfidz');
 
   // Sort - default to day_of_week then start_time
@@ -182,9 +182,10 @@ export function HalaqahManagementTab() {
   const [showManualCreateModal, setShowManualCreateModal] = useState(false);
   const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
   const [showScheduleOverlapModal, setShowScheduleOverlapModal] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
   const [zoomLinks, setZoomLinks] = useState<Array<{ id: string; name: string; url: string; meeting_id?: string; passcode?: string }>>([]);
   const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [movingToPraId, setMovingToPraId] = useState<string | null>(null);
+  const halaqahRequestIdRef = useRef(0);
 
   useEffect(() => {
     loadData();
@@ -244,6 +245,14 @@ export function HalaqahManagementTab() {
   const loadHalaqahs = async () => {
     console.log('[HalaqahManagementTab] Loading halaqahs...');
 
+    // Never request every batch while the default batch is still being chosen.
+    if (!selectedBatch) {
+      setHalaqahs([]);
+      return;
+    }
+
+    const requestId = ++halaqahRequestIdRef.current;
+
     try {
       // Build query params
       const params = new URLSearchParams();
@@ -253,6 +262,10 @@ export function HalaqahManagementTab() {
 
       const response = await fetch(`/api/halaqah?${params.toString()}`);
       const result = await response.json();
+
+      // A filter/batch changed while this request was running. Ignore the stale
+      // response so it cannot overwrite the latest batch result.
+      if (requestId !== halaqahRequestIdRef.current) return;
 
       if (!response.ok) {
         console.error('[HalaqahManagementTab] Failed to load halaqahs:', result);
@@ -282,32 +295,9 @@ export function HalaqahManagementTab() {
         setHalaqahs([]);
       }
     } catch (error: any) {
+      if (requestId !== halaqahRequestIdRef.current) return;
       console.error('[HalaqahManagementTab] Error loading halaqahs:', error);
       toast.error('Failed to load halaqahs: ' + error.message);
-    }
-  };
-
-  const handleRecalculateQuota = async () => {
-    setRecalculating(true);
-    try {
-      const response = await fetch('/api/admin/halaqah/recalculate-quota', {
-        method: 'POST'
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to recalculate quota');
-      }
-
-      toast.success(result.message || 'Quota recalculated successfully');
-      // Refresh data to show updated counts
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('[HalaqahManagementTab] Error recalculating quota:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to recalculate quota');
-    } finally {
-      setRecalculating(false);
     }
   };
 
@@ -414,54 +404,6 @@ export function HalaqahManagementTab() {
       toast.success('Laporan kelas berhasil disalin!');
     } catch (error) {
       toast.error('Gagal menyalin laporan kelas');
-    } finally {
-      setCopyingId(null);
-    }
-  };
-
-  const handleCopyDailyReminder = async () => {
-    setCopyingId('daily');
-    try {
-      const today = new Date();
-      const todayDay = today.getDay(); // 0=Sun, 1=Mon... 
-      // Convert JS day (0=Sun) to our day_of_week (1=Mon, 7=Ahad)
-      const ourDay = todayDay === 0 ? 7 : todayDay;
-
-      const todayHalaqahs = halaqahs.filter(h => h.day_of_week === ourDay && h.status === 'active');
-
-      if (todayHalaqahs.length === 0) {
-        toast.error('Tidak ada halaqah yang terjadwal hari ini');
-        setCopyingId(null);
-        return;
-      }
-
-      // Build reminder data for all halaqahs
-      const reminderDataList: HalaqahForReminder[] = [];
-      for (const h of todayHalaqahs) {
-        const zoom = getZoomForHalaqah(h);
-        const classType = h.class_type || h.program?.class_type;
-        reminderDataList.push({
-          name: h.name,
-          day_of_week: h.day_of_week,
-          start_time: h.start_time,
-          end_time: h.end_time,
-          preferred_juz: h.preferred_juz,
-          class_type: classType,
-          zoom_link: zoom?.url || h.zoom_link,
-          zoom_name: zoom?.name,
-          zoom_meeting_id: zoom?.meeting_id,
-          zoom_passcode: zoom?.passcode,
-          muallimah: h.muallimah,
-          program: h.program,
-        });
-      }
-
-      const batchName = batches.find(b => b.id === selectedBatch)?.name || 'BATCH';
-      const text = generateDailyReminder(batchName, reminderDataList);
-      await navigator.clipboard.writeText(text);
-      toast.success(`Jadwal harian (${todayHalaqahs.length} halaqah) berhasil disalin!`);
-    } catch (error) {
-      toast.error('Gagal menyalin jadwal harian');
     } finally {
       setCopyingId(null);
     }
@@ -699,6 +641,25 @@ export function HalaqahManagementTab() {
     }
   };
 
+  const handleMoveToPra = async (halaqah: Halaqah) => {
+    const name = halaqah.muallimah?.full_name || halaqah.name;
+    if (!confirm(`Pindahkan halaqah ${name} ke Pra Tikrar? Mu’allimah dan jadwal tetap sama.`)) return;
+
+    setMovingToPraId(halaqah.id);
+    try {
+      const response = await fetch(`/api/admin/halaqah/${halaqah.id}/move-to-pra`, { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Gagal memindahkan halaqah.');
+      toast.success(`Halaqah ${name} berhasil dipindahkan ke Pra Tikrar.`);
+      setOpenActionId(null);
+      setRefreshTrigger(value => value + 1);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal memindahkan halaqah.');
+    } finally {
+      setMovingToPraId(null);
+    }
+  };
+
   const getDayName = (dayNum?: number) => {
     if (!dayNum) return '-';
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
@@ -766,6 +727,12 @@ export function HalaqahManagementTab() {
       filtered = filtered.filter(h => h.day_of_week === parseInt(selectedDay));
     }
 
+    if (emptyOnly) {
+      filtered = filtered.filter(h =>
+        (h._count?.students || 0) === 0 && (h.quota_details?.total_used || 0) === 0
+      );
+    }
+
     // Sort
     filtered.sort((a, b) => {
       let aVal: any;
@@ -827,7 +794,7 @@ export function HalaqahManagementTab() {
     });
 
     return filtered;
-  }, [tabHalaqahs, searchQuery, sortColumn, sortDirection, selectedDay]);
+  }, [tabHalaqahs, searchQuery, sortColumn, sortDirection, selectedDay, emptyOnly]);
 
 
 
@@ -942,7 +909,10 @@ export function HalaqahManagementTab() {
 
           <select
             value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
+            onChange={(e) => {
+              setSelectedProgram('');
+              setSelectedBatch(e.target.value);
+            }}
             className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 min-w-[200px] transition-all bg-white shadow-sm font-semibold text-gray-700"
           >
             <option value="">All Batches {batches.length > 0 && `(${batches.length})`}</option>
@@ -993,39 +963,27 @@ export function HalaqahManagementTab() {
             <option value="7">Ahad</option>
           </select>
 
+          {activeTab === 'tikrar_tahfidz' && (
+            <button
+              type="button"
+              onClick={() => setEmptyOnly(value => !value)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 border ${
+                emptyOnly
+                  ? 'border-orange-300 bg-orange-100 text-orange-800'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-orange-50 hover:text-orange-700'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Tanpa Thalibah
+            </button>
+          )}
+
           <button
             onClick={() => setRefreshTrigger(prev => prev + 1)}
             className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm active:scale-95 duration-200 flex items-center gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Refresh
-          </button>
-
-          <button
-            onClick={handleRecalculateQuota}
-            disabled={recalculating}
-            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-sm active:scale-95 duration-200 shadow-blue-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {recalculating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Calculator className="w-3.5 h-3.5" />
-            )}
-            {recalculating ? 'Calculating...' : 'Recalculate Quota'}
-          </button>
-
-          <button
-            onClick={handleCopyDailyReminder}
-            disabled={copyingId === 'daily' || halaqahs.length === 0}
-            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-sm active:scale-95 duration-200 shadow-purple-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Salin jadwal seluruh halaqah hari ini"
-          >
-            {copyingId === 'daily' ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-            Salin Jadwal Hari Ini
           </button>
 
           <div className="h-6 w-px bg-gray-200" />
@@ -1314,6 +1272,20 @@ export function HalaqahManagementTab() {
                                   >
                                     <Edit className="w-4 h-4 text-gray-400" /> Edit
                                   </button>
+                                  {activeTab === 'tikrar_tahfidz' &&
+                                    (halaqah._count?.students || 0) === 0 &&
+                                    (halaqah.quota_details?.total_used || 0) === 0 && (
+                                    <button
+                                      onClick={() => handleMoveToPra(halaqah)}
+                                      disabled={movingToPraId === halaqah.id}
+                                      className="w-full text-left px-4 py-2.5 text-sm font-medium text-fuchsia-700 hover:bg-fuchsia-50 flex items-center gap-2.5 transition-colors disabled:opacity-50"
+                                    >
+                                      {movingToPraId === halaqah.id
+                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        : <ArrowRightLeft className="w-4 h-4" />}
+                                      Pindah ke Pra Tikrar
+                                    </button>
+                                  )}
                                   {halaqah.status === 'inactive' && (
                                     <button
                                       onClick={() => { handleStatusChange(halaqah.id, 'active'); setOpenActionId(null); }}
@@ -1435,6 +1407,21 @@ export function HalaqahManagementTab() {
                       >
                         <Edit className="w-4 h-4" />
                       </button>
+                      {activeTab === 'tikrar_tahfidz' &&
+                        (halaqah._count?.students || 0) === 0 &&
+                        (halaqah.quota_details?.total_used || 0) === 0 && (
+                        <button
+                          onClick={() => handleMoveToPra(halaqah)}
+                          disabled={movingToPraId === halaqah.id}
+                          className="col-span-2 flex items-center justify-center gap-1 p-2.5 text-xs font-semibold text-fuchsia-700 bg-fuchsia-50 hover:bg-fuchsia-100 rounded-lg border border-fuchsia-100 disabled:opacity-50"
+                          title="Pindah ke Pra Tikrar"
+                        >
+                          {movingToPraId === halaqah.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <ArrowRightLeft className="w-3.5 h-3.5" />}
+                          Pra Tikrar
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteHalaqah(halaqah.id)}
                         className="flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-95"

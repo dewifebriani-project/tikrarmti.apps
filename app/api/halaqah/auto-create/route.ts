@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
     if (programError || !program) {
       return NextResponse.json({ error: 'Program not found' }, { status: 404 });
     }
+
+    if (program.batch_id !== batch_id) {
+      return NextResponse.json({ error: 'Program does not belong to the selected batch' }, { status: 400 });
+    }
     
     // Determine the program key based on program name to look up the correct schedule in the JSON
     const pName = program.name.toLowerCase();
@@ -147,6 +151,45 @@ export async function POST(request: NextRequest) {
         }
 
         const halaqahName = `${program.name} - Juz ${akad.preferred_juz} - ${fullName}`;
+
+        // Auto Create must be idempotent. One approved akad represents one
+        // halaqah per program; clicking the button again updates that class
+        // instead of inserting another row.
+        const { data: existingHalaqah, error: existingError } = await supabaseAdmin
+          .from('halaqah')
+          .select('id')
+          .eq('program_id', program_id)
+          .eq('muallimah_id', akad.user_id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingError) {
+          errors.push({ muallimah: fullName, error: existingError.message });
+          continue;
+        }
+
+        if (existingHalaqah) {
+          const { error: updateError } = await supabaseAdmin
+            .from('halaqah')
+            .update({
+              name: halaqahName,
+              day_of_week: dayNum,
+              start_time: schedule.time_start,
+              end_time: schedule.time_end,
+              preferred_juz: akad.preferred_juz,
+              max_students: akad.preferred_max_thalibah || 5,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingHalaqah.id);
+
+          if (updateError) {
+            errors.push({ muallimah: fullName, error: updateError.message });
+          } else {
+            skipped++;
+          }
+          continue;
+        }
 
         const { data: newHalaqah, error: createError } = await supabaseAdmin
           .from('halaqah')
