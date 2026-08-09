@@ -18,7 +18,6 @@ const ALLOWED_UPDATE_FIELDS = [
   'ujian_halaqah_id',
   'tashih_halaqah_id',
   'pengabdian_choice',
-  'pengabdian_type',
   'donasi_amount',
 ];
 

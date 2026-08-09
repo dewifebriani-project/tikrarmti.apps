@@ -524,22 +524,37 @@ export function useAdminPairing() {
 
   const handleRevertAllPairings = async () => {
     if (!selectedBatchId) return
-    const pairedCount = systemMatchRequests.filter(r => r.is_paired).length
-    if (pairedCount === 0) return toast.error('Tidak ada pasangan sistem untuk dihapus')
-    if (!window.confirm(`Anda yakin ingin menghapus SEMUA pasangan sistem (${pairedCount} pasangan)?`)) return
-    const toastId = toast.loading('Menghapus semua pasangan sistem...')
+    const unpairedCount = systemMatchRequests.filter(r => !r.is_paired).length
+    if (unpairedCount === 0) return toast.error('Semua thalibah sudah dipasangkan, tidak ada yang perlu di-revert')
+    if (!window.confirm(
+      `Anda yakin ingin me-revert ${unpairedCount} thalibah yang BELUM dipasangkan?\n\nThalibah yang sudah punya pasangan TIDAK akan terpengaruh.`
+    )) return
+    const toastId = toast.loading(`Me-revert ${unpairedCount} thalibah yang belum dipasangkan...`)
     try {
-      const resp = await fetch(`/api/admin/pairing/delete?user_id=all&batch_id=${selectedBatchId}&pairing_type=system_match`, {
-        method: 'DELETE', cache: 'no-store'
+      // Get IDs of unpaired users only
+      const unpairedUserIds = systemMatchRequests
+        .filter(r => !r.is_paired)
+        .map(r => r.user_id)
+
+      const resp = await fetch(`/api/admin/pairing/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_ids: unpairedUserIds,
+          batch_id: selectedBatchId,
+          pairing_type: 'system_match',
+          unpaired_only: true
+        }),
+        cache: 'no-store'
       })
       const result = await resp.json()
       if (result.success) {
-        toast.success(`Berhasil menghapus ${result.data.deleted_count} pasangan!`, { id: toastId })
+        toast.success(`Berhasil me-revert ${unpairedUserIds.length} thalibah yang belum dipasangkan!`, { id: toastId })
         loadPairingRequests()
         loadStatistics()
-      } else toast.error(result.error || 'Failed to revert all pairings', { id: toastId })
+      } else toast.error(result.error || 'Gagal me-revert', { id: toastId })
     } catch (error) {
-      toast.error('Failed to revert all pairings', { id: toastId })
+      toast.error('Gagal me-revert', { id: toastId })
     }
   }
 

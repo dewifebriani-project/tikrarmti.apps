@@ -31,11 +31,69 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // 2. Parse query params
+  // 2. Parse query params or request body
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('user_id')
-  const batchId = searchParams.get('batch_id')
-  const pairingType = searchParams.get('pairing_type') // Optional: 'system_match' or undefined for all
+  let userId = searchParams.get('user_id')
+  let batchId = searchParams.get('batch_id')
+  let pairingType = searchParams.get('pairing_type')
+  let userIds: string[] | null = null
+  let unpairedOnly = false
+
+  // Support JSON body for bulk unpaired-only revert
+  const contentType = request.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    try {
+      const body = await request.json()
+      if (body.user_ids) userIds = body.user_ids
+      if (body.batch_id) batchId = body.batch_id
+      if (body.pairing_type) pairingType = body.pairing_type
+      if (body.unpaired_only) unpairedOnly = true
+    } catch {}
+  }
+
+  // Handle unpaired_only bulk revert
+  if (unpairedOnly && userIds && batchId) {
+    // For each user in userIds, verify they have no active study_partners pairing
+    // then reset their daftar_ulang_submissions partner fields
+    const { data: existingPairings } = await supabase
+      .from('study_partners')
+      .select('user_1_id, user_2_id, user_3_id')
+      .eq('batch_id', batchId)
+      .eq('pairing_status', 'active')
+
+    const pairedUserIds = new Set<string>()
+    for (const p of existingPairings || []) {
+      if (p.user_1_id) pairedUserIds.add(p.user_1_id)
+      if (p.user_2_id) pairedUserIds.add(p.user_2_id)
+      if (p.user_3_id) pairedUserIds.add(p.user_3_id)
+    }
+
+    // Filter to truly unpaired users
+    const trulyUnpaired = userIds.filter(id => !pairedUserIds.has(id))
+
+    if (trulyUnpaired.length > 0) {
+      await supabase
+        .from('daftar_ulang_submissions')
+        .update({
+          partner_type: null,
+          partner_user_id: null,
+          partner_name: null,
+          partner_status: null,
+          pairing_status: null,
+        })
+        .eq('batch_id', batchId)
+        .in('user_id', trulyUnpaired)
+    }
+
+    revalidatePath('/admin')
+    revalidatePath('/dashboard')
+
+    return NextResponse.json({
+      success: true,
+      message: `Me-revert ${trulyUnpaired.length} thalibah yang belum dipasangkan`,
+      data: { reverted_count: trulyUnpaired.length, skipped_paired: userIds.length - trulyUnpaired.length }
+    })
+  }
 
   if (!userId || !batchId) {
     return NextResponse.json(

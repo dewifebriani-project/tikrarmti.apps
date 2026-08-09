@@ -59,13 +59,14 @@ export function SystemMatchTab({
             <Users className="w-3.5 h-3.5" />
             Cari Pasangan Massal
           </button>
-          {requests.some(r => r.is_paired) && (
+          {requests.some(r => !r.is_paired) && (
             <button
               onClick={onRevertAll}
               className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1.5 text-xs font-medium shadow-sm"
+              title="Hanya revert thalibah yang belum dipasangkan. Yang sudah punya pasangan tidak terpengaruh."
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Revert All
+              Revert Belum Dipasangkan ({requests.filter(r => !r.is_paired).length})
             </button>
           )}
         </div>

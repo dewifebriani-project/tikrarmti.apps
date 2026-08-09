@@ -1,5 +1,5 @@
-import React from 'react'
-import { Users, X } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { Users, X, Search } from 'lucide-react'
 import { SystemMatchRequest, MatchData, MatchCandidate, SortConfig } from '../types'
 
 interface Props {
@@ -27,6 +27,8 @@ export function MatchModal({
   matchSortConfigs,
   onMatchSort
 }: Props) {
+  const [searchQuery, setSearchQuery] = useState('')
+
   if (!isOpen || !selectedUser) return null
 
   const getSortIndicator = (key: string) => {
@@ -34,6 +36,19 @@ export function MatchModal({
     if (!config) return null
     return config.direction === 'asc' ? '↑' : '↓'
   }
+
+  const filteredCandidates = useMemo(() => {
+    if (!matchData?.candidates) return []
+    if (!searchQuery.trim()) return matchData.candidates
+    const q = searchQuery.toLowerCase()
+    return matchData.candidates.filter(c =>
+      c.full_name?.toLowerCase().includes(q) ||
+      c.chosen_juz?.toLowerCase().includes(q) ||
+      c.main_time_slot?.toLowerCase().includes(q) ||
+      c.backup_time_slot?.toLowerCase().includes(q) ||
+      c.zona_waktu?.toLowerCase().includes(q)
+    )
+  }, [matchData?.candidates, searchQuery])
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -82,110 +97,143 @@ export function MatchModal({
               <p className="text-gray-600">Tidak ada kandidat pasangan tersedia</p>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700">Pilih</th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('full_name')}>
-                        Nama {getSortIndicator('full_name')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('tanggal_lahir')}>
-                        Usia {getSortIndicator('tanggal_lahir')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('chosen_juz')}>
-                        Juz {getSortIndicator('chosen_juz')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('zona_waktu')}>
-                        Zona {getSortIndicator('zona_waktu')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('main_time_slot')}>
-                        Waktu Utama {getSortIndicator('main_time_slot')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('backup_time_slot')}>
-                        Waktu Cadangan {getSortIndicator('backup_time_slot')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('oral_total_score')}>
-                        Nilai Lisan {getSortIndicator('oral_total_score')}
-                      </th>
-                      <th className="px-4 py-2 text-left font-medium text-gray-700">
-                        Alasan Kecocokan
-                      </th>
-                      <th className="px-4 py-2 text-center font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('match_score')}>
-                        Score {getSortIndicator('match_score')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {matchData.candidates.map((candidate) => (
-                      <tr
-                        key={candidate.user_id}
-                        onClick={() => onSelectMatch(candidate)}
-                        className={`cursor-pointer transition-colors ${
-                          selectedMatch?.user_id === candidate.user_id ? 'bg-green-100' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <td className="px-4 py-2">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            selectedMatch?.user_id === candidate.user_id ? 'border-green-600 bg-green-600' : 'border-gray-300'
-                          }`}>
-                            {selectedMatch?.user_id === candidate.user_id && (
-                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2 font-medium text-gray-900">{candidate.full_name || '-'}</td>
-                        <td className="px-4 py-2 text-gray-700">{calculateAge(candidate.tanggal_lahir)}</td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                            {candidate.chosen_juz || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                            {candidate.zona_waktu || 'WIB'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                            {candidate.main_time_slot || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                            {candidate.backup_time_slot || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-center font-semibold text-gray-700">
-                          {candidate.oral_total_score !== undefined && candidate.oral_total_score !== null ? candidate.oral_total_score : '-'}
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="flex flex-col gap-1 max-w-[200px]">
-                            {candidate.match_reasons?.map((reason, idx) => (
-                              <span key={idx} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded leading-tight">
-                                {reason}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            candidate.match_score >= 100 ? 'bg-green-100 text-green-800' :
-                            candidate.match_score >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
-                            {candidate.match_score}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <>
+              {/* Search Bar */}
+              <div className="mb-3 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Cari nama, juz, waktu, zona..."
+                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Menampilkan {filteredCandidates.length} dari {matchData.candidates.length} kandidat
+              </p>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700">Pilih</th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('full_name')}>
+                          Nama {getSortIndicator('full_name')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('tanggal_lahir')}>
+                          Usia {getSortIndicator('tanggal_lahir')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('chosen_juz')}>
+                          Juz {getSortIndicator('chosen_juz')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('zona_waktu')}>
+                          Zona {getSortIndicator('zona_waktu')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('main_time_slot')}>
+                          Waktu Utama {getSortIndicator('main_time_slot')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('backup_time_slot')}>
+                          Waktu Cadangan {getSortIndicator('backup_time_slot')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('oral_total_score')}>
+                          Nilai Lisan {getSortIndicator('oral_total_score')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium text-gray-700">
+                          Alasan Kecocokan
+                        </th>
+                        <th className="px-4 py-2 text-center font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('match_score')}>
+                          Score {getSortIndicator('match_score')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredCandidates.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="text-center py-8 text-gray-500 text-sm">
+                            Tidak ada kandidat yang cocok dengan pencarian "{searchQuery}"
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCandidates.map((candidate) => (
+                          <tr
+                            key={candidate.user_id}
+                            onClick={() => onSelectMatch(candidate)}
+                            className={`cursor-pointer transition-colors ${
+                              selectedMatch?.user_id === candidate.user_id ? 'bg-green-100' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <td className="px-4 py-2">
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                selectedMatch?.user_id === candidate.user_id ? 'border-green-600 bg-green-600' : 'border-gray-300'
+                              }`}>
+                                {selectedMatch?.user_id === candidate.user_id && (
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 font-medium text-gray-900">{candidate.full_name || '-'}</td>
+                            <td className="px-4 py-2 text-gray-700">{calculateAge(candidate.tanggal_lahir)}</td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                {candidate.chosen_juz || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                {candidate.zona_waktu || 'WIB'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                {candidate.main_time_slot || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                                {candidate.backup_time_slot || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-center font-semibold text-gray-700">
+                              {candidate.oral_total_score !== undefined && candidate.oral_total_score !== null ? candidate.oral_total_score : '-'}
+                            </td>
+                            <td className="px-4 py-2">
+                              <div className="flex flex-col gap-1 max-w-[200px]">
+                                {candidate.match_reasons?.map((reason, idx) => (
+                                  <span key={idx} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded leading-tight">
+                                    {reason}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                candidate.match_score >= 100 ? 'bg-green-100 text-green-800' :
+                                candidate.match_score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {candidate.match_score}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </div>
 

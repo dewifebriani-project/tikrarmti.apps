@@ -17,7 +17,6 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
     confirmed_main_time_slot: submission.confirmed_main_time_slot || '',
     confirmed_backup_time_slot: submission.confirmed_backup_time_slot || '',
     pengabdian_choice: submission.pengabdian_choice || '',
-    pengabdian_type: submission.pengabdian_type || '',
     donasi_amount: submission.donasi_amount || 0,
     partner_type: submission.partner_type || '',
     ujian_halaqah_id: submission.ujian_halaqah_id || '',
@@ -130,14 +129,11 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tipe Pengabdian</label>
-                  <input type="text" name="pengabdian_type" value={formData.pengabdian_type} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Misal: desainer, video_editor" />
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Nominal Donasi (Rp)</label>
                   <input type="number" name="donasi_amount" value={formData.donasi_amount} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
                 </div>
               </div>
+
             </div>
 
             {/* Pasangan & Halaqah */}
