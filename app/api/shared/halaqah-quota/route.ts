@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
     // Count students per halaqah
     // Use a Set to track unique users per halaqah
     const halaqahStudentMap = new Map<string, Set<string>>()
+    const activeStudentMap = new Map<string, Set<string>>()
 
     // Count from daftar_ulang_submissions (only submitted and approved)
     if (submissions) {
@@ -133,6 +134,11 @@ export async function GET(request: NextRequest) {
     // Waitlist does NOT reduce quota, only active status counts
     if (halaqahStudents) {
       for (const student of halaqahStudents) {
+        if (!activeStudentMap.has(student.halaqah_id)) {
+          activeStudentMap.set(student.halaqah_id, new Set())
+        }
+        activeStudentMap.get(student.halaqah_id)!.add(student.thalibah_id)
+
         // Skip current user if they're already in halaqah_students
         if (userId && student.thalibah_id === userId) continue
 
@@ -148,6 +154,7 @@ export async function GET(request: NextRequest) {
     const processedHalaqah = (halaqahData || []).map(h => {
       // Get current student count from submissions map
       const currentStudents = halaqahStudentMap.get(h.id)?.size || 0
+      const activeStudents = activeStudentMap.get(h.id)?.size || 0
       const maxStudents = h.max_students || 5
       const isFull = currentStudents >= maxStudents
       const availableSlots = maxStudents - currentStudents
@@ -182,7 +189,9 @@ export async function GET(request: NextRequest) {
 
       return {
         ...h,
-        total_current_students: currentStudents,
+        // Displayed roster count: must match Jadwal Harian (active memberships only).
+        total_current_students: activeStudents,
+        total_reserved_students: currentStudents,
         total_max_students: maxStudents,
         available_slots: availableSlots,
         is_full: isFull,

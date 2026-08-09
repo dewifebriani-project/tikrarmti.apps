@@ -74,12 +74,12 @@ export async function GET(request: Request) {
         // Fetch active students to get their IDs
         const { data: activeStudents } = await supabaseAdmin
           .from('halaqah_students')
-          .select('user_id')
+          .select('thalibah_id')
           .eq('halaqah_id', h.id)
           .eq('status', 'active');
         
         const activeCount = activeStudents?.length || 0;
-        const activeUserIds = new Set(activeStudents?.map(s => s.user_id) || []);
+        const activeUserIds = new Set(activeStudents?.map(s => s.thalibah_id) || []);
 
         // Count waitlist students
         const { count: waitlistCount } = await supabaseAdmin
@@ -99,11 +99,12 @@ export async function GET(request: Request) {
         const uniqueSubmitted = new Set(submissions?.filter(s => s.status === 'submitted' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
         const uniqueDrafts = new Set(submissions?.filter(s => s.status === 'draft' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
 
-        const totalUsed = activeCount + uniqueApproved.size + uniqueSubmitted.size;
+        const totalReserved = activeCount + uniqueApproved.size + uniqueSubmitted.size;
 
         return {
           ...h,
-          students_count: totalUsed,
+          // Keep the visible count identical to Jadwal Harian.
+          students_count: activeCount,
           waitlist_count: waitlistCount || 0,
           quota_details: {
             active: activeCount,
@@ -111,7 +112,8 @@ export async function GET(request: Request) {
             approved: uniqueApproved.size,
             submitted: uniqueSubmitted.size,
             draft: uniqueDrafts.size,
-            total_used: totalUsed
+            total_used: activeCount,
+            total_reserved: totalReserved
           }
         };
       })

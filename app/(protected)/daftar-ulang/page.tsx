@@ -1341,7 +1341,7 @@ function HalaqahSelectionStep({
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-gray-500 font-medium">Kapasitas Terisi</span>
                       <span className="font-bold text-gray-900">
-                        {Math.max(0, halaqah.total_max_students - halaqah.available_slots)} dari {halaqah.total_max_students}
+                        {halaqah.total_current_students || 0} dari {halaqah.total_max_students}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1353,7 +1353,7 @@ function HalaqahSelectionStep({
                             ? 'bg-orange-500'
                             : 'bg-green-500'
                         }`}
-                        style={{ width: `${((halaqah.total_max_students - halaqah.available_slots) / halaqah.total_max_students) * 100}%` }}
+                        style={{ width: `${((halaqah.total_current_students || 0) / halaqah.total_max_students) * 100}%` }}
                       ></div>
                     </div>
                     {halaqah.is_full && (

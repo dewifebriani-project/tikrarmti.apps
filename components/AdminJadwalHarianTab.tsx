@@ -105,6 +105,33 @@ export default function AdminJadwalHarianTab() {
         );
       }
 
+      // Daftar Ulang uses confirmed_full_name. Use the same approved, batch-scoped
+      // value in Jadwal Harian so the roster name is identical everywhere.
+      const activeStudentIds = Array.from(new Set(
+        filteredData.flatMap((h: any) =>
+          (h.students || [])
+            .filter((s: any) => s.status === 'active')
+            .map((s: any) => s.thalibah_id)
+        ).filter(Boolean)
+      )) as string[];
+
+      const confirmedNameMap = new Map<string, string>();
+      if (activeStudentIds.length > 0) {
+        const { data: approvedSubmissions } = await supabase
+          .from('daftar_ulang_submissions')
+          .select('user_id, confirmed_full_name, updated_at')
+          .eq('batch_id', batch.id)
+          .eq('status', 'approved')
+          .in('user_id', activeStudentIds)
+          .order('updated_at', { ascending: false });
+
+        for (const submission of approvedSubmissions || []) {
+          if (submission.confirmed_full_name && !confirmedNameMap.has(submission.user_id)) {
+            confirmedNameMap.set(submission.user_id, submission.confirmed_full_name);
+          }
+        }
+      }
+
       // Map to HalaqahForReminder format
       const formattedData: HalaqahForReminder[] = filteredData.map((h: any) => ({
         ...h,
@@ -125,12 +152,16 @@ export default function AdminJadwalHarianTab() {
           }
         },
         // Only active students
-        students: (h.students || [])
-          .filter((s: any) => s.status === 'active')
-          .map((s: any) => ({
-            full_name: s.thalibah?.full_name,
-            preferred_juz: h.preferred_juz // Fallback to halaqah juz if student-specific juz isn't joined
-          }))
+        students: Array.from(
+          new Map(
+            (h.students || [])
+              .filter((s: any) => s.status === 'active')
+              .map((s: any) => [s.thalibah_id, {
+                full_name: confirmedNameMap.get(s.thalibah_id) || s.thalibah?.full_name,
+                preferred_juz: h.preferred_juz
+              }])
+          ).values()
+        )
       }));
 
       setHalaqahs(formattedData);
