@@ -232,7 +232,20 @@ export async function GET(request: Request) {
       }
     }
 
-    // 6. Transform data for frontend with mutual match detection
+    // 6. Calculate effective partner type for non-mutual self matches
+    for (const submission of uniqueSubmissionsArray) {
+      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
+        const partnerChoice = selfMatchMap.get(submission.partner_user_id)
+        const isMutualMatch = partnerChoice?.partner_user_id === submission.user_id
+        submission.effective_partner_type = isMutualMatch ? 'self_match' : 'system_match'
+      } else if (submission.partner_type === 'self_match' && !submission.partner_user_id) {
+        submission.effective_partner_type = 'system_match'
+      } else {
+        submission.effective_partner_type = submission.partner_type
+      }
+    }
+
+    // 7. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
     const systemMatchRequests = []
     const tarteelRequests = []
@@ -326,7 +339,7 @@ export async function GET(request: Request) {
             pairing_id: selfPairingInfo?.pairingId || null,
           })
         }
-      } else if (submission.partner_type === 'system_match') {
+      } else if (submission.effective_partner_type === 'system_match') {
         // Check if this user is already paired
         const pairingInfo = pairedUsersMap.get(submission.user_id)
         const partnerNames = pairingInfo
@@ -337,7 +350,7 @@ export async function GET(request: Request) {
         const matchStats = calculateMatchingStatistics(
           submission.user_id,
           registrations?.[0],
-          submissions,
+          uniqueSubmissionsArray,
           pairedUsersMap, // Exclude already paired users from statistics
           userDetailsMap,
           pairedUsersRegMap
@@ -370,6 +383,7 @@ export async function GET(request: Request) {
           pairing_id: pairingInfo?.pairingId || null,
           is_paired: !!pairingInfo,
           partner_details: partnerDetails,
+          original_partner_type: submission.partner_type, // Keep track of the original choice
           ...matchStats
         })
       } else if (submission.partner_type === 'tarteel') {
@@ -476,7 +490,7 @@ function calculateMatchingStatistics(
 ) {
   // Get all other system_match users
   const otherUsers = allSubmissions.filter(
-    s => s.partner_type === 'system_match' &&
+    s => s.effective_partner_type === 'system_match' &&
            (s.status === 'submitted' || s.status === 'approved') &&
            s.user_id !== userId &&
            !pairedUsersMap?.has(s.user_id) // Exclude already paired users
