@@ -10,7 +10,6 @@ import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GroupLinks } from "@/components/dashboard/GroupLinks";
 
 import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle, Heart } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
@@ -1043,15 +1042,6 @@ export default function PerjalananSaya() {
           </div>
         </div>
       </div>
-
-      {/* Group Links Section */}
-      {hasPhase3 && (
-        <GroupLinks 
-          daftarUlangData={daftarUlangData}
-          batchData={batch}
-          partnerName={partnerName}
-        />
-      )}
 
       {/* Action Modals */}
 

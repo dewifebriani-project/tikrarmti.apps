@@ -47,6 +47,7 @@ import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
 import { isStaff } from '@/lib/roles'
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal'
+import { GroupLinks } from '@/components/dashboard/GroupLinks'
 
 export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
@@ -140,6 +141,21 @@ export default function DashboardContent() {
     checkMuallimah()
   }, [user?.id, activeBatch?.id])
 
+  const [pairingData, setPairingData] = useState<any | null>(null);
+  useEffect(() => {
+    async function fetchPairingData() {
+      if (!user?.id || !activeBatch?.id) return;
+      try {
+        const response = await fetch(`/api/user/pairing?batch_id=${activeBatch.id}`, { cache: 'no-store' });
+        const result = await response.json();
+        if (result.success) setPairingData(result.data);
+      } catch (error) {
+        console.error('Error fetching pairing data:', error);
+      }
+    }
+    fetchPairingData();
+  }, [user?.id, activeBatch?.id]);
+
   const hasRegisteredTikrar = useMemo(() => {
     return activeBatch && registrations.some(reg => reg.batch_id === activeBatch.id);
   }, [activeBatch, registrations])
@@ -195,6 +211,35 @@ export default function DashboardContent() {
       ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)
       : (canSeeAdminStats ? stats?.persentaseProgress : 0) || 0
   }
+
+  const daftarUlangArray = registrationStatus?.daftarUlang;
+  const daftarUlangData = Array.isArray(daftarUlangArray) ? daftarUlangArray[0] : daftarUlangArray;
+  
+  const hasAkadFiles = !!(daftarUlangData?.akad_files && daftarUlangData.akad_files.length > 0);
+  const isAkadSubmitted = !!(daftarUlangData && (
+    daftarUlangData.akad_status === 'submitted' || 
+    daftarUlangData.akad_status === 'approved' || 
+    (daftarUlangData.status === 'approved' && !daftarUlangData.akad_status) ||
+    (daftarUlangData.status === 'submitted' && !daftarUlangData.akad_status)
+  ));
+  const hasAkad = hasAkadFiles && isAkadSubmitted;
+  
+  const hasHalaqah = !!(daftarUlangData?.ujian_halaqah_id || daftarUlangData?.tashih_halaqah_id);
+  const hasPartnerSelection = !!(daftarUlangData?.partner_type);
+  const isPartnerSubmitted = !!(daftarUlangData && (
+    daftarUlangData.partner_status === 'submitted' || 
+    daftarUlangData.partner_status === 'approved' || 
+    (daftarUlangData.status === 'approved' && !daftarUlangData.partner_status) ||
+    (daftarUlangData.status === 'submitted' && !daftarUlangData.partner_status)
+  ));
+  const isSelfMatch = daftarUlangData?.partner_type === 'self_match';
+  const isMutualSelfMatch = !!pairingData?.partner_details?.is_mutual_match;
+  const isPartnerComplete = isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch);
+  
+  const hasPhase3 = hasAkad && hasHalaqah && isPartnerComplete;
+  
+  const partner = pairingData ? [pairingData.user_1, pairingData.user_2, pairingData.user_3].find((p: any) => p && p.id !== user?.id) : undefined;
+  const partnerName = partner ? partner.full_name : pairingData?.partner_details?.partner_name;
 
   // Get welcome theme based on time
   const welcomeTheme = React.useMemo(() => {
@@ -913,6 +958,15 @@ export default function DashboardContent() {
           })()}
         </div>
       </div>
+
+      {/* Group Links Section */}
+      {hasPhase3 && (
+        <GroupLinks 
+          daftarUlangData={daftarUlangData}
+          batchData={activeBatch}
+          partnerName={partnerName}
+        />
+      )}
 
       {/* 5. Ayat & Hadits Motivasi */}
       <Card className="rounded-3xl border-none shadow-xl overflow-hidden bg-gradient-to-br from-green-900 to-green-800 text-white">
