@@ -104,6 +104,8 @@ export interface FamilyRequest {
   paired_partner_name?: string
   paired_partner_names?: string[]
   batch_id?: string
+  exam_score?: number | null
+  oral_total_score?: number | null
 }
 
 export interface MatchCandidate {

@@ -39,19 +39,19 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
 
         let myHalaqahs = (userHalaqahs || [])
           .map((hs: any) => hs.halaqah)
-          .filter(h => h && h.program?.batch_id === activeBatch.id);
+          .filter((h: any) => h && h.program?.batch_id === activeBatch.id);
 
         if (daftarUlangData) {
           const ujianHalaqah = daftarUlangData.ujian_halaqah;
           const tashihHalaqah = daftarUlangData.tashih_halaqah;
           
-          if (ujianHalaqah && !myHalaqahs.find(h => h.id === ujianHalaqah.id)) {
+          if (ujianHalaqah && !myHalaqahs.find((h: any) => h.id === ujianHalaqah.id)) {
             myHalaqahs.push({
                ...ujianHalaqah,
                program: { class_type: 'tahfidz', batch_id: activeBatch.id }
             });
           }
-          if (tashihHalaqah && !myHalaqahs.find(h => h.id === tashihHalaqah.id)) {
+          if (tashihHalaqah && !myHalaqahs.find((h: any) => h.id === tashihHalaqah.id)) {
             myHalaqahs.push({
                ...tashihHalaqah,
                program: { class_type: 'tahfidz', batch_id: activeBatch.id }
