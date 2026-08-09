@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     // Get all submissions so we can keep only the latest choice per thalibah.
     const { data: allSubmissions, error: allError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, partner_type, partner_status, pairing_status, status')
+      .select('id, user_id, partner_type, partner_user_id, partner_status, pairing_status, status')
       .eq('batch_id', batchId)
       .order('created_at', { ascending: false }) // Order by created_at DESC to get latest submission first
 
@@ -51,6 +51,7 @@ export async function GET(request: Request) {
     // Keep the existing response keys for frontend compatibility:
     // approved = paired, submitted = waiting.
     const statistics = {
+      total: 0,
       selfMatch: { submitted: 0, approved: 0 },
       systemMatch: { submitted: 0, approved: 0 },
       tarteel: { submitted: 0, approved: 0 },
@@ -58,10 +59,13 @@ export async function GET(request: Request) {
     }
 
     const userSubmissions = new Map<string, {
+      submission_id: string
       partner_type: string
+      partner_user_id: string | null
       partner_status: string | null
       pairing_status: string | null
       status: string
+      effective_partner_type?: string
     }>()
 
     // Process submissions in order (latest first)
@@ -71,7 +75,9 @@ export async function GET(request: Request) {
       // Only keep the latest submission for each user
       if (!userSubmissions.has(userId)) {
         userSubmissions.set(userId, {
+          submission_id: submission.id,
           partner_type: submission.partner_type,
+          partner_user_id: submission.partner_user_id,
           partner_status: submission.partner_status,
           pairing_status: submission.pairing_status,
           status: submission.status,
@@ -80,6 +86,20 @@ export async function GET(request: Request) {
     }
 
     console.log('[STATS DEBUG] Unique users:', userSubmissions.size)
+    statistics.total = userSubmissions.size
+
+    // Determine effective partner type based on mutual match
+    userSubmissions.forEach((sub, userId) => {
+      if (sub.partner_type === 'self_match' && sub.partner_user_id) {
+        const partnerChoice = userSubmissions.get(sub.partner_user_id)
+        const isMutualMatch = partnerChoice?.partner_user_id === userId
+        sub.effective_partner_type = isMutualMatch ? 'self_match' : 'system_match'
+      } else if (sub.partner_type === 'self_match' && !sub.partner_user_id) {
+        sub.effective_partner_type = 'system_match'
+      } else {
+        sub.effective_partner_type = sub.partner_type
+      }
+    })
 
     // study_partners is the source of truth for completed pairings.
     const { data: activePairings, error: pairingsError } = await supabase
@@ -120,7 +140,7 @@ export async function GET(request: Request) {
     }
 
     userSubmissions.forEach((submission, userId) => {
-      const type = submission.partner_type as keyof typeof pairedUsers
+      const type = (submission.effective_partner_type || submission.partner_type) as keyof typeof pairedUsers
       const targetStat = statForType(type)
       if (!targetStat || pairedUsers[type]?.has(userId)) return
 

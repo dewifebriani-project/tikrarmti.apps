@@ -8,7 +8,20 @@ interface Props {
 
 export function PairingStatsCard({ stats }: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Total Submissions Stats */}
+      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl border border-indigo-400 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group text-white">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-indigo-100">Total Daftar Ulang</p>
+          <h3 className="text-3xl font-black tracking-tight text-white">
+            {stats.total || 0}
+          </h3>
+          <p className="text-indigo-200 text-[10px] uppercase font-bold tracking-wider">Thalibah Unik</p>
+        </div>
+        <div className="p-4 rounded-xl text-indigo-600 bg-white shadow-lg shadow-indigo-400/50 transition-transform duration-300 group-hover:scale-110">
+          <UserCheck className="h-6 w-6" />
+        </div>
+      </div>
       {/* Self Match Stats */}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
         <div className="space-y-1">

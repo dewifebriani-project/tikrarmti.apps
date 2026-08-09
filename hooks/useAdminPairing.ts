@@ -21,6 +21,7 @@ export function useAdminPairing() {
   const [activeTab, setActiveTab] = useState<'self' | 'system' | 'tarteel' | 'family'>('self')
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<PairingStats>({
+    total: 0,
     selfMatch: { submitted: 0, approved: 0 },
     systemMatch: { submitted: 0, approved: 0 },
     tarteel: { submitted: 0, approved: 0 },

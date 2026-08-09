@@ -158,18 +158,21 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Ujian Halaqah ID</label>
-                  <select name="ujian_halaqah_id" value={formData.ujian_halaqah_id} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                    <option value="">(Belum Dialokasikan)</option>
-                    {halaqahs.map(h => (
-                      <option key={h.id} value={h.id}>{h.name} - {h.muallimah?.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tashih Halaqah ID</label>
-                  <select name="tashih_halaqah_id" value={formData.tashih_halaqah_id} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Halaqah</label>
+                  <select 
+                    name="halaqah" 
+                    value={formData.ujian_halaqah_id || formData.tashih_halaqah_id || ''} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        ujian_halaqah_id: val, 
+                        tashih_halaqah_id: val 
+                      }));
+                    }} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  >
                     <option value="">(Belum Dialokasikan)</option>
                     {halaqahs.map(h => (
                       <option key={h.id} value={h.id}>{h.name} - {h.muallimah?.full_name}</option>

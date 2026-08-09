@@ -117,18 +117,43 @@ export async function GET(request: Request) {
 
     console.log('[PAIRING API] Filtered to unique users:', uniqueUserSubmissions.size, 'from', submissions?.length)
 
-    // Count per partner type after filtering
+    // Convert Map to Array for iteration
+    const uniqueSubmissionsArray = Array.from(uniqueUserSubmissions.values())
+
+    // 4.1. Build a map of all self-match requests for mutual match detection
+    const selfMatchMap = new Map<string, any>()
+    for (const submission of uniqueSubmissionsArray) {
+      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
+        selfMatchMap.set(submission.user_id, {
+          submission_id: submission.id,
+          partner_user_id: submission.partner_user_id,
+          batch_id: submission.batch_id
+        })
+      }
+    }
+
+    // 4.2. Calculate effective partner type for non-mutual self matches
+    for (const submission of uniqueSubmissionsArray) {
+      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
+        const partnerChoice = selfMatchMap.get(submission.partner_user_id);
+        const isMutualMatch = partnerChoice?.partner_user_id === submission.user_id;
+        (submission as any).effective_partner_type = isMutualMatch ? 'self_match' : 'system_match';
+      } else if (submission.partner_type === 'self_match' && !submission.partner_user_id) {
+        (submission as any).effective_partner_type = 'system_match';
+      } else {
+        (submission as any).effective_partner_type = submission.partner_type;
+      }
+    }
+
+    // Count per partner type after filtering and applying effective_partner_type
     const partnerTypeCounts: Record<string, number> = { self_match: 0, system_match: 0, tarteel: 0, family: 0 }
-    uniqueUserSubmissions.forEach((sub: any) => {
-      const type = sub.partner_type
+    uniqueSubmissionsArray.forEach((sub: any) => {
+      const type = sub.effective_partner_type || sub.partner_type
       if (type && partnerTypeCounts.hasOwnProperty(type)) {
         partnerTypeCounts[type] = (partnerTypeCounts[type] || 0) + 1
       }
     })
-    console.log('[PAIRING API] Unique users per partner type:', JSON.stringify(partnerTypeCounts, null, 2))
-
-    // Convert Map to Array for iteration
-    const uniqueSubmissionsArray = Array.from(uniqueUserSubmissions.values())
+    console.log('[PAIRING API] Unique users per effective partner type:', JSON.stringify(partnerTypeCounts, null, 2))
 
     // 4.5. Fetch all existing pairings for this batch
     const { data: existingPairings } = await supabase
@@ -218,34 +243,9 @@ export async function GET(request: Request) {
         user_2_juz: pairedUsersRegMap.get(p.user_2_id)?.chosen_juz || null,
       }))
 
-    // 5. Build a map of all self-match requests for mutual match detection
-    const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
 
-    for (const submission of uniqueSubmissionsArray) {
-      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
-        selfMatchMap.set(submission.user_id, {
-          submission_id: submission.id,
-          partner_user_id: submission.partner_user_id,
-          batch_id: submission.batch_id
-        })
-      }
-    }
-
-    // 6. Calculate effective partner type for non-mutual self matches
-    for (const submission of uniqueSubmissionsArray) {
-      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
-        const partnerChoice = selfMatchMap.get(submission.partner_user_id)
-        const isMutualMatch = partnerChoice?.partner_user_id === submission.user_id
-        submission.effective_partner_type = isMutualMatch ? 'self_match' : 'system_match'
-      } else if (submission.partner_type === 'self_match' && !submission.partner_user_id) {
-        submission.effective_partner_type = 'system_match'
-      } else {
-        submission.effective_partner_type = submission.partner_type
-      }
-    }
-
-    // 7. Transform data for frontend with mutual match detection
+    // 6. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
     const systemMatchRequests = []
     const tarteelRequests = []
@@ -286,7 +286,7 @@ export async function GET(request: Request) {
         batch_name: batch?.[0]?.name,
       }
 
-      if (submission.partner_type === 'self_match') {
+      if (submission.effective_partner_type === 'self_match') {
         // Skip if this is the second half of a mutual match (already processed)
         if (processedMutualMatches.has(submission.user_id)) {
           continue
@@ -431,9 +431,8 @@ export async function GET(request: Request) {
         family_requests: familyRequests,
         pairings_with_slots: pairingsWithSlots, // Pairings that can accept a 3rd member
       },
-      debug: {
-        totalSubmissions: totalCount,
-        uniqueUsersCount: uniqueSubmissionsArray.length,
+      meta: {
+        totalSubmissions: uniqueSubmissionsArray.length,
         partnerTypeCounts: partnerTypeCounts,
         finalCounts: {
           selfMatch: selfMatchRequests.length,
