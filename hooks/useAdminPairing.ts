@@ -101,7 +101,8 @@ export function useAdminPairing() {
       if (result.success) {
         setBatches(result.data)
         if (result.data.length > 0 && !selectedBatchId) {
-          const activeBatch = result.data.find((b: Batch) => b.status === 'ACTIVE')
+          const activeBatch = result.data.find((b: Batch) => b.status?.toLowerCase() === 'open')
+            || result.data.find((b: Batch) => b.status?.toLowerCase() === 'ongoing')
           setSelectedBatchId(activeBatch ? activeBatch.id : result.data[0].id)
         } else if (result.data.length === 0) {
           setLoading(false)
@@ -140,12 +141,27 @@ export function useAdminPairing() {
       const result = await response.json()
 
       if (result.success) {
-        if (activeTab === 'self') setSelfMatchRequests(result.data)
-        else if (activeTab === 'system') setSystemMatchRequests(result.data)
-        else if (activeTab === 'tarteel') setTarteelRequests(result.data)
-        else if (activeTab === 'family') setFamilyRequests(result.data)
+        // The pairing endpoint returns all request groups inside `data`.
+        // Older code treated `data` itself as an array, which placed an object
+        // in state and crashed tabs when they called `.map()`.
+        const payload = result.data
+        if (payload && !Array.isArray(payload)) {
+          setSelfMatchRequests(Array.isArray(payload.self_match_requests) ? payload.self_match_requests : [])
+          setSystemMatchRequests(Array.isArray(payload.system_match_requests) ? payload.system_match_requests : [])
+          setTarteelRequests(Array.isArray(payload.tarteel_requests) ? payload.tarteel_requests : [])
+          setFamilyRequests(Array.isArray(payload.family_requests) ? payload.family_requests : [])
+        } else {
+          // Backward-compatible fallback if an older API returns one array.
+          const requests = Array.isArray(payload) ? payload : []
+          if (activeTab === 'self') setSelfMatchRequests(requests)
+          else if (activeTab === 'system') setSystemMatchRequests(requests)
+          else if (activeTab === 'tarteel') setTarteelRequests(requests)
+          else if (activeTab === 'family') setFamilyRequests(requests)
+        }
         
         setPagination(result.pagination)
+      } else {
+        toast.error(result.error || 'Gagal memuat data request')
       }
     } catch (error) {
       console.error('Error loading pairing requests:', error)

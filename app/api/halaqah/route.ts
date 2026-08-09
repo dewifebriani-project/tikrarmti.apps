@@ -88,18 +88,28 @@ export async function GET(request: Request) {
           .eq('halaqah_id', h.id)
           .eq('status', 'waitlist');
 
-        // Count submissions (pending/approved)
+        // Reserve a slot only after both the akad and the halaqah/partner
+        // choice have been submitted. Active students are excluded below so
+        // the same thalibah is never counted twice.
         const { data: submissions } = await supabaseAdmin
           .from('daftar_ulang_submissions')
-          .select('user_id, status')
-          .in('status', ['submitted', 'approved', 'draft'])
+          .select('user_id, status, akad_status, partner_status')
           .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
 
-        const uniqueApproved = new Set(submissions?.filter(s => s.status === 'approved' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
-        const uniqueSubmitted = new Set(submissions?.filter(s => s.status === 'submitted' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
-        const uniqueDrafts = new Set(submissions?.filter(s => s.status === 'draft' && !activeUserIds.has(s.user_id)).map(s => s.user_id) || []);
+        const eligibleStatuses = new Set(['submitted', 'approved']);
+        const pendingReservations = new Set(
+          submissions
+            ?.filter((submission) => {
+              const akadStatus = submission.akad_status || submission.status;
+              const choiceStatus = submission.partner_status || submission.status;
+              return !activeUserIds.has(submission.user_id)
+                && eligibleStatuses.has(akadStatus)
+                && eligibleStatuses.has(choiceStatus);
+            })
+            .map((submission) => submission.user_id) || []
+        );
 
-        const totalReserved = activeCount + uniqueApproved.size + uniqueSubmitted.size;
+        const totalReserved = activeCount + pendingReservations.size;
 
         return {
           ...h,
@@ -109,10 +119,8 @@ export async function GET(request: Request) {
           quota_details: {
             active: activeCount,
             waitlist: waitlistCount || 0,
-            approved: uniqueApproved.size,
-            submitted: uniqueSubmitted.size,
-            draft: uniqueDrafts.size,
-            total_used: activeCount,
+            pending: pendingReservations.size,
+            total_used: totalReserved,
             total_reserved: totalReserved
           }
         };

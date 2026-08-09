@@ -10,20 +10,22 @@ interface Props {
 }
 
 export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Props) {
+  const safeRequests = Array.isArray(requests) ? requests : []
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Request Pasangan Sendiri
       </h3>
 
-      {requests.length === 0 ? (
+      {safeRequests.length === 0 ? (
         <div className="text-center py-12">
           <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">Tidak ada request pasangan sendiri</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {requests.map((request) => (
+          {safeRequests.map((request) => (
             <div
               key={request.id}
               className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${

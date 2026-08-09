@@ -173,22 +173,32 @@ export async function GET(request: Request) {
 
     console.log('[PAIRING API] Existing pairings:', pairedUsersMap.size, 'users already paired')
 
-    // Fetch user data for all paired users to get their names
+    // Fetch all users needed by the page in two batch queries. Previously the
+    // self-match and system-match loops executed two queries per thalibah,
+    // causing the page to become progressively slower as the batch grew.
     const pairedUserIds = Array.from(pairedUsersMap.keys())
+    const relatedUserIds = Array.from(new Set([
+      ...pairedUserIds,
+      ...uniqueSubmissionsArray.map((submission: any) => submission.user_id),
+      ...uniqueSubmissionsArray
+        .map((submission: any) => submission.partner_user_id)
+        .filter(Boolean),
+    ]))
     const { data: pairedUsersData } = await supabase
       .from('users')
-      .select('id, full_name')
-      .in('id', pairedUserIds)
+      .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
+      .in('id', relatedUserIds)
 
     // Create a map of user_id -> full_name for paired users
     const pairedUserNamesMap = new Map((pairedUsersData || []).map(u => [u.id, u.full_name]))
+    const userDetailsMap = new Map((pairedUsersData || []).map(u => [u.id, u]))
 
     // Fetch registration data for paired users (to get time slots and juz)
     const { data: pairedUsersRegistrations } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
       .eq('batch_id', batchId || '')
-      .in('user_id', pairedUserIds)
+      .in('user_id', relatedUserIds)
 
     const pairedUsersRegMap = new Map((pairedUsersRegistrations || []).map(r => [r.user_id, r]))
 
@@ -270,23 +280,8 @@ export async function GET(request: Request) {
 
         // Fetch partner details and check for mutual match
         if (submission.partner_user_id) {
-          const { data: partnerUser } = await supabase
-            .from('users')
-            .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
-            .eq('id', submission.partner_user_id)
-            .single()
-
-          let partnerRegistration = null
-          if (partnerUser) {
-            const { data } = await supabase
-              .from('pendaftaran_tikrar_tahfidz')
-              .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
-              .eq('user_id', submission.partner_user_id)
-              .eq('batch_id', submission.batch_id)
-              .maybeSingle()
-
-            partnerRegistration = data
-          }
+          const partnerUser = userDetailsMap.get(submission.partner_user_id) || null
+          const partnerRegistration = pairedUsersRegMap.get(submission.partner_user_id) || null
 
           // Check for mutual match: does the partner also choose this user?
           const partnerChoice = selfMatchMap.get(submission.partner_user_id)
@@ -337,12 +332,13 @@ export async function GET(request: Request) {
           : []
 
         // Calculate matching statistics for this user
-        const matchStats = await calculateMatchingStatistics(
+        const matchStats = calculateMatchingStatistics(
           submission.user_id,
-          submission.batch_id,
           registrations?.[0],
           submissions,
-          pairedUsersMap // Exclude already paired users from statistics
+          pairedUsersMap, // Exclude already paired users from statistics
+          userDetailsMap,
+          pairedUsersRegMap
         )
 
         // Get partner details for analysis (when paired)
@@ -466,15 +462,14 @@ export async function GET(request: Request) {
 /**
  * Calculate matching statistics for a system_match user
  */
-async function calculateMatchingStatistics(
+function calculateMatchingStatistics(
   userId: string,
-  batchId: string,
   userRegistration: any,
   allSubmissions: any[],
-  pairedUsersMap?: Map<string, { partnerId: string, partnerIds: string[], pairingId: string, hasSlot: boolean }> // Map of users who are already paired
+  pairedUsersMap: Map<string, { partnerId: string, partnerIds: string[], pairingId: string, hasSlot: boolean }>,
+  usersMap: Map<string, any>,
+  regMap: Map<string, any>
 ) {
-  const supabase = createClient()
-
   // Get all other system_match users
   const otherUsers = allSubmissions.filter(
     s => s.partner_type === 'system_match' &&
@@ -482,27 +477,6 @@ async function calculateMatchingStatistics(
            s.user_id !== userId &&
            !pairedUsersMap?.has(s.user_id) // Exclude already paired users
   )
-
-  const otherUserIds = otherUsers.map(s => s.user_id)
-
-  // Fetch user data for timezone
-  const { data: usersData } = await supabase
-    .from('users')
-    .select('id, zona_waktu')
-    .in('id', otherUserIds)
-
-  // Create map for quick lookup
-  const userMap = new Map((usersData || []).map(u => [u.id, u.zona_waktu]))
-
-  // Fetch registration data for other users
-  const { data: otherRegistrations } = await supabase
-    .from('pendaftaran_tikrar_tahfidz')
-    .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
-    .eq('batch_id', batchId)
-    .in('user_id', otherUserIds)
-
-  // Create map for quick lookup
-  const regMap = new Map((otherRegistrations || []).map(r => [r.user_id, r]))
 
   const userTimezone = userRegistration?.timezone || 'WIB'
   const userJuz = userRegistration?.chosen_juz
@@ -521,7 +495,7 @@ async function calculateMatchingStatistics(
       continue
     }
 
-    const otherTimezone = otherReg.timezone || userMap.get(otherUser.user_id) || 'WIB'
+    const otherTimezone = otherReg.timezone || usersMap.get(otherUser.user_id)?.zona_waktu || 'WIB'
     const otherJuz = otherReg.chosen_juz
 
     // Calculate score
@@ -579,7 +553,7 @@ async function calculateMatchingStatistics(
     const otherReg = regMap.get(otherUser.user_id)
     if (!otherReg) return false
 
-    const otherTimezone = otherReg.timezone || userMap.get(otherUser.user_id) || 'WIB'
+    const otherTimezone = otherReg.timezone || usersMap.get(otherUser.user_id)?.zona_waktu || 'WIB'
     const otherJuz = otherReg.chosen_juz
 
     return userTimezone === otherTimezone || userJuz === otherJuz

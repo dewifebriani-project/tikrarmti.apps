@@ -17,7 +17,7 @@ export function PairingStatsCard({ stats }: Props) {
             {stats.selfMatch.approved}
             <span className="text-gray-400 text-sm font-normal"> / {stats.selfMatch.submitted}</span>
           </h3>
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Approved / Submitted</p>
+          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Dipasangkan / Menunggu</p>
         </div>
         <div className="p-4 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
           <UserCheck className="h-6 w-6" />
@@ -32,7 +32,7 @@ export function PairingStatsCard({ stats }: Props) {
             {stats.systemMatch.approved}
             <span className="text-gray-400 text-sm font-normal"> / {stats.systemMatch.submitted}</span>
           </h3>
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Approved / Submitted</p>
+          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Dipasangkan / Menunggu</p>
         </div>
         <div className="p-4 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
           <HeartHandshake className="h-6 w-6" />
@@ -47,7 +47,7 @@ export function PairingStatsCard({ stats }: Props) {
             {stats.tarteel.approved}
             <span className="text-gray-400 text-sm font-normal"> / {stats.tarteel.submitted}</span>
           </h3>
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Approved / Submitted</p>
+          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Dipasangkan / Menunggu</p>
         </div>
         <div className="p-4 rounded-xl text-white bg-purple-500 shadow-lg shadow-purple-200 transition-transform duration-300 group-hover:scale-110">
           <BookOpen className="h-6 w-6" />
@@ -62,7 +62,7 @@ export function PairingStatsCard({ stats }: Props) {
             {stats.family.approved}
             <span className="text-gray-400 text-sm font-normal"> / {stats.family.submitted}</span>
           </h3>
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Approved / Submitted</p>
+          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Dipasangkan / Menunggu</p>
         </div>
         <div className="p-4 rounded-xl text-white bg-amber-500 shadow-lg shadow-amber-200 transition-transform duration-300 group-hover:scale-110">
           <Home className="h-6 w-6" />

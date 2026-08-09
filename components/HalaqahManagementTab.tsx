@@ -85,12 +85,14 @@ interface Halaqah {
     students: number;
   };
   quota_details?: {
-    submitted: number;
-    approved: number;
-    draft: number;
+    pending?: number;
+    submitted?: number;
+    approved?: number;
+    draft?: number;
     active: number;
     waitlist: number;
     total_used: number;
+    total_reserved?: number;
   };
 }
 
@@ -116,31 +118,23 @@ function QuotaDetailsCell({ halaqah }: { halaqah: Halaqah }) {
         onClick={() => setExpanded(!expanded)} 
         className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium w-full justify-between py-1 px-2 -mx-2 rounded-md hover:bg-blue-50 transition-colors"
       >
-        <span>Details Quota</span>
+        <span>Rincian Kuota</span>
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
       
       {expanded && (
         <div className="pt-2 pb-1 space-y-1.5 border-t border-gray-100 mt-1">
           <div className="flex justify-between gap-3">
-            <span className="text-gray-500">Terpakai:</span>
+            <span className="font-semibold text-gray-700">Total slot terisi:</span>
             <span className="font-medium text-gray-900">{halaqah.quota_details?.total_used || 0}</span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="text-green-600">✓ Approved:</span>
-            <span className="font-medium text-green-700">{halaqah.quota_details?.approved || 0}</span>
-          </div>
-          <div className="flex justify-between gap-3">
-            <span className="text-blue-600">✓ Submitted:</span>
-            <span className="font-medium text-blue-700">{halaqah.quota_details?.submitted || 0}</span>
-          </div>
-          <div className="flex justify-between gap-3">
-            <span className="text-gray-400">○ Draft:</span>
-            <span className="font-medium text-gray-500">{halaqah.quota_details?.draft || 0}</span>
-          </div>
-          <div className="flex justify-between gap-3">
-            <span className="text-green-600">✓ Active:</span>
+            <span className="text-green-600">✓ Thalibah aktif:</span>
             <span className="font-medium text-green-700">{halaqah.quota_details?.active || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-blue-600">⏳ Menunggu aktivasi:</span>
+            <span className="font-medium text-blue-700">{halaqah.quota_details?.pending || 0}</span>
           </div>
           <div className="flex justify-between gap-3">
             <span className="text-yellow-600">⏱ Waitlist:</span>
@@ -282,6 +276,7 @@ export function HalaqahManagementTab() {
             students: h.students_count || 0
           },
           quota_details: h.quota_details || {
+            pending: 0,
             submitted: 0,
             approved: 0,
             draft: 0,
@@ -1225,7 +1220,7 @@ export function HalaqahManagementTab() {
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-gray-400 shrink-0" />
                               <span className="text-sm text-gray-900 whitespace-nowrap">
-                                {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} dari {halaqah.max_students || 20}
+                                {halaqah.max_students ? Math.max(0, halaqah.max_students - (halaqah.quota_details?.total_used || 0)) : '?'} dari {halaqah.max_students || 20}
                               </span>
                               <span className="text-xs text-gray-500">tersedia</span>
                             </div>
@@ -1233,13 +1228,13 @@ export function HalaqahManagementTab() {
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full transition-all ${
-                                  (halaqah._count?.students || 0) >= (halaqah.max_students || 20)
+                                  (halaqah.quota_details?.total_used || 0) >= (halaqah.max_students || 20)
                                     ? 'bg-red-500'
-                                    : (halaqah.max_students || 20) - (halaqah._count?.students || 0) <= 3
+                                    : (halaqah.max_students || 20) - (halaqah.quota_details?.total_used || 0) <= 3
                                     ? 'bg-orange-500'
                                     : 'bg-green-500'
                                 }`}
-                                style={{ width: `${((halaqah._count?.students || 0) / (halaqah.max_students || 20)) * 100}%` }}
+                                style={{ width: `${Math.min(100, ((halaqah.quota_details?.total_used || 0) / (halaqah.max_students || 20)) * 100)}%` }}
                               ></div>
                             </div>
                             {/* Quota details */}
@@ -1248,7 +1243,9 @@ export function HalaqahManagementTab() {
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(halaqah.status)}
-                            <div className="flex items-center justify-end gap-1.5 relative">
+                        </td>
+                        <td className="px-6 py-4 min-w-[80px] w-[80px] sticky right-0 z-[5] bg-white group-hover:bg-gray-50">
+                          <div className="flex items-center justify-end gap-1.5 relative">
                             <button
                               onClick={() => setOpenActionId(openActionId === halaqah.id ? null : halaqah.id)}
                               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1374,19 +1371,19 @@ export function HalaqahManagementTab() {
                           <Users className="w-4 h-4 text-gray-400" /> Quota Thalibah
                         </span>
                         <span className="text-xs font-semibold">
-                          {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} dari {halaqah.max_students || 20} sisa
+                          {halaqah.max_students ? Math.max(0, halaqah.max_students - (halaqah.quota_details?.total_used || 0)) : '?'} dari {halaqah.max_students || 20} sisa
                         </span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-2 mb-3">
                         <div
                           className={`h-2 rounded-full transition-all ${
-                            (halaqah._count?.students || 0) >= (halaqah.max_students || 20)
+                            (halaqah.quota_details?.total_used || 0) >= (halaqah.max_students || 20)
                               ? 'bg-red-500'
-                              : (halaqah.max_students || 20) - (halaqah._count?.students || 0) <= 3
+                              : (halaqah.max_students || 20) - (halaqah.quota_details?.total_used || 0) <= 3
                               ? 'bg-orange-500'
                               : 'bg-green-500'
                           }`}
-                          style={{ width: `${((halaqah._count?.students || 0) / (halaqah.max_students || 20)) * 100}%` }}
+                          style={{ width: `${Math.min(100, ((halaqah.quota_details?.total_used || 0) / (halaqah.max_students || 20)) * 100)}%` }}
                         ></div>
                       </div>
                       <QuotaDetailsCell halaqah={halaqah} />

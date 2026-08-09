@@ -145,7 +145,7 @@ export default function AdminPairingTab() {
             >
               {batches.map((batch) => (
                 <option key={batch.id} value={batch.id}>
-                  {batch.name} {batch.status === 'ACTIVE' ? '(Active)' : ''}
+                  {batch.name} {batch.status?.toLowerCase() === 'open' ? '(Aktif)' : ''}
                 </option>
               ))}
             </select>
