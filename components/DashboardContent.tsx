@@ -235,7 +235,7 @@ export default function DashboardContent() {
   ));
   const isSelfMatch = daftarUlangData?.partner_type === 'self_match';
   const isMutualSelfMatch = !!pairingData?.partner_details?.is_mutual_match;
-  const isPartnerComplete = isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch);
+  const isPartnerComplete = (isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch)) || daftarUlangData?.pairing_status === 'paired';
   
   const hasPhase3 = hasAkad && hasHalaqah && isPartnerComplete;
   

@@ -217,6 +217,7 @@ export async function GET(request: Request) {
           zona_waktu: userTimezone,
           main_time_slot: userMainTimeSlot,
           backup_time_slot: userBackupTimeSlot,
+          oral_total_score: userOralScore,
         },
         candidateData
       )

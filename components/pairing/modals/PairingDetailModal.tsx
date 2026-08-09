@@ -235,6 +235,14 @@ export function PairingDetailModal({
                       Waktu Utama: {hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'Cocok ✓' : 'Tidak cocok ✗'}
                     </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      Math.abs((Number(detail.user_1.oral_total_score) || 0) - (Number(detail.user_2.oral_total_score) || 0)) >= 20 ? 'bg-green-500' : 'bg-amber-500'
+                    }`}></div>
+                    <span>
+                      Lisan: {Math.abs((Number(detail.user_1.oral_total_score) || 0) - (Number(detail.user_2.oral_total_score) || 0)) >= 20 ? 'Saling Melengkapi ✓' : 'Setara'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

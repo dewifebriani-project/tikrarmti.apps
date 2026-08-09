@@ -340,9 +340,9 @@ export default function PerjalananSaya() {
     (daftarUlangData.status === 'approved' && !daftarUlangData.partner_status) ||
     (daftarUlangData.status === 'submitted' && !daftarUlangData.partner_status)
   ));
-  const isSelfMatch = daftarUlangData?.partner_type === 'self_match';
-  const isMutualSelfMatch = !!pairingData?.partner_details?.is_mutual_match;
-  const isPartnerComplete = isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch);
+  const isSelfMatch = registrationStatus?.registration?.partner_type === 'self_match';
+  const isMutualSelfMatch = !!pairingData?.pairing?.is_mutual_match;
+  const isPartnerComplete = (isPartnerSubmitted && (!isSelfMatch || isMutualSelfMatch)) || registrationStatus?.registration?.pairing_status === 'paired';
   
   const hasPhase3 = hasAkad && hasHalaqah && isPartnerComplete;
   const hasPartner = !!(pairingData) || (hasHalaqah && hasPartnerSelection && isPartnerSubmitted);
