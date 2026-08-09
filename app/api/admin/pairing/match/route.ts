@@ -68,7 +68,8 @@ export async function GET(request: Request) {
           chosen_juz,
           main_time_slot,
           backup_time_slot,
-          timezone
+          timezone,
+          oral_total_score
         )
       `)
       .eq('user_id', userId)
@@ -92,6 +93,7 @@ export async function GET(request: Request) {
     const userChosenJuz = userRegistrations?.[0]?.chosen_juz || 'N/A'
     const userMainTimeSlot = userRegistrations?.[0]?.main_time_slot || 'N/A'
     const userBackupTimeSlot = userRegistrations?.[0]?.backup_time_slot || 'N/A'
+    const userOralScore = userRegistrations?.[0]?.oral_total_score || 0
 
     console.log('[MATCH API] User parsed data:', {
       user_id: userData.user_id,
@@ -158,7 +160,7 @@ export async function GET(request: Request) {
     // Fetch registration data for all candidates
     const { data: registrationsData, error: registrationsError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
+      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone, oral_total_score')
       .eq('batch_id', batchId)
       .in('user_id', userIds)
 
@@ -203,6 +205,7 @@ export async function GET(request: Request) {
         chosen_juz: registration?.chosen_juz || 'N/A',
         main_time_slot: registration?.main_time_slot || 'N/A',
         backup_time_slot: registration?.backup_time_slot || 'N/A',
+        oral_total_score: registration?.oral_total_score || 0,
       }
 
       console.log('[MATCH API] Candidate data prepared:', candidateData)
@@ -227,6 +230,7 @@ export async function GET(request: Request) {
             zona_waktu: userTimezone,
             main_time_slot: userMainTimeSlot,
             backup_time_slot: userBackupTimeSlot,
+            oral_total_score: userOralScore,
           },
           candidateData
         ),
@@ -335,24 +339,34 @@ function calculateMatchScore(user1: any, user2: any): number {
 
   // Priority 1: Waktu utama cocok
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
-    score += 1000
+    score += 1000000
   }
 
-  // Priority 2: Waktu cadangan cocok
+  // Priority 2: Waktu utama dan cadangan cocok
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
-      hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
-      hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
+      hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot)) {
+    score += 100000
+  }
+
+  // Priority 3: Waktu cadangan cocok
+  if (hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
+    score += 10000
+  }
+
+  // Priority 4: Keseimbangan Nilai Lisan (selisih nilai absolut)
+  // Rentang selisih adalah 0-100, jadi kita beri bobot (selisih * 10)
+  // Maksimal tambahan poin dari sini adalah 1000 (jika selisih 100)
+  const scoreDiff = Math.abs((Number(user1.oral_total_score) || 0) - (Number(user2.oral_total_score) || 0))
+  score += (scoreDiff * 10)
+
+  // Priority 5: Zona waktu sama
+  if (user1Zona && user2Zona && user1Zona === user2Zona) {
     score += 100
   }
 
-  // Priority 3: Juz sama
+  // Priority 6: Juz sama
   if (user1Juz && user2Juz && user1Juz === user2Juz) {
     score += 10
-  }
-
-  // Priority 4: Zona waktu sama
-  if (user1Zona && user2Zona && user1Zona === user2Zona) {
-    score += 1
   }
 
   return score
@@ -372,22 +386,30 @@ function getMatchReasons(user1: any, user2: any): string[] {
 
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
     reasons.push('Waktu utama cocok')
-  }
-
-  if (
+  } else if (
     hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
-    hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
-    hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)
+    hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot)
   ) {
-    reasons.push('Waktu cadangan cocok')
+    reasons.push('Waktu utama & cadangan cocok')
+  } else if (hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
+    reasons.push('Waktu cadangan & cadangan cocok')
   }
 
-  if (user1Juz && user2Juz && user1Juz === user2Juz) {
-    reasons.push(`Juz sama: ${user1Juz}`)
+  const oral1 = Number(user1.oral_total_score) || 0
+  const oral2 = Number(user2.oral_total_score) || 0
+  const scoreDiff = Math.abs(oral1 - oral2)
+  if (scoreDiff >= 20) {
+    reasons.push(`Nilai Lisan saling melengkapi (selisih ${scoreDiff} poin)`)
+  } else if (scoreDiff < 20) {
+    reasons.push(`Nilai Lisan setara (selisih ${scoreDiff} poin)`)
   }
 
   if (user1Zona && user2Zona && user1Zona === user2Zona) {
     reasons.push(`Zona waktu sama: ${user1Zona}`)
+  }
+
+  if (user1Juz && user2Juz && user1Juz === user2Juz) {
+    reasons.push(`Juz sama: ${user1Juz}`)
   }
 
   return reasons

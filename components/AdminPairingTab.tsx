@@ -80,12 +80,37 @@ export default function AdminPairingTab() {
     getSortedMatchCandidates,
   } = useAdminPairing()
 
-  const hasTimeSlotOverlap = (s1: string, s2: string) => {
-    if (!s1 || !s2) return false
+  const hasTimeSlotOverlap = (slot1: string, slot2: string): boolean => {
+    if (!slot1 || !slot2) return false
+
+    // Fast check for exact match
+    if (slot1 === slot2) return true
+
+    // Check if it's in HH-HH format (e.g. 06-09)
+    if (slot1.includes('-') && slot2.includes('-')) {
+      const parseSlot = (slot: string) => {
+        const [start, end] = slot.split('-').map(s => Number(s.trim()))
+        return { start, end }
+      }
+      try {
+        const s1 = parseSlot(slot1)
+        const s2 = parseSlot(slot2)
+        // Check overlap: start1 < end2 AND start2 < end1
+        return s1.start < s2.end && s2.start < s1.end
+      } catch (e) {
+        // Fallback if parsing fails
+      }
+    }
+
+    // Fallback for HH:MM formats
     const extractHours = (s: string): string[] => s.match(/\d{2}:\d{2}/g) || []
-    const h1: string[] = extractHours(s1)
-    const h2: string[] = extractHours(s2)
-    return h1.some(time => h2.includes(time))
+    const h1: string[] = extractHours(slot1)
+    const h2: string[] = extractHours(slot2)
+    if (h1.length > 0 && h2.length > 0) {
+      return h1.some(time => h2.includes(time))
+    }
+
+    return false
   }
 
   const renderMatchAnalysis = (request: any) => {
@@ -93,18 +118,42 @@ export default function AdminPairingTab() {
       if (!request.partner_details) return <span className="text-gray-400">Loading details...</span>
       const juzMatch = request.chosen_juz === request.partner_details.chosen_juz
       const zonaMatch = request.user_zona_waktu === request.partner_details.zona_waktu
-      const timeMatch = hasTimeSlotOverlap(request.main_time_slot, request.partner_details.main_time_slot)
+      
+      let timeMatchStatus = 0 // 0 = tidak cocok, 1 = cadangan, 2 = utama
+      let timeText = '✗'
+      
+      if (hasTimeSlotOverlap(request.main_time_slot, request.partner_details.main_time_slot)) {
+        timeMatchStatus = 2
+        timeText = 'Utama ✓'
+      } else if (
+        hasTimeSlotOverlap(request.main_time_slot, request.partner_details.backup_time_slot) ||
+        hasTimeSlotOverlap(request.backup_time_slot, request.partner_details.main_time_slot)
+      ) {
+        timeMatchStatus = 1
+        timeText = 'Cadangan ✓'
+      } else if (hasTimeSlotOverlap(request.backup_time_slot, request.partner_details.backup_time_slot)) {
+        timeMatchStatus = 1
+        timeText = 'Cadangan ✓'
+      }
+
+      const oral1 = Number(request.exam_score) || 0
+      const oral2 = Number(request.partner_details.oral_total_score) || 0
+      const oralDiff = Math.abs(oral1 - oral2)
+      const oralMatch = oralDiff >= 20
       
       return (
         <div className="flex flex-wrap gap-1">
-          <span className={`px-1.5 py-0.5 rounded text-[10px] ${juzMatch ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            Juz {juzMatch ? '✓' : '✗'}
+          <span className={`px-1.5 py-0.5 rounded text-[10px] ${timeMatchStatus > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            Waktu {timeText}
+          </span>
+          <span className={`px-1.5 py-0.5 rounded text-[10px] ${oralMatch ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+            Lisan {oralMatch ? 'Saling Melengkapi' : 'Setara'}
           </span>
           <span className={`px-1.5 py-0.5 rounded text-[10px] ${zonaMatch ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             Zona {zonaMatch ? '✓' : '✗'}
           </span>
-          <span className={`px-1.5 py-0.5 rounded text-[10px] ${timeMatch ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            Waktu {timeMatch ? '✓' : '✗'}
+          <span className={`px-1.5 py-0.5 rounded text-[10px] ${juzMatch ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            Juz {juzMatch ? '✓' : '✗'}
           </span>
         </div>
       )
@@ -113,20 +162,8 @@ export default function AdminPairingTab() {
     return (
       <div className="grid grid-cols-2 gap-x-2 gap-y-1">
         <div className="flex justify-between items-center text-[10px]">
-          <span className="text-gray-500">Perfect:</span>
-          <span className="font-semibold text-green-600">{request.perfect_matches || 0}</span>
-        </div>
-        <div className="flex justify-between items-center text-[10px]">
-          <span className="text-gray-500">Zona:</span>
-          <span className="font-semibold text-blue-600">{request.zona_waktu_matches || 0}</span>
-        </div>
-        <div className="flex justify-between items-center text-[10px]">
-          <span className="text-gray-500">Juz:</span>
-          <span className="font-semibold text-purple-600">{request.same_juz_matches || 0}</span>
-        </div>
-        <div className="flex justify-between items-center text-[10px]">
-          <span className="text-gray-500">Waktu:</span>
-          <span className="font-semibold text-orange-600">{(request.main_time_matches || 0) + (request.backup_time_matches || 0)}</span>
+          <span className="text-gray-500">Kandidat Total:</span>
+          <span className="font-semibold text-gray-700">{request.total_matches || 0}</span>
         </div>
       </div>
     )

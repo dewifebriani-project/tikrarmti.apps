@@ -22,6 +22,8 @@ export interface UserDetails {
   backup_time_slot: string
   tanggal_lahir?: string
   whatsapp?: string
+  exam_score?: number | null
+  oral_total_score?: number | null
 }
 
 export interface SelfMatchRequest {
@@ -41,6 +43,7 @@ export interface SelfMatchRequest {
   paired_partner_id?: string
   paired_partner_name?: string
   partner_details?: UserDetails
+  exam_score?: number | null
 }
 
 export interface SystemMatchRequest {
@@ -58,6 +61,8 @@ export interface SystemMatchRequest {
   partner_names?: string[]
   partner_details?: UserDetails
   batch_id?: string
+  exam_score?: number | null
+  oral_total_score?: number | null
 }
 
 export interface TarteelRequest {
@@ -112,6 +117,7 @@ export interface MatchCandidate {
   tanggal_lahir: string
   match_score: number
   match_reasons: string[]
+  oral_total_score?: number | null
 }
 
 export interface MatchData {

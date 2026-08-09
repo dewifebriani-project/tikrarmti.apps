@@ -106,6 +106,12 @@ export function MatchModal({
                       <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('backup_time_slot')}>
                         Waktu Cadangan {getSortIndicator('backup_time_slot')}
                       </th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('oral_total_score')}>
+                        Nilai Lisan {getSortIndicator('oral_total_score')}
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">
+                        Alasan Kecocokan
+                      </th>
                       <th className="px-4 py-2 text-center font-medium text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => onMatchSort('match_score')}>
                         Score {getSortIndicator('match_score')}
                       </th>
@@ -152,6 +158,18 @@ export function MatchModal({
                           <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                             {candidate.backup_time_slot || '-'}
                           </span>
+                        </td>
+                        <td className="px-4 py-2 text-center font-semibold text-gray-700">
+                          {candidate.oral_total_score !== undefined && candidate.oral_total_score !== null ? candidate.oral_total_score : '-'}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex flex-col gap-1 max-w-[200px]">
+                            {candidate.match_reasons?.map((reason, idx) => (
+                              <span key={idx} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded leading-tight">
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
                         </td>
                         <td className="px-4 py-2 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${

@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils'
 import { isStaff } from '@/lib/roles'
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal'
 import { GroupLinks } from '@/components/dashboard/GroupLinks'
+import { UserJadwalHarian } from '@/components/dashboard/UserJadwalHarian'
 
 export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
@@ -811,8 +812,16 @@ export default function DashboardContent() {
           </div>
         )}
 
-        {/* Muallimah Registration CTA - Muncul jika user belum mendaftar Muallimah di batch aktif */}
-        {!hasMuallimahReg && activeBatch && (
+        {/* Muallimah Registration CTA - Muncul jika user belum mendaftar Muallimah di batch aktif dan masih dalam masa pendaftaran */}
+        {(() => {
+          const isRegistrationPeriod = activeBatch &&
+            activeBatch.registration_start_date &&
+            activeBatch.registration_end_date &&
+            new Date(activeBatch.registration_start_date) <= new Date() &&
+            new Date(activeBatch.registration_end_date) >= new Date();
+
+          return !hasMuallimahReg && activeBatch && isRegistrationPeriod;
+        })() && (
           <div className="mb-8">
             <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-green-900/10 overflow-hidden bg-gradient-to-br from-white to-green-50 ring-1 ring-green-100/50">
               <CardContent className="p-0">
@@ -958,6 +967,9 @@ export default function DashboardContent() {
           })()}
         </div>
       </div>
+
+      {/* Jadwal Harian Section */}
+      <UserJadwalHarian user={user} activeBatch={activeBatch} daftarUlangData={daftarUlangData} />
 
       {/* Group Links Section */}
       {hasPhase3 && (

@@ -57,7 +57,7 @@ export default function AdminJadwalHarianTab() {
     if (user) {
       fetchSchedule();
     }
-  }, [activeDay, user]);
+  }, [user]);
 
   const fetchSchedule = async () => {
     setIsLoading(true);
@@ -78,7 +78,7 @@ export default function AdminJadwalHarianTab() {
       const { data: links } = await supabase.from('batch_zoom_links').select('id, name').eq('batch_id', batch.id).order('name');
       setZoomLinks(links || []);
 
-      // 2. Get halaqahs for this batch and day
+      // 2. Get ALL halaqahs for this batch (to enable global search)
       const { data: halaqahData, error } = await supabase
         .from('halaqah')
         .select(`
@@ -97,9 +97,7 @@ export default function AdminJadwalHarianTab() {
           students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
         `)
         .eq('program.batch_id', batch.id)
-        .eq('day_of_week', activeDay)
-        .eq('status', 'active')
-        .order('start_time', { ascending: true });
+        .eq('status', 'active');
 
       if (error) throw error;
 
@@ -113,28 +111,17 @@ export default function AdminJadwalHarianTab() {
 
       // Daftar Ulang uses confirmed_full_name. Use the same approved, batch-scoped
       // value in Jadwal Harian so the roster name is identical everywhere.
-      const activeStudentIds = Array.from(new Set(
-        filteredData.flatMap((h: any) =>
-          (h.students || [])
-            .filter((s: any) => s.status === 'active')
-            .map((s: any) => s.thalibah_id)
-        ).filter(Boolean)
-      )) as string[];
-
       const confirmedNameMap = new Map<string, string>();
-      if (activeStudentIds.length > 0) {
-        const { data: approvedSubmissions } = await supabase
-          .from('daftar_ulang_submissions')
-          .select('user_id, confirmed_full_name, updated_at')
-          .eq('batch_id', batch.id)
-          .eq('status', 'approved')
-          .in('user_id', activeStudentIds)
-          .order('updated_at', { ascending: false });
+      const { data: approvedSubmissions } = await supabase
+        .from('daftar_ulang_submissions')
+        .select('user_id, confirmed_full_name, updated_at')
+        .eq('batch_id', batch.id)
+        .eq('status', 'approved')
+        .order('updated_at', { ascending: false });
 
-        for (const submission of approvedSubmissions || []) {
-          if (submission.confirmed_full_name && !confirmedNameMap.has(submission.user_id)) {
-            confirmedNameMap.set(submission.user_id, submission.confirmed_full_name);
-          }
+      for (const submission of approvedSubmissions || []) {
+        if (submission.confirmed_full_name && !confirmedNameMap.has(submission.user_id)) {
+          confirmedNameMap.set(submission.user_id, submission.confirmed_full_name);
         }
       }
 
@@ -235,16 +222,24 @@ export default function AdminJadwalHarianTab() {
   const praTikrarPosterRef = useRef<HTMLDivElement>(null);
   const [generatingPoster, setGeneratingPoster] = useState<'tikrar' | 'pra_tikrar' | null>(null);
 
-  const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz');
-  const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz');
+  const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz' && h.day_of_week === activeDay);
+  const praTikrarHalaqahs = halaqahs.filter(h => h.class_type === 'pra_tahfidz' && h.day_of_week === activeDay);
   const activeProgramHalaqahs = programTab === 'tikrar' ? tikrarHalaqahs : praTikrarHalaqahs;
 
   const filteredAndSortedHalaqahs = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase('id-ID');
-    const filtered = activeProgramHalaqahs.filter((halaqah) => {
+    
+    // Filter globally if there is a search query, otherwise filter by active day and program
+    let baseHalaqahs = halaqahs;
+    if (!query) {
+      baseHalaqahs = activeProgramHalaqahs;
+    }
+
+    const filtered = baseHalaqahs.filter((halaqah) => {
       if (!query) return true;
       const searchableText = [
         halaqah.name,
+        DAYS.find(d => d.id === halaqah.day_of_week)?.name,
         halaqah.muallimah?.full_name,
         halaqah.preferred_juz,
         halaqah.zoom_name,
@@ -255,13 +250,19 @@ export default function AdminJadwalHarianTab() {
 
     return [...filtered].sort((a, b) => {
       let comparison = 0;
-      if (sortField === 'time') comparison = (a.start_time || '').localeCompare(b.start_time || '');
+      if (sortField === 'time') {
+        if (query && a.day_of_week !== b.day_of_week) {
+           comparison = (a.day_of_week || 0) - (b.day_of_week || 0);
+        } else {
+           comparison = (a.start_time || '').localeCompare(b.start_time || '');
+        }
+      }
       if (sortField === 'class') comparison = (a.name || '').localeCompare(b.name || '', 'id-ID');
       if (sortField === 'muallimah') comparison = (a.muallimah?.full_name || '').localeCompare(b.muallimah?.full_name || '', 'id-ID');
       if (sortField === 'students') comparison = (a.students?.length || 0) - (b.students?.length || 0);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [activeProgramHalaqahs, searchQuery, sortField, sortOrder]);
+  }, [halaqahs, activeProgramHalaqahs, searchQuery, sortField, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage));
   const paginatedHalaqahs = filteredAndSortedHalaqahs.slice(
@@ -600,6 +601,11 @@ export default function AdminJadwalHarianTab() {
                     <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="flex flex-col gap-1.5">
+                          {searchQuery && (
+                            <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5 bg-emerald-50 w-fit px-2 py-0.5 rounded-md">
+                              {DAYS.find(d => d.id === halaqah.day_of_week)?.name || '-'}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-gray-900 font-medium">
                             <Clock className="h-4 w-4 text-gray-400" />
                             {formatTimeShort(halaqah.start_time)} - {formatTimeShort(halaqah.end_time)} WIB

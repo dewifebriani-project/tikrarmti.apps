@@ -102,6 +102,9 @@ export function SystemMatchTab({
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   W. Cadangan
                 </th>
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => onSort('exam_score')}>
+                  N. Lisan {getSortIndicator('exam_score')}
+                </th>
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Analisis Kecocokan
                 </th>
@@ -156,6 +159,9 @@ export function SystemMatchTab({
                     <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                       {request.backup_time_slot || '-'}
                     </span>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center font-semibold text-gray-700">
+                    {request.exam_score !== undefined && request.exam_score !== null ? request.exam_score : '-'}
                   </td>
                   <td className="px-2 py-2 text-xs text-gray-700 min-w-[300px]">
                     {renderMatchAnalysis(request)}

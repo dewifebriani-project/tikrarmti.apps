@@ -85,6 +85,11 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
                           <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
                             Cadangan: {request.backup_time_slot}
                           </span>
+                          {request.exam_score !== undefined && request.exam_score !== null && (
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded font-medium">
+                              Lisan: {request.exam_score}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -138,6 +143,11 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject }: Pr
                           <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
                             Cadangan: {request.partner_details?.backup_time_slot || '-'}
                           </span>
+                          {request.partner_details?.exam_score !== undefined && request.partner_details?.exam_score !== null && (
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded font-medium">
+                              Lisan: {request.partner_details.exam_score}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

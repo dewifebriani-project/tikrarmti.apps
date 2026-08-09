@@ -83,7 +83,8 @@ export async function GET(request: Request) {
           main_time_slot,
           backup_time_slot,
           timezone,
-          exam_score
+          exam_score,
+          oral_total_score
         ),
         batch:batches!daftar_ulang_submissions_batch_id_fkey (
           id,
@@ -196,7 +197,7 @@ export async function GET(request: Request) {
     // Fetch registration data for paired users (to get time slots and juz)
     const { data: pairedUsersRegistrations } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
+      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone, oral_total_score')
       .eq('batch_id', batchId || '')
       .in('user_id', relatedUserIds)
 
@@ -261,7 +262,7 @@ export async function GET(request: Request) {
         chosen_juz: registrations?.[0]?.chosen_juz,
         main_time_slot: registrations?.[0]?.main_time_slot,
         backup_time_slot: registrations?.[0]?.backup_time_slot,
-        exam_score: registrations?.[0]?.exam_score,
+        exam_score: registrations?.[0]?.oral_total_score,
         partner_type: submission.partner_type,
         partner_user_id: submission.partner_user_id,
         partner_name: submission.partner_name,
@@ -313,6 +314,7 @@ export async function GET(request: Request) {
               chosen_juz: partnerRegistration?.chosen_juz || 'N/A',
               main_time_slot: partnerRegistration?.main_time_slot || 'N/A',
               backup_time_slot: partnerRegistration?.backup_time_slot || 'N/A',
+              exam_score: partnerRegistration?.oral_total_score,
               is_registered_in_batch: !!partnerRegistration,
             } : null,
             is_mutual_match: isMutualMatch,
@@ -353,6 +355,8 @@ export async function GET(request: Request) {
               zona_waktu: partnerRegistration.timezone || 'WIB',
               main_time_slot: partnerRegistration.main_time_slot || 'N/A',
               backup_time_slot: partnerRegistration.backup_time_slot || 'N/A',
+              exam_score: partnerRegistration.oral_total_score,
+              oral_total_score: partnerRegistration.oral_total_score,
             }
           }
         }

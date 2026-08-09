@@ -232,7 +232,7 @@ export function PairingDetailModal({
                       hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'bg-green-500' : 'bg-red-500'
                     }`}></div>
                     <span>
-                      Waktu Utama: {hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'Cocok ✓' : 'Tidak cocok'}
+                      Waktu Utama: {hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'Cocok ✓' : 'Tidak cocok ✗'}
                     </span>
                   </div>
                 </div>

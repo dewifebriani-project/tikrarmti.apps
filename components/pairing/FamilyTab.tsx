@@ -51,6 +51,9 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   W. Cadangan
                 </th>
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  N. Lisan
+                </th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Detail Pasangan
                 </th>
@@ -106,6 +109,9 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                     <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                       {request.backup_time_slot || '-'}
                     </span>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center font-semibold text-gray-700">
+                    {request.exam_score !== undefined && request.exam_score !== null ? request.exam_score : '-'}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-700 max-w-xs">
                     <div className="space-y-1">
