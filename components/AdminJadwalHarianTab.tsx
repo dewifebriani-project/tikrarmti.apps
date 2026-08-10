@@ -220,8 +220,6 @@ export default function AdminJadwalHarianTab() {
     return date;
   };
 
-  const tikrarPosterRef = useRef<HTMLDivElement>(null);
-  const praTikrarPosterRef = useRef<HTMLDivElement>(null);
   const [generatingPoster, setGeneratingPoster] = useState<'tikrar' | 'pra_tikrar' | null>(null);
 
   const tikrarHalaqahs = halaqahs.filter(h => h.class_type !== 'pra_tahfidz' && (activeDay === 0 || h.day_of_week === activeDay));
@@ -781,7 +779,7 @@ export default function AdminJadwalHarianTab() {
                                 Reminder Muallimah
                               </button>
                               <button
-                                onClick={() => handleDownloadTerimaKasih(halaqah.muallimah?.full_name)}
+                                onClick={() => handleDownloadTerimaKasih(halaqah.muallimah?.full_name || '')}
                                 className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 col-span-2 mt-1"
                               >
                                 <ImageIcon className="h-3 w-3" />
