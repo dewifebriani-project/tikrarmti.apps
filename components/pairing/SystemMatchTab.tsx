@@ -41,11 +41,11 @@ export function SystemMatchTab({
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Request Dipasangkan Sistem
         </h3>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <span className="text-sm text-gray-600">{requests.length} permintaan</span>
           <button
             onClick={onBulkPair}
@@ -59,14 +59,14 @@ export function SystemMatchTab({
             <Users className="w-3.5 h-3.5" />
             Cari Pasangan Massal
           </button>
-          {requests.some(r => !r.is_paired) && (
+          {requests.length > 0 && (
             <button
               onClick={onRevertAll}
               className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1.5 text-xs font-medium shadow-sm"
-              title="Hanya revert thalibah yang belum dipasangkan. Yang sudah punya pasangan tidak terpengaruh."
+              title="Revert semua thalibah di tab Sistem Match (termasuk yang sudah dipasangkan)"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Revert Belum Dipasangkan ({requests.filter(r => !r.is_paired).length})
+              Revert Semua ({requests.length})
             </button>
           )}
         </div>
@@ -109,7 +109,7 @@ export function SystemMatchTab({
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Analisis Kecocokan
                 </th>
-                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                   Aksi
                 </th>
               </tr>
@@ -167,7 +167,7 @@ export function SystemMatchTab({
                   <td className="px-2 py-2 text-xs text-gray-700 min-w-[300px]">
                     {renderMatchAnalysis(request)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                     {!request.is_paired ? (
                       <div className="flex items-center justify-center gap-1 flex-wrap">
                         <button

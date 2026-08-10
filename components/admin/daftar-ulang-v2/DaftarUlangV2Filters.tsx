@@ -7,18 +7,21 @@ import { cn } from '@/lib/utils';
 interface DaftarUlangV2FiltersProps {
   searchQuery: string;
   batchId: string;
-  status: string;
-  pairingStatus: string;
+  submissionStatus: string;
+  akadStatus: string;
+  halaqahStatus: string;
   onChange: (filters: { 
     search: string; 
     batchId: string; 
-    status: string;
-    pairingStatus: string;
+    submissionStatus: string;
+    akadStatus: string;
+    halaqahStatus: string;
     juz: string;
   }) => void;
   onRefresh: () => void;
   isLoading: boolean;
   batches: any[];
+  juzOptions: any[];
   onDownloadExcel: () => void;
   onDownloadPDF: () => void;
   onDownloadVCF: () => void;
@@ -31,12 +34,14 @@ interface DaftarUlangV2FiltersProps {
 export function DaftarUlangV2Filters({ 
   searchQuery,
   batchId,
-  status,
-  pairingStatus,
+  submissionStatus,
+  akadStatus,
+  halaqahStatus,
   onChange,
   onRefresh, 
   isLoading, 
   batches,
+  juzOptions,
   onDownloadExcel,
   onDownloadPDF,
   onDownloadVCF,
@@ -47,7 +52,7 @@ export function DaftarUlangV2Filters({
 }: DaftarUlangV2FiltersProps) {
   
   const handleClear = () => {
-    onChange({ search: '', batchId: 'all', status: 'all', pairingStatus: 'all', juz: 'all' });
+    onChange({ search: '', batchId: 'all', submissionStatus: 'all', akadStatus: 'all', halaqahStatus: 'all', juz: 'all' });
   };
 
   return (
@@ -63,12 +68,12 @@ export function DaftarUlangV2Filters({
               type="text"
               placeholder="Cari Nama, Email, WhatsApp..."
               value={searchQuery}
-              onChange={(e) => onChange({ search: e.target.value, batchId, status, pairingStatus, juz })}
+              onChange={(e) => onChange({ search: e.target.value, batchId, submissionStatus, akadStatus, halaqahStatus, juz })}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all text-sm font-medium"
             />
             {searchQuery && (
               <button
-                onClick={() => onChange({ search: '', batchId, status, pairingStatus, juz })}
+                onClick={() => onChange({ search: '', batchId, submissionStatus, akadStatus, halaqahStatus, juz })}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
@@ -82,7 +87,7 @@ export function DaftarUlangV2Filters({
               <Award className="h-4 w-4 text-gray-500" />
               <select
                 value={batchId}
-                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, status, pairingStatus, juz })}
+                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, submissionStatus, akadStatus, halaqahStatus, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Batch</option>
@@ -95,11 +100,26 @@ export function DaftarUlangV2Filters({
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-gray-500" />
               <select
-                value={status}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value, pairingStatus, juz })}
+                value={submissionStatus}
+                onChange={(e) => onChange({ search: searchQuery, batchId, submissionStatus: e.target.value, akadStatus, halaqahStatus, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
-                <option value="all">Semua Status Akad</option>
+                <option value="all">Status Pendaftaran</option>
+                <option value="draft">Draft</option>
+                <option value="submitted">Submitted</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <select
+                value={akadStatus}
+                onChange={(e) => onChange({ search: searchQuery, batchId, submissionStatus, akadStatus: e.target.value, halaqahStatus, juz })}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
+              >
+                <option value="all">Status Akad</option>
                 <option value="draft">Draft</option>
                 <option value="submitted">Submitted</option>
                 <option value="approved">Approved</option>
@@ -110,15 +130,13 @@ export function DaftarUlangV2Filters({
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-500" />
               <select
-                value={pairingStatus}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus: e.target.value, juz })}
+                value={halaqahStatus}
+                onChange={(e) => onChange({ search: searchQuery, batchId, submissionStatus, akadStatus, halaqahStatus: e.target.value, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
-                <option value="all">Semua Partner</option>
-                <option value="mutual">Mutual (Saling Pilih)</option>
-                <option value="system_match">System Match (Sistem)</option>
-                <option value="self_match">Self Match (Mandiri)</option>
-                <option value="no_partner">Belum Ada Partner</option>
+                <option value="all">Status Halaqah</option>
+                <option value="has_halaqah">Sudah Ada Halaqah</option>
+                <option value="no_halaqah">Belum Ada Halaqah</option>
               </select>
             </div>
 
@@ -126,12 +144,14 @@ export function DaftarUlangV2Filters({
               <BookOpen className="h-4 w-4 text-gray-500" />
               <select
                 value={juz}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus, juz: e.target.value })}
+                onChange={(e) => onChange({ search: searchQuery, batchId, submissionStatus, akadStatus, halaqahStatus, juz: e.target.value })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Juz</option>
-                {[...Array(30)].map((_, i) => (
-                  <option key={i+1} value={String(i+1)}>Juz {i+1}</option>
+                {juzOptions.map((option) => (
+                  <option key={option.id} value={option.code}>
+                    Juz {option.code}
+                  </option>
                 ))}
               </select>
             </div>
@@ -145,7 +165,7 @@ export function DaftarUlangV2Filters({
               <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
             </button>
 
-            {(searchQuery || batchId !== 'all' || status !== 'all' || pairingStatus !== 'all') && (
+            {(searchQuery || batchId !== 'all' || submissionStatus !== 'all' || akadStatus !== 'all' || halaqahStatus !== 'all' || juz !== 'all') && (
               <button
                 onClick={handleClear}
                 className="text-sm font-bold text-red-600 hover:text-red-700 px-2"

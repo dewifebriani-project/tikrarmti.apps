@@ -822,20 +822,21 @@ export function HalaqahManagementTab() {
         const user = s.user || {};
         const reg = s.registration || {};
         
-        const juzStr = s.confirmed_chosen_juz || reg.chosen_juz || 'Tanpa Juz';
+        const rawJuzStr = s.confirmed_chosen_juz || reg.chosen_juz || 'Tanpa Juz';
+        const juzStr = getJuzCode(rawJuzStr); // Normalize juz string to code
         const halaqahName = s.ujian_halaqah?.name || '-';
         
         const thalibahData = {
           name: s.confirmed_full_name || user.full_name || '-',
           usia: calculateAge(user.tanggal_lahir || reg.birth_date),
-          juzCode: getJuzCode(juzStr),
+          juzCode: juzStr,
           halaqahName: halaqahName,
           whatsapp: user.whatsapp || user.phone || '-',
           status: s.status
         };
         
         if (!juzMap.has(juzStr)) {
-          juzMap.set(juzStr, { juzName: juzStr, thalibah: [] });
+          juzMap.set(juzStr, { juzName: `Juz ${juzStr}`, thalibah: [] });
         }
         juzMap.get(juzStr).thalibah.push(thalibahData);
       });

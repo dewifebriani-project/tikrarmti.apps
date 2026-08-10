@@ -14,12 +14,12 @@ interface Props {
 export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge, onBulkApprove }: Props) {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Home className="w-5 h-5 text-amber-600" />
           Request Pasangan Family
         </h3>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <span className="text-sm text-gray-600">{requests.length} permintaan</span>
           {requests.some(r => !r.is_paired) && (
             <button
@@ -73,7 +73,7 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                   Aksi
                 </th>
               </tr>
@@ -123,8 +123,8 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                       {request.backup_time_slot || '-'}
                     </span>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center font-semibold text-gray-700">
-                    {request.exam_score !== undefined && request.exam_score !== null ? request.exam_score : '-'}
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                    <span className="font-semibold text-gray-700">{request.exam_score !== undefined && request.exam_score !== null ? request.exam_score : '-'}</span>
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-700 max-w-xs">
                     <div className="space-y-1">
@@ -152,9 +152,9 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-center text-xs">
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                     {request.is_paired ? (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                         Dipasangkan
                       </span>
                     ) : (
@@ -163,7 +163,7 @@ export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, 
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-center text-sm">
+                  <td className="px-2 py-2 whitespace-nowrap text-center text-sm sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
                     {!request.is_paired ? (
                       <div className="flex items-center justify-center gap-1 flex-wrap">
                         <button

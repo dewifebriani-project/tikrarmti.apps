@@ -20,11 +20,11 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBu
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Request Pasangan Sendiri
         </h3>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
           <span className="text-sm text-gray-600">{safeRequests.length} permintaan</span>
           {safeRequests.some(r => r.is_mutual_match && !r.is_paired) && (
             <button
@@ -91,9 +91,9 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBu
               )}
 
               <div className="p-4">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col lg:flex-row items-center gap-4">
                   {/* User 1 Card */}
-                  <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="w-full lg:flex-1 bg-white rounded-lg border border-gray-200 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-blue-600 font-semibold text-sm">1</span>
@@ -144,7 +144,7 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBu
                   </div>
 
                   {/* User 2 Card */}
-                  <div className="flex-1 bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="w-full lg:flex-1 bg-white rounded-lg border border-gray-200 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                         <span className="text-purple-600 font-semibold text-sm">2</span>

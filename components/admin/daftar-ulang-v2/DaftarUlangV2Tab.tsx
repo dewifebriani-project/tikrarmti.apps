@@ -28,6 +28,7 @@ import {
   Database,
   ArrowLeft
 } from 'lucide-react';
+import { getJuzOptionsAdmin } from '@/app/(protected)/admin/actions';
 import { DaftarUlangHalaqahTab } from '@/components/DaftarUlangHalaqahTab';
 import { EditDaftarUlangModal } from './EditDaftarUlangModal';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
@@ -90,9 +91,12 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject'>('approve');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPairing, setFilterPairing] = useState('all');
+  const [filterAkadStatus, setFilterAkadStatus] = useState('all');
+  const [filterSubmissionStatus, setFilterSubmissionStatus] = useState('all');
+  const [filterHalaqahStatus, setFilterHalaqahStatus] = useState('all');
   const [filterJuz, setFilterJuz] = useState('all');
+  
+  const [juzOptions, setJuzOptions] = useState<any[]>([]);
 
   // Local batch filter state
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -119,6 +123,25 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       }
     } catch (error) {
       console.error('[DaftarUlangTab] Error loading batches:', error);
+    }
+  };
+
+  const loadJuzOptions = async () => {
+    try {
+      if (localBatchId && localBatchId !== 'all') {
+        const res = await fetch(`/api/admin/batch/${localBatchId}/juz`);
+        const result = await res.json();
+        if (result.success && result.data) {
+          setJuzOptions(result.data.filter((j: any) => j.is_mapped_to_batch));
+        }
+      } else {
+        const result = await getJuzOptionsAdmin();
+        if (result.success && result.data) {
+          setJuzOptions(result.data.filter((j: any) => j.is_active));
+        }
+      }
+    } catch (error) {
+      console.error('[DaftarUlangTab] Error loading juz options:', error);
     }
   };
 
@@ -174,8 +197,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       // Build query params
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
-      if (filterStatus !== 'all') params.append('akad_status', filterStatus);
-      if (filterPairing !== 'all') params.append('partner_status', filterPairing);
+      if (filterAkadStatus !== 'all') params.append('akad_status', filterAkadStatus);
+      if (filterSubmissionStatus !== 'all') params.append('status', filterSubmissionStatus);
+      if (filterHalaqahStatus !== 'all') params.append('halaqah_status', filterHalaqahStatus);
       if (filterJuz !== 'all') params.append('juz', filterJuz);
 
       // If searching, load all data. Otherwise use pagination.
@@ -222,7 +246,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   // Load all submissions for download (with complete data from pendaftaran_tikrar_tahfidz)
   const loadAllSubmissionsForDownload = async () => {
@@ -651,8 +677,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-  // Download PDF
-  
   // Download VCF
   const downloadVCF = async () => {
     setDownloadingVCF(true);
@@ -801,7 +825,9 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       
       sortedData.forEach(item => {
         const registration = item.registration || {};
-        const juzStr = item.confirmed_chosen_juz || registration.chosen_juz || 'Tanpa Juz';
+        const rawJuzStr = item.confirmed_chosen_juz || registration.chosen_juz || 'Tanpa Juz';
+        const juzStr = getJuzCode(rawJuzStr); // Normalize juz string to code
+        
         if (!juzMap.has(juzStr)) {
           juzMap.set(juzStr, []);
         }
@@ -902,12 +928,15 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-
-
   // Load batches on mount
   useEffect(() => {
     loadBatches();
   }, []);
+
+  // Load juz options when batch changes
+  useEffect(() => {
+    loadJuzOptions();
+  }, [localBatchId]);
 
   // Load statistics when batch changes or refresh triggers
   useEffect(() => {
@@ -917,7 +946,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   // Load submissions when batch changes, page changes, or refresh triggers
   useEffect(() => {
     loadSubmissions();
-  }, [localBatchId, filterStatus, refreshTrigger, currentPage]);
+  }, [localBatchId, filterSubmissionStatus, filterAkadStatus, filterHalaqahStatus, filterJuz, refreshTrigger, currentPage]);
 
   // Debounced search effect
   useEffect(() => {
@@ -958,8 +987,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       </span>
     );
   };
-
-
 
   // Sorted submissions for display
   const sortedSubmissions = useMemo(() => {
@@ -1086,7 +1113,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       </a>
     );
   };
-
   
   const handleResetAkad = async (submissionId: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus file akad dan menolak pendaftaran ini? Thalibah harus mengupload ulang akadnya.')) {
@@ -1142,8 +1168,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-
-
   // Handlers for V2 Components
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -1162,7 +1186,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
     setSelectedIds(newSelected);
   };
-
 
   const handleEdit = (submission: DaftarUlangSubmission) => {
     setEditingSubmission(submission);
@@ -1306,34 +1329,8 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
 
   // Derived final submissions
-  const filteredByStatus = useMemo(() => {
-    return submissions.filter(s => {
-      const akadStatus = s.akad_status || s.status;
-      const matchStatus = filterStatus === 'all' || akadStatus === filterStatus;
-      
-      let matchPairing = true;
-      if (filterPairing !== 'all') {
-        const partnerStatus = s.partner_status || s.status;
-        matchPairing = partnerStatus === filterPairing;
-      }
-
-      let matchSearch = true;
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const fullName = (s.confirmed_full_name || s.user?.full_name || '').toLowerCase();
-        const email = (s.user?.email || '').toLowerCase();
-        const wa = ((s as any).confirmed_wa_phone || s.user?.whatsapp || '').toLowerCase();
-        const juz = (s.confirmed_chosen_juz || s.registration?.chosen_juz || '').toLowerCase();
-        
-        matchSearch = fullName.includes(query) || email.includes(query) || wa.includes(query) || juz.includes(query);
-      }
-      
-      return matchStatus && matchPairing && matchSearch;
-    });
-  }, [submissions, filterStatus, filterPairing, searchQuery]);
-
   const finalSubmissions = useMemo(() => {
-    return [...filteredByStatus].sort((a, b) => {
+    return [...submissions].sort((a, b) => {
       // Basic sorting mapped from the v2 table
       if (sortField === 'name') {
         const aName = a.confirmed_full_name || a.user?.full_name || '';
@@ -1387,7 +1384,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       }
       return 0;
     });
-  }, [filteredByStatus, sortField, sortOrder]);
+  }, [submissions, sortField, sortOrder]);
 
 
   return (
@@ -1410,17 +1407,20 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       <DaftarUlangV2Filters 
         searchQuery={searchQuery}
         batchId={localBatchId}
-        status={filterStatus}
-        pairingStatus={filterPairing}
+        submissionStatus={filterSubmissionStatus}
+        akadStatus={filterAkadStatus}
+        halaqahStatus={filterHalaqahStatus}
         juz={filterJuz}
         batches={batches}
-        onRefresh={loadSubmissions}
+        juzOptions={juzOptions}
+        onRefresh={handleRefresh}
         isLoading={loading}
         onChange={(filters) => {
           setSearchQuery(filters.search);
           setLocalBatchId(filters.batchId);
-          setFilterStatus(filters.status);
-          setFilterPairing(filters.pairingStatus);
+          setFilterSubmissionStatus(filters.submissionStatus);
+          setFilterAkadStatus(filters.akadStatus);
+          setFilterHalaqahStatus(filters.halaqahStatus);
           setFilterJuz(filters.juz);
           setCurrentPage(1);
         }}

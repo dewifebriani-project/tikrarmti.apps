@@ -610,18 +610,18 @@ function PresensiJurnalContent() {
                   }
 
                   if (activeTab === 'blacklist') {
-                    const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
+                    const blacklisted = (tashihEntries || []).filter(e => e?.user?.is_blacklisted);
                     return blacklisted.length > 0 
                       ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
                       : 0;
                   }
                   if (activeTab === 'presensi') {
-                    const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
+                    const active = (tashihEntries || []).filter(e => e && !e.user?.is_blacklisted);
                     return active.length > 0
                       ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
                       : 0;
                   }
-                  const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
+                  const active = (jurnalEntries || []).filter(e => e && !e.user?.is_blacklisted);
                   return active.length > 0
                     ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
                     : 0;

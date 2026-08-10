@@ -642,35 +642,45 @@ export function useAdminPairing() {
 
   const handleRevertAllPairings = async () => {
     if (!selectedBatchId) return
+    const pairedCount = systemMatchRequests.filter(r => r.is_paired).length
     const unpairedCount = systemMatchRequests.filter(r => !r.is_paired).length
-    if (unpairedCount === 0) return toast.error('Semua thalibah sudah dipasangkan, tidak ada yang perlu di-revert')
+    const totalCount = pairedCount + unpairedCount
+    
+    if (totalCount === 0) return toast.error('Tidak ada request yang perlu di-revert')
     if (!window.confirm(
-      `Anda yakin ingin me-revert ${unpairedCount} thalibah yang BELUM dipasangkan?\n\nThalibah yang sudah punya pasangan TIDAK akan terpengaruh.`
+      `Anda yakin ingin me-revert SEMUA thalibah di tab Sistem Match (${totalCount} orang)?\n\n- ${pairedCount} orang yang SUDAH dipasangkan akan dihapus pasangannya.\n- ${unpairedCount} orang yang BELUM dipasangkan akan dibatalkan requestnya.`
     )) return
-    const toastId = toast.loading(`Me-revert ${unpairedCount} thalibah yang belum dipasangkan...`)
+    
+    const toastId = toast.loading(`Me-revert ${totalCount} thalibah...`)
     try {
-      // Get IDs of unpaired users only
-      const unpairedUserIds = systemMatchRequests
-        .filter(r => !r.is_paired)
-        .map(r => r.user_id)
+      // Get IDs of ALL system match users to reset their partner_type
+      const allUserIds = systemMatchRequests.map(r => r.user_id)
 
-      const resp = await fetch(`/api/admin/pairing/delete`, {
+      // First, delete all system_match pairings using userId='all'
+      const resp1 = await fetch(`/api/admin/pairing/delete?user_id=all&batch_id=${selectedBatchId}&pairing_type=system_match`, {
+        method: 'DELETE',
+      })
+      
+      // Then, also clear the partner_type for all users in this tab
+      const resp2 = await fetch(`/api/admin/pairing/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_ids: unpairedUserIds,
+          user_ids: allUserIds,
           batch_id: selectedBatchId,
           pairing_type: 'system_match',
-          unpaired_only: true
+          unpaired_only: true // This will clear partner_type for anyone not in a pairing anymore
         }),
         cache: 'no-store'
       })
-      const result = await resp.json()
-      if (result.success) {
-        toast.success(`Berhasil me-revert ${unpairedUserIds.length} thalibah yang belum dipasangkan!`, { id: toastId })
+      
+      if (resp1.ok || resp2.ok) {
+        toast.success(`Berhasil me-revert semua thalibah!`, { id: toastId })
         loadPairingRequests()
         loadStatistics()
-      } else toast.error(result.error || 'Gagal me-revert', { id: toastId })
+      } else {
+        toast.error('Gagal me-revert sebagian/seluruh data', { id: toastId })
+      }
     } catch (error) {
       toast.error('Gagal me-revert', { id: toastId })
     }

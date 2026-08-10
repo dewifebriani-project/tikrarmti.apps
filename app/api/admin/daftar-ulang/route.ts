@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');
     const akadStatus = searchParams.get('akad_status');
-    const partnerStatus = searchParams.get('partner_status');
+    const halaqahStatus = searchParams.get('halaqah_status');
     const juz = searchParams.get('juz');
 
-    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus, partnerStatus, juz });
+    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus, halaqahStatus, juz });
 
     // Build query - get ALL fields from all tables
     let query = supabaseAdmin
@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('akad_status', akadStatus);
     }
     
-    // partnerStatus and juz will be filtered in memory later
-    const hasMemoryFilter = (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) || (juz && juz !== 'all');
+    // halaqahStatus and juz will be filtered in memory later
+    const hasMemoryFilter = (halaqahStatus && halaqahStatus !== 'all') || (juz && juz !== 'all');
 
     // We don't apply pagination here if memory filters are present
     if (!hasMemoryFilter) {
@@ -234,14 +234,15 @@ export async function GET(request: NextRequest) {
     // IN-MEMORY FILTER FOR PARTNER STATUS AND JUZ
     let totalCount = 0;
     
-    const doMemoryFilter = (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) || (juz && juz !== 'all');
+    const doMemoryFilter = (halaqahStatus && halaqahStatus !== 'all') || (juz && juz !== 'all');
     
     if (doMemoryFilter) {
       dataWithPartners = dataWithPartners.filter((s: any) => {
         let match = true;
-        if (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
-          const ps = s.partner_status || s.status;
-          if (ps !== partnerStatus) match = false;
+        if (halaqahStatus && halaqahStatus !== 'all') {
+          const hasHalaqah = !!(s.ujian_halaqah_id || s.tashih_halaqah_id);
+          if (halaqahStatus === 'has_halaqah' && !hasHalaqah) match = false;
+          if (halaqahStatus === 'no_halaqah' && hasHalaqah) match = false;
         }
         if (juz && juz !== 'all') {
           const sJuz = s.confirmed_chosen_juz || s.registration?.chosen_juz;
