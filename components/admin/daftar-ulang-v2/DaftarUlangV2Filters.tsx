@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet, Users, BookOpen } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet, Users, BookOpen, FileText, RotateCcw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
