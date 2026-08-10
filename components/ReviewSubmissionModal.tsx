@@ -548,10 +548,7 @@ export function ReviewSubmissionModal({
     const isTimezoneMatch = (currentUser?.zona_waktu || 'WIB').toUpperCase() === (partner?.zona_waktu || 'WIB').toUpperCase();
 
     // Add Lisan match
-    const oral1 = Number(currentUser?.exam_score) || 0;
-    const oral2 = Number(partner?.exam_score) || 0;
-    const oralDiff = Math.abs(oral1 - oral2);
-    const oralMatch = oralDiff >= 20;
+
 
     return (
       <div className="space-y-8">
@@ -667,26 +664,7 @@ export function ReviewSubmissionModal({
                 </div>
               </div>
 
-              {/* Lisan Match */}
-              <div className={cn(
-                "p-5 rounded-3xl border transition-all",
-                oralMatch ? "bg-emerald-50 border-emerald-100" : "bg-amber-50 border-amber-100"
-              )}>
-                <div className="flex items-start gap-4">
-                  <div className={cn("p-2 rounded-xl flex-shrink-0", oralMatch ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600")}>
-                    <Star className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Nilai Lisan</p>
-                    <p className={cn("text-xs font-black", oralMatch ? "text-emerald-700" : "text-amber-700")}>
-                      {oralMatch ? 'Saling Melengkapi ✓' : 'Setara'}
-                    </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5 leading-tight">
-                      Nilai Pasangan: {oral2}
-                    </p>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
         ) : (

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
@@ -44,8 +46,10 @@ export async function GET(request: Request) {
       batchId = registration.batch_id
     }
 
-    // 4. Find user's pairing
-    const { data: pairing, error: pairingError } = await supabase
+    const supabaseAdmin = createSupabaseAdmin();
+
+    // 4. Find user's pairing using admin to avoid RLS issues
+    const { data: pairing, error: pairingError } = await supabaseAdmin
       .from('study_partners')
       .select('*')
       .or(`user_1_id.eq.${user.id},user_2_id.eq.${user.id},user_3_id.eq.${user.id}`)
@@ -56,7 +60,7 @@ export async function GET(request: Request) {
     if (pairingError) throw pairingError
 
     // 11. Get submission data for family/tarteel/self_match partner details
-    const { data: submissionData } = await supabase
+    const { data: submissionData } = await supabaseAdmin
       .from('daftar_ulang_submissions')
       .select('id, partner_name, partner_relationship, partner_notes, partner_wa_phone, partner_type, partner_user_id, status')
       .eq('user_id', user.id)
@@ -94,7 +98,6 @@ export async function GET(request: Request) {
       let partnerDetailsExt: any = null;
 
       if (submissionData.partner_type === 'self_match' && submissionData.partner_user_id) {
-        const supabaseAdmin = createSupabaseAdmin();
         const { data: pDetails } = await supabaseAdmin
           .from('users')
           .select('full_name, zona_waktu, whatsapp')
@@ -177,7 +180,6 @@ export async function GET(request: Request) {
       })
     }
 
-    const supabaseAdmin = createSupabaseAdmin()
 
     // 5. Get all user IDs in the pairing
     const userIds = [pairing.user_1_id, pairing.user_2_id, pairing.user_3_id].filter(Boolean) as string[]
