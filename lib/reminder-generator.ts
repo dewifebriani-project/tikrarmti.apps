@@ -217,10 +217,10 @@ export function generateTagThalibah(halaqah: HalaqahForReminder, date: Date = ne
   
   const tanggal_hijri = getHijriDate(date);
 
-  return `بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
-السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
+  return `*REMINDER ${classLabel}*
 
-*REMINDER ${classLabel}*
+بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
+السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
 
 👑 *Ustadzah ${muallimah_name}*
 🗓️  ${day}, ${dateStr} | ${tanggal_hijri}
@@ -281,4 +281,55 @@ Dan juga kepada seluruh thallibah, _jazaakunallah khayran_ atas kehadirannya, se
 
 جزاكن الله خيرا و بارك الله فيكن جميعاً 🌻
 ❁ ━━━━━━ 📚 ━━━━━━ ❁`;
+}
+
+export function generateMuallimahReminder(halaqah: HalaqahForReminder, date: Date = new Date()): string {
+  const isPraTahfidz = halaqah.class_type === 'pra_tahfidz';
+  const juz = halaqah.preferred_juz || '';
+  const classLabel = isPraTahfidz ? 'Pra Tikrar Umum' : `Tikrar Tahfidz Juz ${juz}`;
+  const dayName = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
+  const tanggalMasehi = getMasehiDate(date);
+  const time = formatTimeShort(halaqah.start_time);
+  
+  const muallimah_name = halaqah.muallimah?.full_name ? toTitleCase(halaqah.muallimah.full_name) : '...';
+  const zoom_url = halaqah.zoom_link || '';
+  const meeting_id = halaqah.zoom_meeting_id || '';
+  const passcode = halaqah.zoom_passcode || '';
+  const zoom_emoji = getZoomEmoji(halaqah.zoom_name);
+
+  return `*REMINDER KELAS USTADZAH*
+
+بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ 
+
+السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
+
+
+🌹🌹🌹
+Ahsanallahu ilaikum yaa Ustadzaty Al Ghaaliyah.. 💐
+
+Kaifa haalukum yaa *Ustadzah ${muallimah_name}* ? 
+Semoga Ustadzah senantiasa dalam lindungan Allah Ta'ala. Aamiin.... 
+
+Mohon izin mengingatkan bahwa *pagi ini* ada kelas:
+
+📚  *${classLabel}*
+
+🗓️  *${dayName}, ${tanggalMasehi}*
+🕰️  *Pukul : ${time} WIB - selesai*
+
+🪩  *LINK ZOOM${zoom_emoji ? ' ' + zoom_emoji : ''}*
+${zoom_url}
+
+
+*ID Meeting: ${meeting_id}*
+*Password: ${passcode}*
+
+
+In syaa Allaahu Ta'alaa kita ada jadwal belajar bersama Ustadzah. Semoga Allah mudahkan untuk kita berkumpul kembali di halaqah.
+
+آمــين اَللّهُمَّ آمــين
+
+
+*جزاكم الله خيرا*
+*و بارك الله فيكم أستاذة...*`;
 }

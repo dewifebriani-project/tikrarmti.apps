@@ -92,6 +92,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject'>('approve');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPairing, setFilterPairing] = useState('all');
+  const [filterJuz, setFilterJuz] = useState('all');
 
   // Local batch filter state
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -175,6 +176,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
       if (filterStatus !== 'all') params.append('akad_status', filterStatus);
       if (filterPairing !== 'all') params.append('partner_status', filterPairing);
+      if (filterJuz !== 'all') params.append('juz', filterJuz);
 
       // If searching, load all data. Otherwise use pagination.
       if (searchQuery.trim()) {
@@ -228,6 +230,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     try {
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
+      if (filterJuz !== 'all') params.append('juz', filterJuz);
       params.append('limit', '10000'); // Get all data
 
       const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
@@ -793,60 +796,97 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       doc.text(`Total: ${sortedData.length} thalibah`, 14, 28);
       doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}`, pageWidth - 14, 23, { align: 'right' });
 
-      // Table data
-      const tableData = sortedData.map((item, index) => {
-        const user = item.user || {};
+      // Group data by Juz
+      const juzMap = new Map<string, any[]>();
+      
+      sortedData.forEach(item => {
         const registration = item.registration || {};
-        const ujianHalaqah = item.ujian_halaqah || {};
-        const tashihHalaqah = item.tashih_halaqah || {};
-        const tashihName = item.is_tashih_umum ? 'Umum' : (tashihHalaqah.name || '-');
-
-        return [
-          index + 1,
-          item.confirmed_full_name || user.full_name || '-',
-          calculateAge(user.tanggal_lahir || registration.birth_date),
-          getJuzCode(item.confirmed_chosen_juz),
-          item.confirmed_chosen_juz || registration.chosen_juz || '-',
-          ujianHalaqah.name || '-',
-          user.whatsapp || user.phone || '-',
-        ];
+        const juzStr = item.confirmed_chosen_juz || registration.chosen_juz || 'Tanpa Juz';
+        if (!juzMap.has(juzStr)) {
+          juzMap.set(juzStr, []);
+        }
+        juzMap.get(juzStr)!.push(item);
       });
-
-      // Generate table
-      autoTable(doc, {
-        startY: 35,
-        head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'Halaqah', 'WhatsApp']],
-        body: tableData,
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [34, 197, 94],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-        },
-        columnStyles: {
-          0: { cellWidth: 10 },  // No
-          1: { cellWidth: 50 },  // Nama
-          2: { cellWidth: 10 },  // Usia
-          3: { cellWidth: 15 },  // Juz Code
-          4: { cellWidth: 20 },  // Juz
-          5: { cellWidth: 55 },  // Halaqah
-          6: { cellWidth: 35 },  // WhatsApp
-        },
-        didDrawPage: (data) => {
-          // Add page number
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'italic');
-          doc.text(
-            `Halaman ${doc.getNumberOfPages()}`,
-            pageWidth / 2,
-            pageHeight - 10,
-            { align: 'center' }
-          );
-        },
-      });
+      
+      // Sort Juz keys
+      const sortedJuzKeys = Array.from(juzMap.keys())
+        .sort((a, b) => a.localeCompare(b, undefined, {numeric: true}));
+        
+      let yPos = 40; // start lower for the title
+      
+      for (const juzKey of sortedJuzKeys) {
+        const items = juzMap.get(juzKey)!;
+        
+        if (yPos > pageHeight - 50) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Print Juz title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(34, 197, 94);
+        doc.text(`${juzKey} (${items.length} thalibah)`, 14, yPos);
+        yPos += 6;
+        
+        doc.setTextColor(0, 0, 0); // reset color
+        
+        const tableData = items.map((item, index) => {
+          const user = item.user || {};
+          const registration = item.registration || {};
+          const ujianHalaqah = item.ujian_halaqah || {};
+  
+          return [
+            index + 1,
+            item.confirmed_full_name || user.full_name || '-',
+            calculateAge(user.tanggal_lahir || registration.birth_date),
+            getJuzCode(item.confirmed_chosen_juz),
+            ujianHalaqah.name || '-',
+            user.whatsapp || user.phone || '-',
+            item.status === 'approved' ? 'Approved' : (item.status === 'submitted' ? 'Submitted' : item.status === 'rejected' ? 'Rejected' : 'Draft'),
+          ];
+        });
+  
+        // Generate table
+        autoTable(doc, {
+          startY: yPos,
+          head: [['No', 'Nama', 'Usia', 'Juz Code', 'Halaqah', 'WhatsApp', 'Status']],
+          body: tableData,
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+          },
+          headStyles: {
+            fillColor: [34, 197, 94],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
+          columnStyles: {
+            0: { cellWidth: 10 },  // No
+            1: { cellWidth: 60 },  // Nama
+            2: { cellWidth: 15 },  // Usia
+            3: { cellWidth: 20 },  // Juz Code
+            4: { cellWidth: 65 },  // Halaqah
+            5: { cellWidth: 35 },  // WhatsApp
+            6: { cellWidth: 25 },  // Status
+          },
+          didDrawPage: (data: any) => {
+            yPos = (data.cursor?.y ?? 50) + 10;
+            // Add page number
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(0, 0, 0);
+            doc.text(
+              `Halaman ${doc.getNumberOfPages()}`,
+              pageWidth / 2,
+              pageHeight - 10,
+              { align: 'center' }
+            );
+          },
+        });
+        
+        yPos += 8;
+      }
 
       // Generate filename
       const batchNameClean = batchName.replace(/\s+/g, '-');
@@ -1372,6 +1412,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         batchId={localBatchId}
         status={filterStatus}
         pairingStatus={filterPairing}
+        juz={filterJuz}
         batches={batches}
         onRefresh={loadSubmissions}
         isLoading={loading}
@@ -1380,6 +1421,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
           setLocalBatchId(filters.batchId);
           setFilterStatus(filters.status);
           setFilterPairing(filters.pairingStatus);
+          setFilterJuz(filters.juz);
           setCurrentPage(1);
         }}
         onDownloadExcel={downloadExcel}

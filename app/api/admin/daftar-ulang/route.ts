@@ -44,8 +44,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const akadStatus = searchParams.get('akad_status');
     const partnerStatus = searchParams.get('partner_status');
+    const juz = searchParams.get('juz');
 
-    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus, partnerStatus });
+    console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status, akadStatus, partnerStatus, juz });
 
     // Build query - get ALL fields from all tables
     let query = supabaseAdmin
@@ -73,10 +74,11 @@ export async function GET(request: NextRequest) {
       query = query.eq('akad_status', akadStatus);
     }
     
-    // partnerStatus will be filtered in memory later to avoid PostgREST syntax errors with nested and/or
+    // partnerStatus and juz will be filtered in memory later
+    const hasMemoryFilter = (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) || (juz && juz !== 'all');
 
-    // We don't apply pagination here if partnerStatus is present, because we need to filter in memory first
-    if (!partnerStatus || !VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
+    // We don't apply pagination here if memory filters are present
+    if (!hasMemoryFilter) {
       query = query.range(offset, offset + limit - 1);
     }
 
@@ -229,13 +231,23 @@ export async function GET(request: NextRequest) {
 
     let dataWithPartners = dataWithMuallimah || [];
 
-    // IN-MEMORY FILTER FOR PARTNER STATUS
+    // IN-MEMORY FILTER FOR PARTNER STATUS AND JUZ
     let totalCount = 0;
     
-    if (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
+    const doMemoryFilter = (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) || (juz && juz !== 'all');
+    
+    if (doMemoryFilter) {
       dataWithPartners = dataWithPartners.filter((s: any) => {
-        const ps = s.partner_status || s.status;
-        return ps === partnerStatus;
+        let match = true;
+        if (partnerStatus && VALID_DAFTAR_ULANG_STATUSES.includes(partnerStatus)) {
+          const ps = s.partner_status || s.status;
+          if (ps !== partnerStatus) match = false;
+        }
+        if (juz && juz !== 'all') {
+          const sJuz = s.confirmed_chosen_juz || s.registration?.chosen_juz;
+          if (sJuz !== String(juz) && sJuz !== `Juz ${juz}`) match = false;
+        }
+        return match;
       });
       totalCount = dataWithPartners.length;
       

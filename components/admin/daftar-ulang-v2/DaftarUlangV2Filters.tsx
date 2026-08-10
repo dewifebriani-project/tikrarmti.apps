@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet, Users } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, Award, Download, FileSpreadsheet, Users, BookOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,7 @@ interface DaftarUlangV2FiltersProps {
     batchId: string; 
     status: string;
     pairingStatus: string;
+    juz: string;
   }) => void;
   onRefresh: () => void;
   isLoading: boolean;
@@ -24,6 +25,7 @@ interface DaftarUlangV2FiltersProps {
   isDownloadingExcel: boolean;
   isDownloadingPDF: boolean;
   isDownloadingVCF: boolean;
+  juz: string;
 }
 
 export function DaftarUlangV2Filters({ 
@@ -40,11 +42,12 @@ export function DaftarUlangV2Filters({
   onDownloadVCF,
   isDownloadingExcel,
   isDownloadingPDF,
-  isDownloadingVCF
+  isDownloadingVCF,
+  juz
 }: DaftarUlangV2FiltersProps) {
   
   const handleClear = () => {
-    onChange({ search: '', batchId: 'all', status: 'all', pairingStatus: 'all' });
+    onChange({ search: '', batchId: 'all', status: 'all', pairingStatus: 'all', juz: 'all' });
   };
 
   return (
@@ -60,12 +63,12 @@ export function DaftarUlangV2Filters({
               type="text"
               placeholder="Cari Nama, Email, WhatsApp..."
               value={searchQuery}
-              onChange={(e) => onChange({ search: e.target.value, batchId, status, pairingStatus })}
+              onChange={(e) => onChange({ search: e.target.value, batchId, status, pairingStatus, juz })}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all text-sm font-medium"
             />
             {searchQuery && (
               <button
-                onClick={() => onChange({ search: '', batchId, status, pairingStatus })}
+                onClick={() => onChange({ search: '', batchId, status, pairingStatus, juz })}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="h-4 w-4" />
@@ -79,7 +82,7 @@ export function DaftarUlangV2Filters({
               <Award className="h-4 w-4 text-gray-500" />
               <select
                 value={batchId}
-                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, status, pairingStatus })}
+                onChange={(e) => onChange({ search: searchQuery, batchId: e.target.value, status, pairingStatus, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Batch</option>
@@ -93,7 +96,7 @@ export function DaftarUlangV2Filters({
               <Filter className="h-4 w-4 text-gray-500" />
               <select
                 value={status}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value, pairingStatus })}
+                onChange={(e) => onChange({ search: searchQuery, batchId, status: e.target.value, pairingStatus, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
                 <option value="all">Semua Status Akad</option>
@@ -108,14 +111,28 @@ export function DaftarUlangV2Filters({
               <Users className="h-4 w-4 text-gray-500" />
               <select
                 value={pairingStatus}
-                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus: e.target.value })}
+                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus: e.target.value, juz })}
                 className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
               >
-                <option value="all">Semua Status Pasangan</option>
-                <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="all">Semua Partner</option>
+                <option value="mutual">Mutual (Saling Pilih)</option>
+                <option value="system_match">System Match (Sistem)</option>
+                <option value="self_match">Self Match (Mandiri)</option>
+                <option value="no_partner">Belum Ada Partner</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-gray-500" />
+              <select
+                value={juz}
+                onChange={(e) => onChange({ search: searchQuery, batchId, status, pairingStatus, juz: e.target.value })}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
+              >
+                <option value="all">Semua Juz</option>
+                {[...Array(30)].map((_, i) => (
+                  <option key={i+1} value={String(i+1)}>Juz {i+1}</option>
+                ))}
               </select>
             </div>
 

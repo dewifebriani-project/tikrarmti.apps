@@ -14,9 +14,10 @@ import {
   generateDailyReminder, 
   generateTagThalibah, 
   generateLaporanKelas,
+  generateMuallimahReminder,
   getDayName,
   formatTimeShort,
-  HalaqahForReminder
+  type HalaqahForReminder
 } from '@/lib/reminder-generator';
 import { toPng } from 'html-to-image';
 import { JadwalPoster } from './JadwalPoster';
@@ -729,7 +730,14 @@ export default function AdminJadwalHarianTab() {
                                 className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
                               >
                                 <FileText className="h-3 w-3" />
-                                Berita Acara
+                                BA
+                              </button>
+                              <button
+                                onClick={() => copyToClipboard(generateMuallimahReminder(halaqah, dateForTemplate), 'Reminder Muallimah berhasil disalin!')}
+                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-100 col-span-2"
+                              >
+                                <Copy className="h-3 w-3" />
+                                Reminder Muallimah
                               </button>
                             </div>
                           </div>

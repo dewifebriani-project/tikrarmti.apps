@@ -656,7 +656,8 @@ export function HalaqahManagementTab() {
           usia: calculateAge(user.tanggal_lahir || reg.birth_date),
           juzCode: getJuzCode(s.confirmed_chosen_juz),
           juz: s.confirmed_chosen_juz || reg.chosen_juz || '-',
-          whatsapp: user.whatsapp || user.phone || '-'
+          whatsapp: user.whatsapp || user.phone || '-',
+          status: s.status
         };
         
         if (s.ujian_halaqah_id && halaqahMap.has(s.ujian_halaqah_id)) {
@@ -757,12 +758,13 @@ export function HalaqahManagementTab() {
           t.usia,
           t.juzCode,
           t.juz,
-          t.whatsapp
+          t.whatsapp,
+          t.status === 'approved' ? 'Approved' : (t.status === 'submitted' ? 'Submitted' : t.status === 'rejected' ? 'Rejected' : 'Draft')
         ]);
         
         autoTable(doc, {
           startY: yPos,
-          head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'WhatsApp']],
+          head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'WhatsApp', 'Status']],
           body: tableData,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: {
@@ -772,11 +774,12 @@ export function HalaqahManagementTab() {
           },
           columnStyles: {
             0: { cellWidth: 10 },
-            1: { cellWidth: 85 },
-            2: { cellWidth: 20 },
+            1: { cellWidth: 70 },
+            2: { cellWidth: 15 },
             3: { cellWidth: 20 },
-            4: { cellWidth: 60 },
-            5: { cellWidth: 40 },
+            4: { cellWidth: 35 },
+            5: { cellWidth: 30 },
+            6: { cellWidth: 20 },
           },
           didDrawPage: (data: any) => {
             yPos = (data.cursor?.y ?? 50) + 10;
@@ -787,6 +790,147 @@ export function HalaqahManagementTab() {
       }
       
       const fileName = `daftar-thalibah-halaqah-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      toast.success('PDF berhasil diunduh', { id: toastId });
+    } catch (e: any) {
+      console.error('Error generating PDF:', e);
+      toast.error('Gagal membuat PDF: ' + e.message, { id: toastId });
+    }
+  };
+
+  const downloadPDFJuzThalibah = async () => {
+    const toastId = toast.loading('Mengambil data thalibah...');
+    try {
+      // 1. Fetch all submissions
+      const params = new URLSearchParams();
+      if (selectedBatch && selectedBatch !== 'all') params.append('batch_id', selectedBatch);
+      params.append('limit', '5000');
+      
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
+      const result = await response.json();
+      
+      if (!response.ok) throw new Error(result.error || 'Failed to fetch');
+      const submissions = result.data || [];
+      
+      // 2. Group into Juz
+      const juzMap = new Map();
+      
+      submissions.forEach((s: any) => {
+        // Only include approved/active
+        if (s.status !== 'approved' && s.status !== 'active') return;
+        
+        const user = s.user || {};
+        const reg = s.registration || {};
+        
+        const juzStr = s.confirmed_chosen_juz || reg.chosen_juz || 'Tanpa Juz';
+        const halaqahName = s.ujian_halaqah?.name || '-';
+        
+        const thalibahData = {
+          name: s.confirmed_full_name || user.full_name || '-',
+          usia: calculateAge(user.tanggal_lahir || reg.birth_date),
+          juzCode: getJuzCode(juzStr),
+          halaqahName: halaqahName,
+          whatsapp: user.whatsapp || user.phone || '-',
+          status: s.status
+        };
+        
+        if (!juzMap.has(juzStr)) {
+          juzMap.set(juzStr, { juzName: juzStr, thalibah: [] });
+        }
+        juzMap.get(juzStr).thalibah.push(thalibahData);
+      });
+      
+      // 3. Sort the Juz
+      const sortedList = Array.from(juzMap.values())
+        .sort((a, b) => a.juzName.localeCompare(b.juzName, undefined, {numeric: true}));
+      
+      if (sortedList.length === 0) {
+        toast.error('Tidak ada thalibah untuk kriteria yang dipilih', { id: toastId });
+        return;
+      }
+      
+      // 4. Generate PDF
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      
+      const doc = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Data Thalibah per Juz', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const batchName = batches.find(b => b.id === selectedBatch)?.name || 'Semua Batch';
+      doc.text(`Batch: ${batchName}`, 14, 23);
+      doc.text(`Total Juz: ${sortedList.length}`, 14, 28);
+      
+      let totalThalibah = 0;
+      sortedList.forEach(g => totalThalibah += g.thalibah.length);
+      doc.text(`Total Thalibah: ${totalThalibah}`, 14, 33);
+      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}`, pageWidth - 14, 23, { align: 'right' });
+      
+      let yPos = 45;
+      
+      for (const group of sortedList) {
+        if (yPos > pageHeight - 60) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(34, 197, 94); // green-500
+        doc.text(`${group.juzName} (${group.thalibah.length} thalibah)`, 14, yPos);
+        yPos += 6;
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        
+        // Sort thalibah by name
+        const sortedThalibah = group.thalibah.sort((a: any, b: any) => a.name.localeCompare(b.name, 'id-ID'));
+        
+        const tableData = sortedThalibah.map((t: any, i: number) => [
+          i + 1,
+          t.name,
+          t.usia,
+          t.juzCode,
+          t.halaqahName,
+          t.whatsapp,
+          t.status === 'approved' ? 'Approved' : (t.status === 'submitted' ? 'Submitted' : t.status === 'rejected' ? 'Rejected' : 'Draft')
+        ]);
+        
+        autoTable(doc, {
+          startY: yPos,
+          head: [['No', 'Nama', 'Usia', 'Juz Code', 'Halaqah', 'WhatsApp', 'Status']],
+          body: tableData,
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: {
+            fillColor: [34, 197, 94], // green-500
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 15 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 45 },
+            5: { cellWidth: 30 },
+            6: { cellWidth: 20 },
+          },
+          didDrawPage: (data: any) => {
+            yPos = (data.cursor?.y ?? 50) + 10;
+          },
+        });
+        
+        yPos += 8;
+      }
+      
+      const fileName = `daftar-thalibah-juz-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
       toast.success('PDF berhasil diunduh', { id: toastId });
     } catch (e: any) {
@@ -1207,6 +1351,16 @@ export function HalaqahManagementTab() {
           >
             <FileText className="w-3.5 h-3.5" />
             PDF (Daftar Thalibah)
+          </button>
+
+          <button
+            onClick={downloadPDFJuzThalibah}
+            disabled={filteredAndSortedHalaqahs.length === 0}
+            className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-sm active:scale-95 duration-200 shadow-emerald-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download PDF List Thalibah per Juz"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            PDF (Thalibah per Juz)
           </button>
         </div>
 
