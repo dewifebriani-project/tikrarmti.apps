@@ -1330,7 +1330,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   // Derived final submissions
   const finalSubmissions = useMemo(() => {
-    return [...submissions].sort((a, b) => {
+    return [...filteredSubmissions].sort((a, b) => {
       // Basic sorting mapped from the v2 table
       if (sortField === 'name') {
         const aName = a.confirmed_full_name || a.user?.full_name || '';
@@ -1384,7 +1384,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
       }
       return 0;
     });
-  }, [submissions, sortField, sortOrder]);
+  }, [filteredSubmissions, sortField, sortOrder]);
 
 
   return (
