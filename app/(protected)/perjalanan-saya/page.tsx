@@ -534,14 +534,11 @@ export default function PerjalananSaya() {
             // Once akad is uploaded, let her come back and add a file she missed —
             // but only until Fase 4 (Masa Belajar) actually starts.
             isEditAction: !isPraTikrar && hasAkadFiles,
-            isEditDisabled: isReEnrollmentDoneByDate || 
-              (daftarUlangData?.akad_status 
-                ? (daftarUlangData.akad_status === 'approved') 
-                : (daftarUlangData?.status === 'approved')),
+            isEditDisabled: isReEnrollmentDoneByDate || isAkadSubmitted,
             editUrl: hasAkad ? `/daftar-ulang?editAkad=true` : `/daftar-ulang?batchId=${batchId}`,
             editLabel: 'Edit',
             editActiveTitle: hasAkad ? 'Tambah/Ubah file akad' : 'Lanjutkan pengisian daftar ulang',
-            editDisabledTitle: (daftarUlangData?.akad_status === 'approved' || daftarUlangData?.status === 'approved') ? 'Data akad telah disetujui. Hubungi admin untuk mengubah.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
+            editDisabledTitle: isAkadSubmitted ? 'Data akad telah dikirim/disetujui. Hubungi admin untuk mengubah.' : 'Sudah masuk Masa Belajar, upload akad tidak bisa diubah lagi'
           },
           {
             name: 'Pilih Halaqah & Pasangan',
@@ -577,11 +574,11 @@ export default function PerjalananSaya() {
             isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`,
             isEditAction: !isPraTikrar && hasAkad && hasHalaqah && hasPartnerSelection,
-            isEditDisabled: isReEnrollmentDoneByDate || daftarUlangData?.partner_status === 'submitted' || daftarUlangData?.partner_status === 'approved',
+            isEditDisabled: isReEnrollmentDoneByDate || isPartnerSubmitted,
             editUrl: `/pilih-pasangan?batchId=${batchId}`,
             editLabel: 'Edit',
             editActiveTitle: 'Ubah Pilihan Halaqah & Pasangan',
-            editDisabledTitle: (daftarUlangData?.partner_status === 'submitted' || daftarUlangData?.partner_status === 'approved') ? 'Data pilihan Halaqah & Pasangan telah tersimpan. Hubungi admin untuk mereset status.' : 'Sudah masuk Masa Belajar, halaqah tidak bisa diubah lagi'
+            editDisabledTitle: isPartnerSubmitted ? 'Data pilihan Halaqah & Pasangan telah terkirim/disetujui. Hubungi admin untuk mereset status.' : 'Sudah masuk Masa Belajar, halaqah tidak bisa diubah lagi'
           },
           { 
             name: 'Verifikasi', 

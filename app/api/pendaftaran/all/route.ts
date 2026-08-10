@@ -36,10 +36,13 @@ export async function GET(request: Request) {
           submitted_at,
           reviewed_at,
           akad_files,
+          akad_status,
           ujian_halaqah_id,
           tashih_halaqah_id,
           partner_type,
           partner_user_id,
+          partner_status,
+          pairing_status,
           ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(
             id,
             name,
