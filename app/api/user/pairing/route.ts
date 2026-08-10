@@ -94,7 +94,8 @@ export async function GET(request: Request) {
       let partnerDetailsExt: any = null;
 
       if (submissionData.partner_type === 'self_match' && submissionData.partner_user_id) {
-        const { data: pDetails } = await supabase
+        const supabaseAdmin = createSupabaseAdmin();
+        const { data: pDetails } = await supabaseAdmin
           .from('users')
           .select('full_name, zona_waktu, whatsapp')
           .eq('id', submissionData.partner_user_id)
@@ -103,7 +104,7 @@ export async function GET(request: Request) {
           partnerName = pDetails.full_name;
         }
 
-        const { data: pReg } = await supabase
+        const { data: pReg } = await supabaseAdmin
           .from('pendaftaran_tikrar_tahfidz')
           .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
           .eq('user_id', submissionData.partner_user_id)
@@ -121,7 +122,6 @@ export async function GET(request: Request) {
         }
 
         // Check mutual match
-        const supabaseAdmin = createSupabaseAdmin()
         const { data: partnerSubmission } = await supabaseAdmin
           .from('daftar_ulang_submissions')
           .select('id, status, partner_status')
@@ -177,11 +177,13 @@ export async function GET(request: Request) {
       })
     }
 
+    const supabaseAdmin = createSupabaseAdmin()
+
     // 5. Get all user IDs in the pairing
     const userIds = [pairing.user_1_id, pairing.user_2_id, pairing.user_3_id].filter(Boolean) as string[]
 
-    // 6. Get all users' details
-    const { data: usersData } = await supabase
+    // 6. Get all users' details (use Admin to bypass RLS so we can read partner's full_name)
+    const { data: usersData } = await supabaseAdmin
       .from('users')
       .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
       .in('id', userIds)
@@ -189,7 +191,7 @@ export async function GET(request: Request) {
     const usersMap = new Map((usersData || []).map(u => [u.id, u]))
 
     // 7. Get registration data for all users
-    const { data: registrations } = await supabase
+    const { data: registrations } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
       .eq('batch_id', batchId)
@@ -246,7 +248,7 @@ export async function GET(request: Request) {
           partner_wa_phone: submissionData.partner_wa_phone,
           partner_type: submissionData.partner_type,
           partner_user_id: submissionData.partner_user_id,
-          is_mutual_match: pairing.type === 'self_match',
+          is_mutual_match: pairing.pairing_type === 'self_match',
         } : null,
       }
     })

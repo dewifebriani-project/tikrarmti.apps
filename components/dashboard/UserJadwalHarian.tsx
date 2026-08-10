@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Video, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatTimeShort } from '@/lib/reminder-generator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DAYS = [
   'Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'
@@ -14,7 +15,7 @@ const DAYS = [
 export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user: any, activeBatch: any, daftarUlangData?: any }) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedPraTikrar, setExpandedPraTikrar] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -109,13 +110,80 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
 
   if (loading || schedules.length === 0) return null;
 
-  const ownSchedules = schedules.filter((s: any) => s.program?.class_type === 'tahfidz');
-  const praTikrarSchedules = schedules.filter((s: any) => s.program?.class_type !== 'tahfidz');
+  const ownSchedules = schedules.filter((s: any) => s.program?.class_type === 'tahfidz' || s.program?.class_type === 'tikrar_tahfidz');
+  const praTikrarSchedules = schedules.filter((s: any) => s.program?.class_type === 'pra_tahfidz');
   
-  // By default, show all of the user's own classes. If they don't have any, show the nearest 1 Pra-Tikrar class.
-  const displayedSchedules = expanded 
-    ? schedules 
-    : (ownSchedules.length > 0 ? ownSchedules : praTikrarSchedules.slice(0, 1));
+  const displayedPraTikrar = expandedPraTikrar ? praTikrarSchedules : praTikrarSchedules.slice(0, 3);
+
+  const renderScheduleCard = (schedule: any) => (
+    <Card key={schedule.id} className="border-none shadow-md shadow-gray-200/40 overflow-hidden rounded-[1.25rem] transition-shadow">
+      <div className={`h-1.5 w-full ${schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-500' : 'bg-emerald-500'}`}></div>
+      <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between bg-white">
+        <div className="flex items-start gap-4">
+          <div className={`rounded-xl p-3 text-center min-w-[70px] border ${
+            schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-50 border-fuchsia-100' : 'bg-emerald-50 border-emerald-100'
+          }`}>
+            <div className={`text-[11px] font-bold uppercase mb-0.5 tracking-wider ${
+              schedule.program?.class_type === 'pra_tahfidz' ? 'text-fuchsia-600' : 'text-emerald-600'
+            }`}>
+              {schedule.day_of_week ? DAYS[schedule.day_of_week] : '-'}
+            </div>
+            <div className="text-sm font-black text-gray-900">
+              {formatTimeShort(schedule.start_time)}
+            </div>
+          </div>
+          
+          <div className="pt-0.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full ${
+                schedule.program?.class_type === 'pra_tahfidz' 
+                  ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200/50' 
+                  : 'bg-emerald-100 text-emerald-700 border border-emerald-200/50'
+              }`}>
+                {schedule.program?.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
+              </span>
+            </div>
+            <h4 className="font-bold text-gray-900 text-base leading-tight">{schedule.name}</h4>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 font-medium">
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{schedule.muallimah?.full_name || 'Menunggu Muallimah'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-100 sm:pl-5 mt-2 sm:mt-0 flex flex-col gap-2 min-w-[140px]">
+          {schedule.zoom?.url || schedule.zoom_link || schedule.location ? (
+            <Button 
+              size="sm" 
+              className={`w-full bg-gradient-to-r hover:shadow-lg transition-all text-white rounded-xl flex items-center justify-center gap-2 font-bold ${
+                schedule.program?.class_type === 'pra_tahfidz' 
+                  ? 'from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 shadow-fuchsia-600/20' 
+                  : 'from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-emerald-600/20'
+              }`}
+              onClick={() => {
+                const link = schedule.zoom?.url || schedule.zoom_link || schedule.location;
+                if (link.startsWith('http')) {
+                  window.open(link, '_blank');
+                }
+              }}
+            >
+              <Video className="w-4 h-4" />
+              <span>Join Kelas</span>
+            </Button>
+          ) : (
+            <div className="text-xs text-gray-400 italic text-center px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-100">Link belum tersedia</div>
+          )}
+          
+          {schedule.zoom?.meeting_id && (
+            <div className="text-[10px] text-gray-500 text-center font-medium bg-gray-50 py-1 px-2 rounded-lg border border-gray-100">
+              <span className="text-gray-400">ID:</span> {schedule.zoom.meeting_id}
+              {schedule.zoom.passcode && <><span className="text-gray-300 mx-1">|</span><span className="text-gray-400">Pass:</span> {schedule.zoom.passcode}</>}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="mb-8 mt-2 max-w-6xl mx-auto w-full px-4 md:px-8">
@@ -129,96 +197,59 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         </div>
       </div>
       
-      <div className="grid grid-cols-1 gap-3.5">
-        {displayedSchedules.map((schedule) => (
-          <Card key={schedule.id} className="border-none shadow-md shadow-gray-200/40 overflow-hidden rounded-[1.25rem] transition-shadow">
-            <div className={`h-1.5 w-full ${schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-500' : 'bg-emerald-500'}`}></div>
-            <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between bg-white">
-              <div className="flex items-start gap-4">
-                <div className={`rounded-xl p-3 text-center min-w-[70px] border ${
-                  schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-50 border-fuchsia-100' : 'bg-emerald-50 border-emerald-100'
-                }`}>
-                  <div className={`text-[11px] font-bold uppercase mb-0.5 tracking-wider ${
-                    schedule.program?.class_type === 'pra_tahfidz' ? 'text-fuchsia-600' : 'text-emerald-600'
-                  }`}>
-                    {schedule.day_of_week ? DAYS[schedule.day_of_week] : '-'}
-                  </div>
-                  <div className="text-sm font-black text-gray-900">
-                    {formatTimeShort(schedule.start_time)}
-                  </div>
-                </div>
-                
-                <div className="pt-0.5">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className={`px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full ${
-                      schedule.program?.class_type === 'pra_tahfidz' 
-                        ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200/50' 
-                        : 'bg-emerald-100 text-emerald-700 border border-emerald-200/50'
-                    }`}>
-                      {schedule.program?.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-base leading-tight">{schedule.name}</h4>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 font-medium">
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>{schedule.muallimah?.full_name || 'Menunggu Muallimah'}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-100 sm:pl-5 mt-2 sm:mt-0 flex flex-col gap-2 min-w-[140px]">
-                {schedule.zoom?.url || schedule.zoom_link || schedule.location ? (
-                  <Button 
-                    size="sm" 
-                    className={`w-full bg-gradient-to-r hover:shadow-lg transition-all text-white rounded-xl flex items-center justify-center gap-2 font-bold ${
-                      schedule.program?.class_type === 'pra_tahfidz' 
-                        ? 'from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 shadow-fuchsia-600/20' 
-                        : 'from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-emerald-600/20'
-                    }`}
-                    onClick={() => {
-                      const link = schedule.zoom?.url || schedule.zoom_link || schedule.location;
-                      if (link.startsWith('http')) {
-                        window.open(link, '_blank');
-                      }
-                    }}
-                  >
-                    <Video className="w-4 h-4" />
-                    <span>Join Kelas</span>
-                  </Button>
-                ) : (
-                  <div className="text-xs text-gray-400 italic text-center px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-100">Link belum tersedia</div>
-                )}
-                
-                {schedule.zoom?.meeting_id && (
-                  <div className="text-[10px] text-gray-500 text-center font-medium bg-gray-50 py-1 px-2 rounded-lg border border-gray-100">
-                    <span className="text-gray-400">ID:</span> {schedule.zoom.meeting_id}
-                    {schedule.zoom.passcode && <><span className="text-gray-300 mx-1">|</span><span className="text-gray-400">Pass:</span> {schedule.zoom.passcode}</>}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <Tabs defaultValue={ownSchedules.length > 0 ? "tikrar" : "pra-tikrar"} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-gray-100/80 p-1 rounded-xl h-auto">
+          <TabsTrigger 
+            value="tikrar" 
+            className="rounded-lg py-2.5 data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-bold transition-all"
+          >
+            Kelas Tikrar ({ownSchedules.length})
+          </TabsTrigger>
+          <TabsTrigger 
+            value="pra-tikrar" 
+            className="rounded-lg py-2.5 data-[state=active]:bg-fuchsia-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-bold transition-all"
+          >
+            Pra-Tikrar ({praTikrarSchedules.length})
+          </TabsTrigger>
+        </TabsList>
         
-        {schedules.length > displayedSchedules.length && !expanded && (
-          <Button 
-            variant="ghost" 
-            onClick={() => setExpanded(true)}
-            className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold rounded-xl mt-1"
-          >
-            <>Lihat Selengkapnya ({schedules.length - displayedSchedules.length} jadwal lainnya) <ChevronDown className="ml-2 w-4 h-4" /></>
-          </Button>
-        )}
-        {expanded && schedules.length > (ownSchedules.length > 0 ? ownSchedules.length : 1) && (
-          <Button 
-            variant="ghost" 
-            onClick={() => setExpanded(false)}
-            className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold rounded-xl mt-1"
-          >
-            <>Tampilkan Lebih Sedikit <ChevronUp className="ml-2 w-4 h-4" /></>
-          </Button>
-        )}
-      </div>
+        <TabsContent value="tikrar" className="mt-0 outline-none">
+          {ownSchedules.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3.5">
+              {ownSchedules.map(renderScheduleCard)}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400 text-sm italic border-2 border-dashed border-gray-200 rounded-2xl">
+              Belum ada jadwal kelas Tikrar.
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="pra-tikrar" className="mt-0 outline-none">
+          <div className="grid grid-cols-1 gap-3.5">
+            {displayedPraTikrar.map(renderScheduleCard)}
+            
+            {praTikrarSchedules.length > displayedPraTikrar.length && !expandedPraTikrar && (
+              <Button 
+                variant="ghost" 
+                onClick={() => setExpandedPraTikrar(true)}
+                className="w-full text-fuchsia-700 hover:bg-fuchsia-50 hover:text-fuchsia-800 font-bold rounded-xl mt-1"
+              >
+                Lihat Selengkapnya ({praTikrarSchedules.length - displayedPraTikrar.length} jadwal lainnya) <ChevronDown className="ml-2 w-4 h-4" />
+              </Button>
+            )}
+            {expandedPraTikrar && praTikrarSchedules.length > 3 && (
+              <Button 
+                variant="ghost" 
+                onClick={() => setExpandedPraTikrar(false)}
+                className="w-full text-fuchsia-700 hover:bg-fuchsia-50 hover:text-fuchsia-800 font-bold rounded-xl mt-1"
+              >
+                Tampilkan Lebih Sedikit <ChevronUp className="ml-2 w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

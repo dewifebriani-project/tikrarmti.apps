@@ -21,6 +21,7 @@ import {
 } from '@/lib/reminder-generator';
 import { toPng } from 'html-to-image';
 import { JadwalPoster } from './JadwalPoster';
+import { TerimaKasihPoster } from './TerimaKasihPoster';
 
 const DAYS = [
   { id: 0, name: 'Sepekan' },
@@ -40,6 +41,7 @@ export default function AdminJadwalHarianTab() {
   const [halaqahs, setHalaqahs] = useState<HalaqahForReminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeBatchName, setActiveBatchName] = useState<string>('');
+  const [activeUstadzahName, setActiveUstadzahName] = useState<string>('');
   const [zoomLinks, setZoomLinks] = useState<any[]>([]);
   const [editingHalaqah, setEditingHalaqah] = useState<any>(null);
   const [studentListHalaqah, setStudentListHalaqah] = useState<HalaqahForReminder | null>(null);
@@ -54,6 +56,10 @@ export default function AdminJadwalHarianTab() {
   const supabase = createClient();
   const userRoles = (user as any)?.primaryRole ? [(user as any).primaryRole] : (user?.roles || []);
   const isUserStaff = isStaff(userRoles);
+  
+  const tikrarPosterRef = useRef<HTMLDivElement>(null);
+  const praTikrarPosterRef = useRef<HTMLDivElement>(null);
+  const terimaKasihPosterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -296,6 +302,39 @@ export default function AdminJadwalHarianTab() {
     return sortOrder === 'asc'
       ? <ArrowUp className="h-3.5 w-3.5 text-emerald-600" />
       : <ArrowDown className="h-3.5 w-3.5 text-emerald-600" />;
+  };
+
+  const handleDownloadTerimaKasih = async (ustadzahName: string) => {
+    if (!ustadzahName) {
+      toast.error('Nama ustadzah tidak tersedia');
+      return;
+    }
+    
+    setActiveUstadzahName(ustadzahName);
+    
+    // Wait for state to update and component to render
+    setTimeout(async () => {
+      if (!terimaKasihPosterRef.current) return;
+      try {
+        toast.loading('Menyiapkan poster...', { id: 'poster-gen' });
+        
+        const dataUrl = await toPng(terimaKasihPosterRef.current, {
+          cacheBust: true,
+          pixelRatio: 2,
+          style: { transform: 'none' }
+        });
+        
+        const link = document.createElement('a');
+        link.download = `Ucapan_Terima_Kasih_${ustadzahName.replace(/\s+/g, '_')}.png`;
+        link.href = dataUrl;
+        link.click();
+        
+        toast.success('Poster berhasil diunduh!', { id: 'poster-gen' });
+      } catch (err) {
+        console.error('Failed to generate poster', err);
+        toast.error('Gagal membuat poster. Silakan coba lagi.', { id: 'poster-gen' });
+      }
+    }, 100);
   };
 
   const handleDownloadPoster = async (variant: 'tikrar' | 'pra_tikrar') => {
@@ -554,6 +593,10 @@ export default function AdminJadwalHarianTab() {
           dayNum={activeDay}
           variant="pra_tikrar"
         />
+        <TerimaKasihPoster
+          ref={terimaKasihPosterRef}
+          ustadzahName={activeUstadzahName}
+        />
       </div>
 
       {/* Schedule Grid */}
@@ -736,6 +779,13 @@ export default function AdminJadwalHarianTab() {
                               >
                                 <Copy className="h-3 w-3" />
                                 Reminder Muallimah
+                              </button>
+                              <button
+                                onClick={() => handleDownloadTerimaKasih(halaqah.muallimah?.full_name)}
+                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 col-span-2 mt-1"
+                              >
+                                <ImageIcon className="h-3 w-3" />
+                                Poster Terima Kasih
                               </button>
                             </div>
                           </div>
