@@ -16,6 +16,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedPraTikrar, setExpandedPraTikrar] = useState(false);
+  const [expandedTikrar, setExpandedTikrar] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -25,43 +26,8 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         return;
       }
       try {
-        // 1. Fetch user's active halaqahs
-        const { data: userHalaqahs } = await supabase.from('halaqah_students')
-          .select(`
-            halaqah (
-              id, name, day_of_week, start_time, end_time, zoom_link, location,
-              zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
-              muallimah:users!halaqah_muallimah_id_fkey(full_name),
-              program:programs!inner(batch_id, class_type)
-            )
-          `)
-          .eq('thalibah_id', user.id)
-          .eq('status', 'active');
-
-        let myHalaqahs = (userHalaqahs || [])
-          .map((hs: any) => hs.halaqah)
-          .filter((h: any) => h && h.program?.batch_id === activeBatch.id);
-
-        if (daftarUlangData) {
-          const ujianHalaqah = daftarUlangData.ujian_halaqah;
-          const tashihHalaqah = daftarUlangData.tashih_halaqah;
-          
-          if (ujianHalaqah && !myHalaqahs.find((h: any) => h.id === ujianHalaqah.id)) {
-            myHalaqahs.push({
-               ...ujianHalaqah,
-               program: { class_type: 'tahfidz', batch_id: activeBatch.id }
-            });
-          }
-          if (tashihHalaqah && !myHalaqahs.find((h: any) => h.id === tashihHalaqah.id)) {
-            myHalaqahs.push({
-               ...tashihHalaqah,
-               program: { class_type: 'tahfidz', batch_id: activeBatch.id }
-            });
-          }
-        }
-
-        // 2. Fetch Pra-Tikrar halaqahs for this batch
-        const { data: praTikrarData } = await supabase.from('halaqah')
+        // Fetch ALL active halaqahs for this batch
+        const { data: allHalaqahsData } = await supabase.from('halaqah')
           .select(`
             id, name, day_of_week, start_time, end_time, zoom_link, location,
             zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
@@ -69,23 +35,14 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
             program:programs!inner(batch_id, class_type)
           `)
           .eq('program.batch_id', activeBatch.id)
-          .eq('program.class_type', 'pra_tahfidz')
           .eq('status', 'active');
           
-        const praTikrarHalaqahs = praTikrarData || [];
-
-        // 3. Merge and remove duplicates (in case user is enrolled in Pra Tikrar halaqah specifically)
-        const combined = [...myHalaqahs];
-        for (const pt of praTikrarHalaqahs) {
-          if (!combined.find(h => h.id === pt.id)) {
-            combined.push(pt);
-          }
-        }
+        const combined = allHalaqahsData || [];
         
         // Sort by day (relative to today) and then time
         const todayDayOfWeek = new Date().getDay() === 0 ? 7 : new Date().getDay();
         
-        combined.sort((a, b) => {
+        combined.sort((a: any, b: any) => {
           const aDay = a.day_of_week || 1;
           const bDay = b.day_of_week || 1;
           
@@ -114,6 +71,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
   const praTikrarSchedules = schedules.filter((s: any) => s.program?.class_type === 'pra_tahfidz');
   
   const displayedPraTikrar = expandedPraTikrar ? praTikrarSchedules : praTikrarSchedules.slice(0, 3);
+  const displayedTikrar = expandedTikrar ? ownSchedules : ownSchedules.slice(0, 3);
 
   const renderScheduleCard = (schedule: any) => (
     <Card key={schedule.id} className="border-none shadow-md shadow-gray-200/40 overflow-hidden rounded-[1.25rem] transition-shadow">
@@ -151,37 +109,29 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
           </div>
         </div>
         
-        <div className="pt-3 sm:pt-0 border-t sm:border-t-0 sm:border-l border-gray-100 sm:pl-5 mt-2 sm:mt-0 flex flex-col gap-2 min-w-[140px]">
-          {schedule.zoom?.url || schedule.zoom_link || schedule.location ? (
-            <Button 
-              size="sm" 
-              className={`w-full bg-gradient-to-r hover:shadow-lg transition-all text-white rounded-xl flex items-center justify-center gap-2 font-bold ${
-                schedule.program?.class_type === 'pra_tahfidz' 
-                  ? 'from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 shadow-fuchsia-600/20' 
-                  : 'from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-emerald-600/20'
-              }`}
-              onClick={() => {
-                const link = schedule.zoom?.url || schedule.zoom_link || schedule.location;
-                if (link.startsWith('http')) {
-                  window.open(link, '_blank');
-                }
-              }}
-            >
-              <Video className="w-4 h-4" />
-              <span>Join Kelas</span>
-            </Button>
-          ) : (
-            <div className="text-xs text-gray-400 italic text-center px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-100">Link belum tersedia</div>
-          )}
-          
-          {schedule.zoom?.meeting_id && (
-            <div className="text-[10px] text-gray-500 text-center font-medium bg-gray-50 py-1 px-2 rounded-lg border border-gray-100">
-              <span className="text-gray-400">ID:</span> {schedule.zoom.meeting_id}
-              {schedule.zoom.passcode && <><span className="text-gray-300 mx-1">|</span><span className="text-gray-400">Pass:</span> {schedule.zoom.passcode}</>}
-            </div>
-          )}
-        </div>
+        {schedule.zoom_link || schedule.zoom?.url ? (
+          <Button 
+            className={`rounded-xl font-bold w-full sm:w-auto shadow-sm hover:shadow-md transition-all ${
+              schedule.program?.class_type === 'pra_tahfidz' 
+                ? 'bg-fuchsia-600 hover:bg-fuchsia-700 text-white' 
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+            onClick={() => window.open(schedule.zoom?.url || schedule.zoom_link, '_blank')}
+          >
+            <Video className="w-4 h-4 mr-2" />
+            Join Kelas
+          </Button>
+        ) : (
+          <div className="text-xs text-gray-400 italic text-center px-2 py-1.5 bg-gray-50 rounded-lg border border-gray-100">Link belum tersedia</div>
+        )}
       </CardContent>
+      {schedule.zoom && (schedule.zoom.meeting_id || schedule.zoom.passcode) && (
+        <div className="bg-gray-50 px-4 py-2.5 text-[11px] text-gray-500 font-medium flex items-center justify-center gap-3 border-t border-gray-100">
+          {schedule.zoom.meeting_id && <span>ID: <span className="font-bold text-gray-700">{schedule.zoom.meeting_id}</span></span>}
+          {schedule.zoom.meeting_id && schedule.zoom.passcode && <span className="text-gray-300">|</span>}
+          {schedule.zoom.passcode && <span>Pass: <span className="font-bold text-gray-700">{schedule.zoom.passcode}</span></span>}
+        </div>
+      )}
     </Card>
   );
 
@@ -216,7 +166,26 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         <TabsContent value="tikrar" className="mt-0 outline-none">
           {ownSchedules.length > 0 ? (
             <div className="grid grid-cols-1 gap-3.5">
-              {ownSchedules.map(renderScheduleCard)}
+              {displayedTikrar.map(renderScheduleCard)}
+              
+              {ownSchedules.length > displayedTikrar.length && !expandedTikrar && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setExpandedTikrar(true)}
+                  className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold rounded-xl mt-1"
+                >
+                  Lihat Selengkapnya ({ownSchedules.length - displayedTikrar.length} jadwal lainnya) <ChevronDown className="ml-2 w-4 h-4" />
+                </Button>
+              )}
+              {expandedTikrar && ownSchedules.length > 3 && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setExpandedTikrar(false)}
+                  className="w-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 font-medium rounded-xl mt-1"
+                >
+                  Tutup jadwal <ChevronUp className="ml-2 w-4 h-4" />
+                </Button>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-400 text-sm italic border-2 border-dashed border-gray-200 rounded-2xl">
@@ -242,9 +211,9 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
               <Button 
                 variant="ghost" 
                 onClick={() => setExpandedPraTikrar(false)}
-                className="w-full text-fuchsia-700 hover:bg-fuchsia-50 hover:text-fuchsia-800 font-bold rounded-xl mt-1"
+                className="w-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 font-medium rounded-xl mt-1"
               >
-                Tampilkan Lebih Sedikit <ChevronUp className="ml-2 w-4 h-4" />
+                Tutup jadwal <ChevronUp className="ml-2 w-4 h-4" />
               </Button>
             )}
           </div>
