@@ -1686,16 +1686,14 @@ export async function assignAsisten(halaqahId: string, userId: string, asistenRo
     
     // 5. Log audit
     const { ip, userAgent } = getRequestInfo()
-    await logAudit(
-      supabaseAdmin,
-      'UPDATE',
-      'halaqah_mentors',
-      halaqahId,
-      { action: 'assign_asisten', mentor_id: userId, assigned_role: asistenRole },
-      user.id,
-      ip,
-      userAgent
-    )
+    await logAudit({
+      userId: user.id,
+      action: 'UPDATE',
+      resource: 'halaqah_mentors',
+      details: { halaqahId, action: 'assign_asisten', mentor_id: userId, assigned_role: asistenRole },
+      ipAddress: ip,
+      userAgent: userAgent
+    })
 
     revalidatePath('/admin/halaqah')
     return { success: true }
@@ -1748,16 +1746,14 @@ export async function removeAsisten(halaqahId: string, userId: string) {
     }
     
     const { ip, userAgent } = getRequestInfo()
-    await logAudit(
-      supabaseAdmin,
-      'DELETE',
-      'halaqah_mentors',
-      halaqahId,
-      { action: 'remove_asisten', mentor_id: userId },
-      user.id,
-      ip,
-      userAgent
-    )
+    await logAudit({
+      userId: user.id,
+      action: 'DELETE',
+      resource: 'halaqah_mentors',
+      details: { halaqahId, action: 'remove_asisten', mentor_id: userId },
+      ipAddress: ip,
+      userAgent: userAgent
+    })
 
     revalidatePath('/admin/halaqah')
     return { success: true }
