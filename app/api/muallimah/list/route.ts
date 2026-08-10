@@ -23,61 +23,26 @@ export async function GET(request: Request) {
     // Use admin client to bypass RLS for this specific public list
     const supabase = createSupabaseAdmin();
     
-    // 1. Get from muallimah_registrations for this batch
-    const { data: registrations, error: regError } = await supabase
-      .from('muallimah_registrations')
-      .select('id, user_id, full_name, preferred_juz')
-      .eq('batch_id', batchId);
+    // Get from muallimah_akads for this batch to ensure we only get active teachers for this specific batch
+    const { data: akads, error } = await supabase
+      .from('muallimah_akads')
+      .select('id, user_id, preferred_juz, status, user:users!muallimah_akads_user_id_fkey(full_name)')
+      .eq('batch_id', batchId)
+      .eq('status', 'approved');
 
-    if (regError) {
-      console.error('[Muallimah List API] Database error (registrations):', regError);
-      return ApiResponses.databaseError(regError);
+    if (error) {
+      console.error('[Muallimah List API] Database error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // 2. Get from users table (anyone with muallimah role)
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, full_name, roles')
-      .contains('roles', ['muallimah']);
+    // Format the response to match what the frontend expects
+    const finalList = (akads || []).map(akad => ({
+      id: akad.id,
+      user_id: akad.user_id,
+      full_name: (akad.user as any)?.full_name || 'Tanpa Nama',
+      preferred_juz: akad.preferred_juz || ''
+    }));
 
-    if (usersError) {
-      console.error('[Muallimah List API] Database error (users):', usersError);
-      return ApiResponses.databaseError(usersError);
-    }
-
-    // Merge and deduplicate
-    const combinedMap = new Map();
-
-    // Add registered muallimahs first
-    if (registrations) {
-      for (const reg of registrations) {
-        if (reg.user_id) {
-          combinedMap.set(reg.user_id, {
-            id: reg.id,
-            user_id: reg.user_id,
-            full_name: reg.full_name,
-            preferred_juz: reg.preferred_juz || ''
-          });
-        }
-      }
-    }
-
-    // Add active muallimahs from users table if not already added
-    if (users) {
-      for (const user of users) {
-        if (!combinedMap.has(user.id)) {
-          combinedMap.set(user.id, {
-            id: user.id, // fallback to user id
-            user_id: user.id,
-            full_name: user.full_name || 'Tanpa Nama',
-            preferred_juz: ''
-          });
-        }
-      }
-    }
-
-    const finalList = Array.from(combinedMap.values());
-    
     // Sort alphabetically
     finalList.sort((a, b) => {
       const nameA = (a.full_name || '').toLowerCase();
