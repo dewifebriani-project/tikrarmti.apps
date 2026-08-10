@@ -66,8 +66,8 @@ export default function DashboardContent() {
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats(canSeeAdminStats)
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
-  const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined)
-  const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined)
+  const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined, activeBatch?.id)
+  const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined, activeBatch?.id)
   
   const isMurajaahCompleted = useMemo(() => {
     if (!jurnalStatus || !jurnalStatus.blocks) return false;

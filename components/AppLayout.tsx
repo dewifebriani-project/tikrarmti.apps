@@ -39,6 +39,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/jurnal-pra-tikrar',
     '/tashih',
     '/perjalanan-saya',
+    '/jadwal-harian',
     '/daftar-ulang',
     '/pilih-pasangan',
     '/seleksi',

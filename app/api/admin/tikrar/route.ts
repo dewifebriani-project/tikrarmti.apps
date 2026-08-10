@@ -103,13 +103,13 @@ export async function GET(request: Request) {
     if (updatesSelected.length > 0) {
       const { error: updateError } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .update({ selection_status: 'selected' })
+        .update({ selection_status: 'selected', status: 'approved' })
         .in('id', updatesSelected);
 
       if (!updateError) {
         enrichedData = enrichedData.map((item: any) => {
           if (updatesSelected.includes(item.id)) {
-            return { ...item, selection_status: 'selected' };
+            return { ...item, selection_status: 'selected', status: 'approved' };
           }
           return item;
         });

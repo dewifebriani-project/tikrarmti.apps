@@ -51,7 +51,14 @@ export default function JurnalHarianPage() {
   }, [user]);
 
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
-  const { jurnalStatus, isLoading: jurnalStatusLoading, mutate: mutateJurnalStatus } = useJurnalStatus()
+
+  // Get active registration
+  const activeRegistration = registrations.find((reg: any) =>
+    ['open', 'closed', 'ongoing'].includes(reg.batch?.status) &&
+    (reg.status === 'approved' || reg.selection_status === 'selected')
+  ) || registrations[0]
+
+  const { jurnalStatus, isLoading: jurnalStatusLoading, mutate: mutateJurnalStatus } = useJurnalStatus(undefined, activeRegistration?.batch?.id)
 
   const [jurnalData, setJurnalData] = useState<JurnalData>({
     tanggal_setor: new Date().toISOString().slice(0, 10),
@@ -77,11 +84,7 @@ export default function JurnalHarianPage() {
   const [viewMode, setViewMode] = useState<'status' | 'form'>('status')
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number>(1)
 
-  // Get active registration
-  const activeRegistration = registrations.find((reg: any) =>
-    ['open', 'closed', 'ongoing'].includes(reg.batch?.status) &&
-    (reg.status === 'approved' || reg.selection_status === 'selected')
-  )
+
 
   const hasNoActiveRegistration = !activeRegistration && !isAdmin
 

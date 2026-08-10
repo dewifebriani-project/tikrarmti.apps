@@ -140,6 +140,7 @@ export async function GET(request: Request) {
     const supabase = createClient({ response })
     const { searchParams } = new URL(request.url)
     const targetUserId = searchParams.get('user_id')
+    const targetBatchId = searchParams.get('batch_id')
     
     // Authorization: Use provided user_id only if requester is admin
     const isAdmin = isUserAdmin(context)
@@ -150,8 +151,7 @@ export async function GET(request: Request) {
       console.log(`[Tashih Status] Admin ${context.email} impersonating user_id: ${targetUserId}`)
     }
 
-    // Get user's active registration with daftar ulang
-    const { data: registrations, error: regsError } = await supabase
+    let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
         id,
@@ -169,7 +169,15 @@ export async function GET(request: Request) {
         )
       `)
       .eq('user_id', user.id)
-      .in('status', ['approved', 'selected', 'registered'])
+      .in('status', ['approved', 'selected', 'registered', 'pending']) // Include pending so it can show empty state
+      .order('created_at', { ascending: false })
+      
+    if (targetBatchId) {
+      query = query.eq('batch_id', targetBatchId)
+    }
+
+    // Get user's active registration with daftar ulang
+    const { data: registrations, error: regsError } = await query
 
     if (regsError) {
       return NextResponse.json({ success: false, error: 'Failed to fetch registrations', details: regsError }, { status: 500 })

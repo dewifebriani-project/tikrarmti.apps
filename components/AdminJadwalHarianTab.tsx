@@ -104,12 +104,6 @@ export default function AdminJadwalHarianTab() {
       if (error) throw error;
 
       let filteredData = halaqahData || [];
-      if (!isUserStaff) {
-        filteredData = filteredData.filter((h: any) => 
-          h.muallimah_id === user?.id || 
-          (h.students || []).some((s: any) => s.thalibah_id === user?.id && s.status === 'active')
-        );
-      }
 
       // Daftar Ulang uses confirmed_full_name. Use the same approved, batch-scoped
       // value in Jadwal Harian so the roster name is identical everywhere.
@@ -610,11 +604,13 @@ export default function AdminJadwalHarianTab() {
                       MU'ALLIMAH {sortIcon('muallimah')}
                     </button>
                   </th>
-                  <th className="py-4 px-6 text-center">
-                    <button type="button" onClick={() => toggleSort('students')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
-                      THALIBAH AKTIF {sortIcon('students')}
-                    </button>
-                  </th>
+                  {isUserStaff && (
+                    <th className="py-4 px-6 text-center">
+                      <button type="button" onClick={() => toggleSort('students')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                        THALIBAH AKTIF {sortIcon('students')}
+                      </button>
+                    </th>
+                  )}
                   {isUserStaff && <th className="py-4 px-6 text-center">AKSI</th>}
                 </tr>
               </thead>
@@ -692,20 +688,22 @@ export default function AdminJadwalHarianTab() {
                           <span className="font-medium text-gray-900">{halaqah.muallimah?.full_name || '-'}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          type="button"
-                          onClick={() => setStudentListHalaqah(halaqah)}
-                          className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
-                          title="Lihat daftar thalibah"
-                          aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
-                        >
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium text-gray-900">
-                            {halaqah.students?.length || 0}
-                          </span>
-                        </button>
-                      </td>
+                      {isUserStaff && (
+                        <td className="py-4 px-6 text-center">
+                          <button
+                            type="button"
+                            onClick={() => setStudentListHalaqah(halaqah)}
+                            className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
+                            title="Lihat daftar thalibah"
+                            aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
+                          >
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <span className="font-medium text-gray-900">
+                              {halaqah.students?.length || 0}
+                            </span>
+                          </button>
+                        </td>
+                      )}
                       {isUserStaff && (
                         <td className="py-4 px-6">
                           <div className="flex flex-col gap-2 min-w-[140px]">

@@ -77,7 +77,14 @@ export default function TashihPage() {
   }, [user]);
 
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
-  const { tashihStatus, isLoading: tashihStatusLoading, mutate: mutateTashihStatus } = useTashihStatus()
+  
+  // Get active registration
+  const activeRegistration = registrations.find((reg: any) =>
+    ['open', 'closed', 'ongoing'].includes(reg.batch?.status) &&
+    (reg.status === 'approved' || reg.selection_status === 'selected')
+  ) || registrations[0]
+
+  const { tashihStatus, isLoading: tashihStatusLoading, mutate: mutateTashihStatus } = useTashihStatus(undefined, activeRegistration?.batch?.id)
 
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: [],
@@ -108,11 +115,7 @@ export default function TashihPage() {
   const [viewMode, setViewMode] = useState<'status' | 'form'>('status')
   const [selectedBlocksForEditing, setSelectedBlocksForEditing] = useState<string[]>([])
 
-  // Get active registration
-  const activeRegistration = registrations.find((reg: any) =>
-    ['open', 'closed', 'ongoing'].includes(reg.batch?.status) &&
-    (reg.status === 'approved' || reg.selection_status === 'selected')
-  ) || registrations[0]
+
 
   const isBatchStarted = React.useMemo(() => {
     if (isAdmin) return true;

@@ -577,8 +577,11 @@ export interface JurnalStatusData {
 /**
  * Hook for fetching tashih block status for dashboard
  */
-export function useTashihStatus(userId?: string) {
-  const queryString = userId ? `?user_id=${userId}` : ''
+export function useTashihStatus(userId?: string, batchId?: string) {
+  const queryParams = new URLSearchParams()
+  if (userId) queryParams.append('user_id', userId)
+  if (batchId) queryParams.append('batch_id', batchId)
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ''
   const { data, error, isLoading, mutate } = useSWR<TashihStatusData | null>(
     `/api/dashboard/tashih-status${queryString}`,
     async (url: string): Promise<TashihStatusData | null> => {
@@ -633,8 +636,11 @@ export function useTashihStatus(userId?: string) {
 /**
  * Hook for fetching jurnal block status for dashboard
  */
-export function useJurnalStatus(userId?: string) {
-  const queryString = userId ? `?user_id=${userId}` : ''
+export function useJurnalStatus(userId?: string, batchId?: string) {
+  const queryParams = new URLSearchParams()
+  if (userId) queryParams.append('user_id', userId)
+  if (batchId) queryParams.append('batch_id', batchId)
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ''
   const { data, error, isLoading, mutate } = useSWR<JurnalStatusData | null>(
     `/api/dashboard/jurnal-status${queryString}`,
     async (url: string): Promise<JurnalStatusData | null> => {

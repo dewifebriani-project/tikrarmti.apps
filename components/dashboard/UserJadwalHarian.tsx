@@ -109,7 +109,13 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
 
   if (loading || schedules.length === 0) return null;
 
-  const displayedSchedules = expanded ? schedules : schedules.slice(0, 1);
+  const ownSchedules = schedules.filter((s: any) => s.program?.class_type === 'tahfidz');
+  const praTikrarSchedules = schedules.filter((s: any) => s.program?.class_type !== 'tahfidz');
+  
+  // By default, show all of the user's own classes. If they don't have any, show the nearest 1 Pra-Tikrar class.
+  const displayedSchedules = expanded 
+    ? schedules 
+    : (ownSchedules.length > 0 ? ownSchedules : praTikrarSchedules.slice(0, 1));
 
   return (
     <div className="mb-8 mt-2 max-w-6xl mx-auto w-full px-4 md:px-8">
@@ -194,17 +200,22 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
           </Card>
         ))}
         
-        {schedules.length > 1 && (
+        {schedules.length > displayedSchedules.length && !expanded && (
           <Button 
             variant="ghost" 
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => setExpanded(true)}
             className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold rounded-xl mt-1"
           >
-            {expanded ? (
-              <>Tampilkan Lebih Sedikit <ChevronUp className="ml-2 w-4 h-4" /></>
-            ) : (
-              <>Lihat Selengkapnya ({schedules.length - 1} jadwal lainnya) <ChevronDown className="ml-2 w-4 h-4" /></>
-            )}
+            <>Lihat Selengkapnya ({schedules.length - displayedSchedules.length} jadwal lainnya) <ChevronDown className="ml-2 w-4 h-4" /></>
+          </Button>
+        )}
+        {expanded && schedules.length > (ownSchedules.length > 0 ? ownSchedules.length : 1) && (
+          <Button 
+            variant="ghost" 
+            onClick={() => setExpanded(false)}
+            className="w-full text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold rounded-xl mt-1"
+          >
+            <>Tampilkan Lebih Sedikit <ChevronUp className="ml-2 w-4 h-4" /></>
           </Button>
         )}
       </div>
