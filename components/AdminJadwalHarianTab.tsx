@@ -12,7 +12,7 @@ import { Toaster, toast } from 'sonner';
 import { 
   generateHalaqahReminder, 
   generateDailyReminder, 
-  generateTagThalibah, 
+
   generateLaporanKelas,
   generateMuallimahReminder,
   getDayName,
@@ -756,17 +756,10 @@ export default function AdminJadwalHarianTab() {
                               Reminder
                             </button>
                             
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => copyToClipboard(generateTagThalibah(halaqah, dateForTemplate), 'Tag Thalibah berhasil disalin!')}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
-                              >
-                                <Tag className="h-3 w-3" />
-                                Tag
-                              </button>
+                            <div className="grid grid-cols-1 gap-2">
                               <button
                                 onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!')}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100"
+                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100 w-full"
                               >
                                 <FileText className="h-3 w-3" />
                                 BA

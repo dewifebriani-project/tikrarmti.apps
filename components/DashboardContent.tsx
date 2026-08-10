@@ -920,8 +920,10 @@ export default function DashboardContent() {
         </div>
       </div>
 
-      {/* Jadwal Harian Section */}
-      <UserJadwalHarian user={user} activeBatch={activeBatch} daftarUlangData={daftarUlangData} />
+      {/* Jadwal Harian Section - only for active batch members & admin */}
+      {(hasRegisteredTikrar || hasMuallimahReg || canSeeAdminStats) && (
+        <UserJadwalHarian user={user} activeBatch={activeBatch} daftarUlangData={daftarUlangData} />
+      )}
 
       {/* Group Links Section */}
       {hasPhase3 && (

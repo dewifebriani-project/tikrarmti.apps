@@ -42,7 +42,7 @@ import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/Halaq
 import { ScheduleOverlapAnalysis } from '@/components/admin/halaqah/ScheduleOverlapAnalysis';
 import {
   generateHalaqahReminder,
-  generateTagThalibah,
+
   generateLaporanKelas,
   type HalaqahForReminder
 } from '@/lib/reminder-generator';
@@ -376,19 +376,6 @@ export function HalaqahManagementTab() {
     }
   };
 
-  const handleCopyTagThalibah = async (halaqah: Halaqah) => {
-    setCopyingId(`tag-${halaqah.id}`);
-    try {
-      const data = await buildReminderData(halaqah);
-      const text = generateTagThalibah(data);
-      await navigator.clipboard.writeText(text);
-      toast.success('Tag thalibah berhasil disalin!');
-    } catch (error) {
-      toast.error('Gagal menyalin tag thalibah');
-    } finally {
-      setCopyingId(null);
-    }
-  };
 
   const handleCopyLaporan = async (halaqah: Halaqah) => {
     setCopyingId(`laporan-${halaqah.id}`);

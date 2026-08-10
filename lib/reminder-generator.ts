@@ -118,6 +118,15 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
   const passcode = halaqah.zoom_passcode || '';
   const class_type_label = getClassTypeLabel(halaqah.class_type);
 
+  const students = halaqah.students || [];
+  const count = students.length;
+  
+  const studentList = students.map((s, index) => {
+    const studentJuz = s.preferred_juz || juz;
+    const juzLabel = studentJuz && !isPraTahfidz ? `(Juz ${studentJuz})` : '';
+    return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
+  }).join('\n');
+
   return `╔❀◎🎓◎❀════════════════╗
  🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
 ╚════════════════❀◎🎓◎❀╝
@@ -147,6 +156,12 @@ ${zoom_url}
 * Menjaga audio dan video
 * Menjaga suara Mu'allimaat dan Thalibaat dari Ajnabi
 * Membuka mic pada saat dipanggil
+
+Izin tag Ustadzah dan Thalibah 
+👑 Ustadzah: ${muallimah_name}
+
+👥  ${count} Tholibah :
+${studentList}
 
 ⛔ *FREE SHARE LINK KELUAR MTI*
 ━━━━━━━━━━━━━━━━❁❁
@@ -215,51 +230,7 @@ ${scheduleStr}
 🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
 }
 
-export function generateTagThalibah(halaqah: HalaqahForReminder, date: Date = new Date()): string {
-  const juz = halaqah.preferred_juz || '';
-  const muallimah_name = toTitleCase(halaqah.muallimah?.full_name || '');
-  const time = formatTimeShort(halaqah.start_time);
-  const day = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
-  const dateStr = getMasehiDate(date);
-  
-  const students = halaqah.students || [];
-  const count = students.length;
-  
-  const studentList = students.map((s, index) => {
-    const studentJuz = s.preferred_juz || juz;
-    const juzLabel = studentJuz ? `(Juz ${studentJuz})` : '';
-    return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
-  }).join('\n');
 
-  const classLabel = halaqah.class_type === 'pra_tahfidz' 
-    ? '𝗞𝗘𝗟𝗔𝗦 𝗣𝗥𝗔 𝗧𝗜𝗞𝗥𝗔𝗥 𝗨𝗠𝗨𝗠' 
-    : `𝗞𝗘𝗟𝗔𝗦 𝗧𝗜𝗞𝗥𝗔𝗥 𝗝𝗨𝗭 ${juz}`;
-  
-  const tanggal_hijri = getHijriDate(date);
-
-  return `*REMINDER ${classLabel}*
-
-بِسْــــــــــــــــــمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ
-السَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
-
-👑 *Ustadzah ${muallimah_name}*
-🗓️  ${day}, ${dateStr} | ${tanggal_hijri}
-⏰  Pukul ${time} WIB
-🎗️  ........................ 
-Izin tag Thalibah 
-👥  ${count} Tholibah :
-
-${studentList}
-
-✨ _Zadanallah 'ilman wa hirsha._
-_Semoga ALLAH ﷻ  menambahkan ilmu & semangat untuk kita._ ✨
-
-_Yassarallaahu lanaa_
-
-_Jazaakunnallaahu khayran wa baarakallaahu fiikunna.._ 
-
-🌷🌷🌷🌷🌷`;
-}
 
 export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = new Date()): string {
   const juz = halaqah.preferred_juz || '';
