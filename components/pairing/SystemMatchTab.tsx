@@ -78,11 +78,11 @@ export function SystemMatchTab({
           <p className="text-gray-600">Tidak ada request dipasangkan sistem</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto relative">
+          <table className="min-w-full divide-y divide-gray-200 border-separate border-spacing-0">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => onSort('user_name')}>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 sticky top-0 bg-gray-50 z-10" onClick={() => onSort('user_name')}>
                   Nama {getSortIndicator('user_name')}
                 </th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -109,7 +109,7 @@ export function SystemMatchTab({
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Analisis Kecocokan
                 </th>
-                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-20 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-gray-200">
                   Aksi
                 </th>
               </tr>
@@ -167,7 +167,7 @@ export function SystemMatchTab({
                   <td className="px-2 py-2 text-xs text-gray-700 min-w-[300px]">
                     {renderMatchAnalysis(request)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-center sticky right-0 bg-white z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-gray-200 border-b border-gray-200">
                     {!request.is_paired ? (
                       <div className="flex items-center justify-center gap-1 flex-wrap">
                         <button
