@@ -246,6 +246,7 @@ export async function GET(request: Request) {
           partner_wa_phone: submissionData.partner_wa_phone,
           partner_type: submissionData.partner_type,
           partner_user_id: submissionData.partner_user_id,
+          is_mutual_match: pairing.type === 'self_match',
         } : null,
       }
     })
