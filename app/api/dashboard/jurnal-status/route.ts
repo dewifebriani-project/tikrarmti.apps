@@ -172,9 +172,9 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
       juz_info: juzInfo,
       blocks: allBlocks,
       summary: {
-        total_blocks: allBlocks.length,
-        completed_blocks: allBlocks.filter(b => b.is_completed).length,
-        pending_blocks: allBlocks.filter(b => !b.is_completed).length,
+        total_blocks: allBlocks.filter(b => !b.block_code.startsWith('M')).length,
+        completed_blocks: allBlocks.filter(b => b.is_completed && !b.block_code.startsWith('M')).length,
+        pending_blocks: allBlocks.filter(b => !b.is_completed && !b.block_code.startsWith('M')).length,
         sp_summary: activeSP ? {
           sp_level: activeSP.sp_level,
           week_number: activeSP.week_number,

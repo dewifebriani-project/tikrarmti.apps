@@ -580,8 +580,9 @@ export async function GET(request: Request) {
       if (juzInfo) {
         const allBlocks = generateAllBlocks(juzInfo);
         weeklyStatus = calculateWeeklyStatus(allBlocks, userJurnalRecords);
-        totalBlocks = allBlocks.length;
-        completedBlocks = allBlocks.filter(b => {
+        const ziyadahBlocks = allBlocks.filter(b => !b.block_code.startsWith('M'));
+        totalBlocks = ziyadahBlocks.length;
+        completedBlocks = ziyadahBlocks.filter(b => {
           const targetCode = normalizeBlokCode(b.block_code);
           return userJurnalRecords.some((record: any) => {
             if (!record.blok) return false;

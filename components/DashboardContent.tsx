@@ -669,55 +669,7 @@ export default function DashboardContent() {
         </div>
       )}
 
-      {/* 3. Statistik Hafalan - Hanya muncul ketika: */}
-      {/* 1) Batch sudah mulai pekan 1, DAN */}
-      {/* 2) User terdaftar di batch aktif tersebut */}
-      {(() => {
-        const hasWeek1Started = activeBatch?.first_week_start_date &&
-          new Date(activeBatch.first_week_start_date) <= new Date();
 
-        // Cek apakah user terdaftar di active batch
-        const userRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
-          reg.batch_id === activeBatch.id &&
-          (reg.status === 'approved' || reg.status === 'pending')
-        );
-
-        return hasWeek1Started && userRegisteredInActiveBatch;
-      })() && (
-        <div className="grid grid-cols-1 gap-6">
-          <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">
-            <CardHeader className="bg-gradient-to-br from-green-50 to-white/50 border-b border-green-50 px-6 py-5">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-                Statistik Hafalan
-                {activeBatch && (
-                  <span className="text-xs font-normal text-gray-500 ml-2">
-                    ({activeBatch.name})
-                  </span>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex items-end justify-between mb-4">
-                <div>
-                  <p className="text-3xl font-black text-green-900">{displayStats.hariAktual}</p>
-                  <p className="text-xs text-gray-500 font-medium">Hari Tikrar Selesai</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-400">{displayStats.totalHariTarget}</p>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Target Total</p>
-                </div>
-              </div>
-              <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                 <div
-                  className="bg-gradient-to-r from-green-600 to-green-400 h-full transition-all duration-1000 ease-out"
-                  style={{ width: `${displayStats.persentaseProgress}%` }}
-                 />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* 4. Menu Layanan */}
       <div className="space-y-4">
