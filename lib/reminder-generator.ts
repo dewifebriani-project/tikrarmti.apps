@@ -27,13 +27,33 @@ export interface HalaqahForReminder {
 }
 
 export function getHijriDate(date: Date): string {
-  const formatter = new Intl.DateTimeFormat('id-ID-u-ca-islamic-nu-latn', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta'
-  });
-  return `${formatter.format(date)} H`;
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic', {
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+      timeZone: 'Asia/Jakarta'
+    });
+    
+    // Returns something like "2/27/1448 AH" or "2/27/1448"
+    const parts = formatter.formatToParts(date);
+    const day = parts.find(p => p.type === 'day')?.value || '1';
+    const month = parts.find(p => p.type === 'month')?.value || '1';
+    const year = parts.find(p => p.type === 'year')?.value || '1448';
+    
+    const hijriMonths = [
+      '',
+      'Muharram', 'Safar', "Rabi'ul Awal", "Rabi'ul Akhir",
+      'Jumadil Awal', 'Jumadil Akhir', 'Rajab', "Sya'ban",
+      'Ramadhan', 'Syawal', "Dzulqa'dah", 'Dzulhijjah'
+    ];
+    
+    const monthName = hijriMonths[parseInt(month, 10)] || `Bulan ${month}`;
+    return `${day} ${monthName} ${year} H`;
+  } catch (err) {
+    // Fallback if ca-islamic is totally unsupported
+    return '';
+  }
 }
 
 export function getMasehiDate(date: Date): string {
