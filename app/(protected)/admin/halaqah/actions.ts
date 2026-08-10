@@ -1595,3 +1595,173 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     }
   }
 }
+
+/**
+ * Search users by name or email for assignment as Raisah/Musyrifah
+ */
+export async function searchUsersForAsisten(searchQuery: string) {
+  try {
+    const { supabaseAdmin } = await verifyAdmin()
+    
+    if (!searchQuery || searchQuery.length < 3) {
+      return { success: true, data: [] }
+    }
+    
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, roles, whatsapp')
+      .or(`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`)
+      .limit(10)
+      
+    if (error) throw error
+    
+    return { success: true, data }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Assign a user as Raisah or Musyrifah to a halaqah and update their global roles
+ */
+export async function assignAsisten(halaqahId: string, userId: string, asistenRole: 'roisah' | 'musyrifah') {
+  try {
+    const { supabaseAdmin, user } = await verifyAdmin()
+    
+    // 1. Fetch user to get current roles
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', userId)
+      .single()
+      
+    if (userError || !userData) {
+      throw new Error('User not found')
+    }
+    
+    // 2. Fetch existing mentor for this halaqah to potentially replace
+    // We consider 'musyrifah' role in halaqah_mentors as the generic assistant role for this purpose
+    const { data: existingMentors, error: existingError } = await supabaseAdmin
+      .from('halaqah_mentors')
+      .select('id, mentor_id')
+      .eq('halaqah_id', halaqahId)
+      .eq('role', 'musyrifah')
+      .eq('is_primary', false)
+      
+    if (existingError) throw existingError
+    
+    // If there is an existing assistant different from the new one, remove them from halaqah_mentors
+    // Note: We don't automatically revoke their global 'roisah'/'musyrifah' role here because they might be assigned to other halaqahs.
+    if (existingMentors && existingMentors.length > 0) {
+      for (const m of existingMentors) {
+        if (m.mentor_id !== userId) {
+          await supabaseAdmin.from('halaqah_mentors').delete().eq('id', m.id)
+        }
+      }
+    }
+    
+    // 3. Add role to user if they don't have it
+    const roles = userData.roles || []
+    if (!roles.includes(asistenRole)) {
+      roles.push(asistenRole)
+      const { error: updateRoleError } = await supabaseAdmin
+        .from('users')
+        .update({ roles })
+        .eq('id', userId)
+        
+      if (updateRoleError) throw updateRoleError
+    }
+    
+    // 4. Add to halaqah_mentors using 'musyrifah' as the accepted enum value (DB constraint limitation for 'roisah')
+    const { error: insertError } = await supabaseAdmin
+      .from('halaqah_mentors')
+      .upsert({
+        halaqah_id: halaqahId,
+        mentor_id: userId,
+        role: 'musyrifah', 
+        is_primary: false
+      }, { onConflict: 'halaqah_id,mentor_id' })
+      
+    if (insertError) throw insertError
+    
+    // 5. Log audit
+    const { ip, userAgent } = getRequestInfo()
+    await logAudit(
+      supabaseAdmin,
+      'UPDATE',
+      'halaqah_mentors',
+      halaqahId,
+      { action: 'assign_asisten', mentor_id: userId, assigned_role: asistenRole },
+      user.id,
+      ip,
+      userAgent
+    )
+
+    revalidatePath('/admin/halaqah')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Assign asisten error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Remove an assistant from a halaqah
+ */
+export async function removeAsisten(halaqahId: string, userId: string) {
+  try {
+    const { supabaseAdmin, user } = await verifyAdmin()
+    
+    const { error: deleteError } = await supabaseAdmin
+      .from('halaqah_mentors')
+      .delete()
+      .eq('halaqah_id', halaqahId)
+      .eq('mentor_id', userId)
+      .eq('role', 'musyrifah')
+      .eq('is_primary', false)
+      
+    if (deleteError) throw deleteError
+    
+    // Check if user is still an assistant in ANY other halaqah
+    const { data: remainingRoles, error: checkError } = await supabaseAdmin
+      .from('halaqah_mentors')
+      .select('id')
+      .eq('mentor_id', userId)
+      .eq('role', 'musyrifah')
+      .eq('is_primary', false)
+      
+    if (!checkError && (!remainingRoles || remainingRoles.length === 0)) {
+      // Remove assistant roles from user
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('roles')
+        .eq('id', userId)
+        .single()
+        
+      if (!userError && userData && userData.roles) {
+        const updatedRoles = userData.roles.filter((r: string) => r !== 'roisah' && r !== 'musyrifah')
+        await supabaseAdmin
+          .from('users')
+          .update({ roles: updatedRoles })
+          .eq('id', userId)
+      }
+    }
+    
+    const { ip, userAgent } = getRequestInfo()
+    await logAudit(
+      supabaseAdmin,
+      'DELETE',
+      'halaqah_mentors',
+      halaqahId,
+      { action: 'remove_asisten', mentor_id: userId },
+      user.id,
+      ip,
+      userAgent
+    )
+
+    revalidatePath('/admin/halaqah')
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}

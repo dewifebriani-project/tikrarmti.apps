@@ -1,16 +1,17 @@
 import React from 'react'
-import { Clock, CheckCircle, Heart, ArrowRight, Users, XCircle } from 'lucide-react'
+import { Clock, CheckCircle, Heart, ArrowRight, Users, XCircle, RotateCcw } from 'lucide-react'
 import { SelfMatchRequest } from './types'
 
 interface Props {
   requests: SelfMatchRequest[]
   onApprove: (request: SelfMatchRequest) => void
+  onRevert: (request: SelfMatchRequest) => void
   onManualPair: (request: SelfMatchRequest) => void
   onReject: (id: string) => void
   onBulkApprove: () => void
 }
 
-export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBulkApprove }: Props) {
+export function SelfMatchTab({ requests, onApprove, onRevert, onManualPair, onReject, onBulkApprove }: Props) {
   const safeRequests = Array.isArray(requests) ? requests : []
 
   const sortedRequests = [...safeRequests].sort((a, b) => {
@@ -189,10 +190,18 @@ export function SelfMatchTab({ requests, onApprove, onManualPair, onReject, onBu
                   {/* Actions */}
                   <div className="flex flex-col gap-2">
                     {request.is_paired ? (
-                      <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center gap-2 text-sm font-medium border border-gray-200 cursor-not-allowed">
-                        <CheckCircle className="w-4 h-4" />
-                        Approved
-                      </span>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Yakin ingin membatalkan pasangan ini? Status request akan kembali menjadi Pending.')) {
+                            onRevert(request)
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors"
+                        title="Batalkan Pasangan"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Revert
+                      </button>
                     ) : request.is_mutual_match ? (
                       <button
                         onClick={() => onApprove(request)}

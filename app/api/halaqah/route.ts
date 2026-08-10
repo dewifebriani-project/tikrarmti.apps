@@ -29,7 +29,11 @@ export async function GET(request: Request) {
       .select(`
         *,
         program:programs(*, batch:batches(*)),
-        muallimah:users!left(id, full_name, email)
+        muallimah:users!left(id, full_name, email),
+        mentors:halaqah_mentors(
+          id, mentor_id, role,
+          users:users!halaqah_mentors_mentor_id_fkey(full_name, email)
+        )
       `)
       .order('created_at', { ascending: false });
 

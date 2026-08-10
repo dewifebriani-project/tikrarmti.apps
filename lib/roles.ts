@@ -15,13 +15,14 @@
 export const ROLE_RANKS: Record<string, number> = {
   'super_admin': 100,
   'admin': 100,
+  'roisah': 90,
   'musyrifah': 80,
   'muallimah': 60,
   'thalibah': 40,
   'calon_thalibah': 20,
 };
 
-export type UserRole = 'admin' | 'musyrifah' | 'muallimah' | 'thalibah' | 'calon_thalibah';
+export type UserRole = 'admin' | 'roisah' | 'musyrifah' | 'muallimah' | 'thalibah' | 'calon_thalibah';
 
 export const ADMIN_RANK = ROLE_RANKS.admin;
 export const STAFF_RANK_THRESHOLD = 60; // Threshold for staff/admin features (muallimah and above)

@@ -43,10 +43,7 @@ export default function AdminJadwalHarianTab() {
   const [activeBatchName, setActiveBatchName] = useState<string>('');
   const [activeUstadzahName, setActiveUstadzahName] = useState<string>('');
   const [zoomLinks, setZoomLinks] = useState<any[]>([]);
-  const [editingHalaqah, setEditingHalaqah] = useState<any>(null);
   const [studentListHalaqah, setStudentListHalaqah] = useState<HalaqahForReminder | null>(null);
-  const [editForm, setEditForm] = useState({ start_time: '', end_time: '', zoom_link_id: '' });
-  const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'time' | 'class' | 'muallimah' | 'students'>('time');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -96,6 +93,7 @@ export default function AdminJadwalHarianTab() {
           start_time,
           end_time,
           preferred_juz,
+          max_students,
           zoom_link,
           zoom_link_id,
           muallimah_id,
@@ -146,6 +144,7 @@ export default function AdminJadwalHarianTab() {
             name: h.program?.batch?.name
           }
         },
+        max_students: h.max_students,
         // Only active students
         students: Array.from(
           new Map(
@@ -174,35 +173,6 @@ export default function AdminJadwalHarianTab() {
       toast.success(successMessage);
     } catch (err) {
       toast.error('Gagal menyalin teks. Silakan coba lagi.');
-    }
-  };
-
-  const openEditModal = (h: any) => {
-    setEditingHalaqah(h);
-    setEditForm({
-      start_time: h.start_time || '',
-      end_time: h.end_time || '',
-      zoom_link_id: h.zoom_link_id || ''
-    });
-  };
-
-  const saveEdit = async () => {
-    if (!editingHalaqah) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch(`/api/admin/halaqah/${editingHalaqah.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
-      });
-      if (!res.ok) throw new Error('Gagal');
-      toast.success('Jadwal berhasil diupdate');
-      setEditingHalaqah(null);
-      fetchSchedule();
-    } catch(err) {
-      toast.error('Gagal menyimpan perubahan');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -371,47 +341,6 @@ export default function AdminJadwalHarianTab() {
 
   return (
     <div className="space-y-6">
-      {/* Edit Modal Overlay */}
-      {editingHalaqah && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-bold text-gray-900">Edit Jadwal: {editingHalaqah.name}</h3>
-              <button onClick={() => setEditingHalaqah(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Jam Mulai</label>
-                  <input type="time" value={editForm.start_time} onChange={e => setEditForm({...editForm, start_time: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-gray-700">Jam Selesai</label>
-                  <input type="time" value={editForm.end_time} onChange={e => setEditForm({...editForm, end_time: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-700">Link Zoom</label>
-                <select value={editForm.zoom_link_id} onChange={e => setEditForm({...editForm, zoom_link_id: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500">
-                  <option value="">Pilih Zoom Link</option>
-                  {zoomLinks.map(zl => (
-                    <option key={zl.id} value={zl.id}>{zl.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/50">
-              <button onClick={() => setEditingHalaqah(null)} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-              <button onClick={saveEdit} disabled={isSaving} className="px-4 py-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg disabled:opacity-50">
-                {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Program Selector */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
         <button
@@ -645,14 +574,12 @@ export default function AdminJadwalHarianTab() {
                       MU'ALLIMAH {sortIcon('muallimah')}
                     </button>
                   </th>
-                  {isUserStaff && (
-                    <th className="py-4 px-6 text-center">
-                      <button type="button" onClick={() => toggleSort('students')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
-                        THALIBAH AKTIF {sortIcon('students')}
-                      </button>
-                    </th>
-                  )}
-                  {isUserStaff && <th className="py-4 px-6 text-center">AKSI</th>}
+                  <th className="py-4 px-6 text-center">
+                    <button type="button" onClick={() => toggleSort('students')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
+                      THALIBAH AKTIF {sortIcon('students')}
+                    </button>
+                  </th>
+                  <th className="py-4 px-6 text-center">AKSI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -729,24 +656,21 @@ export default function AdminJadwalHarianTab() {
                           <span className="font-medium text-gray-900">{halaqah.muallimah?.full_name || '-'}</span>
                         </div>
                       </td>
-                      {isUserStaff && (
-                        <td className="py-4 px-6 text-center">
-                          <button
-                            type="button"
-                            onClick={() => setStudentListHalaqah(halaqah)}
-                            className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
-                            title="Lihat daftar thalibah"
-                            aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
-                          >
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium text-gray-900">
-                              {halaqah.students?.length || 0}
-                            </span>
-                          </button>
-                        </td>
-                      )}
-                      {isUserStaff && (
-                        <td className="py-4 px-6">
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setStudentListHalaqah(halaqah)}
+                          className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
+                          title="Lihat daftar thalibah"
+                          aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
+                        >
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">
+                            {halaqah.students?.length || 0}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="py-4 px-6">
                           <div className="flex flex-col gap-2 min-w-[140px]">
                             <button
                               onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
@@ -781,7 +705,6 @@ export default function AdminJadwalHarianTab() {
                             </div>
                           </div>
                         </td>
-                      )}
                     </tr>
                   );
                 })}

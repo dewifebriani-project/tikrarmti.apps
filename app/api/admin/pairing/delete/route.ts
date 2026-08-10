@@ -182,10 +182,24 @@ export async function DELETE(request: Request) {
     if (findError) throw findError
 
     if (!pairing) {
-      return NextResponse.json(
-        { error: 'No active pairing found for this user' },
-        { status: 404 }
-      )
+      // Desync issue: No row in study_partners, but frontend thinks there is.
+      // Reset the user's submission pairing_status to null so they can be paired again.
+      const { error: fixError } = await supabase
+        .from('daftar_ulang_submissions')
+        .update({ pairing_status: null })
+        .eq('user_id', userId)
+        .eq('batch_id', batchId)
+
+      if (fixError) throw fixError
+      
+      revalidatePath('/admin')
+      revalidatePath('/dashboard')
+
+      return NextResponse.json({
+        success: true,
+        message: 'Status pendaftaran di-reset karena data pasangan tidak ditemukan (desync diperbaiki).',
+        data: { user_id: userId }
+      })
     }
 
     // 4. Delete the pairing

@@ -21,6 +21,16 @@ export function PairingDetailModal({
 }: Props) {
   if (!isOpen) return null
 
+  const matchJuz = detail && detail.user_2 ? detail.user_1.chosen_juz === detail.user_2.chosen_juz : false;
+  const matchZona = detail && detail.user_2 ? detail.user_1.zona_waktu === detail.user_2.zona_waktu : false;
+  const matchWaktu = detail && detail.user_2 ? hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) : false;
+  
+  const score1 = detail ? (Number(detail.user_1.oral_total_score) || 0) : 0;
+  const score2 = detail && detail.user_2 ? (Number(detail.user_2.oral_total_score) || 0) : 0;
+  const diffLisan = Math.abs(score1 - score2);
+  const matchLisan = detail && detail.user_2 ? diffLisan >= 20 : false;
+  const lisanSetara = detail && detail.user_2 ? diffLisan < 20 : false;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -86,6 +96,29 @@ export function PairingDetailModal({
                 </div>
               </div>
 
+              {/* Analisis Kecocokan */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">Analisis Kecocokan</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-600">Juz:</span>
+                    {matchJuz ? <span className="text-green-600 font-medium flex items-center gap-1">✓ Cocok</span> : <span className="text-gray-400">-</span>}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-600">Zona Waktu:</span>
+                    {matchZona ? <span className="text-green-600 font-medium flex items-center gap-1">✓ Cocok</span> : <span className="text-gray-400">-</span>}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-600">Waktu:</span>
+                    {matchWaktu ? <span className="text-green-600 font-medium flex items-center gap-1">✓ Cocok</span> : <span className="text-gray-400">-</span>}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-600">Nilai Lisan:</span>
+                    {matchLisan ? <span className="text-green-600 font-medium flex items-center gap-1">✓ Saling Melengkapi</span> : lisanSetara ? <span className="text-amber-600 font-medium flex items-center gap-1">✓ Setara</span> : <span className="text-gray-400">-</span>}
+                  </div>
+                </div>
+              </div>
+
               {/* Users Grid - 2 or 3 columns */}
               <div className={`grid gap-4 ${detail.user_3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 {/* User 1 */}
@@ -110,23 +143,29 @@ export function PairingDetailModal({
                       <p className="text-xs text-gray-700 truncate">{detail.user_1.email}</p>
                     </div>
                     <div className="flex gap-2">
-                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                      Juz {detail.user_1.chosen_juz}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                      {detail.user_1.zona_waktu}
-                    </span>
+                      <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium flex items-center gap-1">
+                        Juz {detail.user_1.chosen_juz}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium flex items-center gap-1">
+                        {detail.user_1.zona_waktu}
+                      </span>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Waktu Utama</p>
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                      <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center gap-1 w-fit">
                         {detail.user_1.main_time_slot}
                       </span>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Waktu Cadangan</p>
-                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium w-fit block">
                         {detail.user_1.backup_time_slot}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Nilai Lisan</p>
+                      <span className="px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-xs font-medium flex items-center gap-1 w-fit">
+                        {detail.user_1.oral_total_score || 'Belum ada nilai'}
                       </span>
                     </div>
                   </div>
@@ -154,23 +193,29 @@ export function PairingDetailModal({
                       <p className="text-xs text-gray-700 truncate">{detail.user_2.email}</p>
                     </div>
                     <div className="flex gap-2">
-                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                      Juz {detail.user_2.chosen_juz}
-                    </span>
-                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                      {detail.user_2.zona_waktu}
-                    </span>
+                      <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium flex items-center gap-1">
+                        Juz {detail.user_2.chosen_juz}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium flex items-center gap-1">
+                        {detail.user_2.zona_waktu}
+                      </span>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Waktu Utama</p>
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                      <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium flex items-center gap-1 w-fit">
                         {detail.user_2.main_time_slot}
                       </span>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Waktu Cadangan</p>
-                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium w-fit block">
                         {detail.user_2.backup_time_slot}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Nilai Lisan</p>
+                      <span className="px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-xs font-medium flex items-center gap-1 w-fit">
+                        {detail.user_2.oral_total_score || 'Belum ada nilai'}
                       </span>
                     </div>
                   </div>
@@ -195,55 +240,22 @@ export function PairingDetailModal({
                         <p className="text-xs text-gray-700">{calculateAge(detail.user_3?.tanggal_lahir)}</p>
                       </div>
                       <div className="flex gap-2">
-                      <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                        Juz {detail.user_3.chosen_juz}
-                      </span>
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                        {detail.user_3.zona_waktu}
-                      </span>
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                          Juz {detail.user_3.chosen_juz}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          {detail.user_3.zona_waktu}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Nilai Lisan</p>
+                        <span className="px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-xs font-medium w-fit block">
+                          {detail.user_3.oral_total_score || 'Belum ada nilai'}
+                        </span>
                       </div>
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Match Analysis */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Analisis Kecocokan</h4>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      detail.user_1.chosen_juz === detail.user_2.chosen_juz ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
-                    <span>
-                      Juz: {detail.user_1.chosen_juz === detail.user_2.chosen_juz ? 'Sama ✓' : 'Beda'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      detail.user_1.zona_waktu === detail.user_2.zona_waktu ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
-                    <span>
-                      Zona: {detail.user_1.zona_waktu === detail.user_2.zona_waktu ? 'Sama ✓' : 'Beda'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
-                    <span>
-                      Waktu Utama: {hasTimeSlotOverlap(detail.user_1.main_time_slot, detail.user_2.main_time_slot) ? 'Cocok ✓' : 'Tidak cocok ✗'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      Math.abs((Number(detail.user_1.oral_total_score) || 0) - (Number(detail.user_2.oral_total_score) || 0)) >= 20 ? 'bg-green-500' : 'bg-amber-500'
-                    }`}></div>
-                    <span>
-                      Lisan: {Math.abs((Number(detail.user_1.oral_total_score) || 0) - (Number(detail.user_2.oral_total_score) || 0)) >= 20 ? 'Saling Melengkapi ✓' : 'Setara'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
           )}

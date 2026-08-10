@@ -59,7 +59,7 @@ export async function PATCH(
     } = body;
 
     // Validate roles array
-    const validRoles = ['admin', 'thalibah'];
+    const validRoles = ['admin', 'roisah', 'musyrifah', 'muallimah', 'thalibah'];
     if (roles) {
       const invalidRoles = roles.filter((r: string) => !validRoles.includes(r));
       if (invalidRoles.length > 0) {

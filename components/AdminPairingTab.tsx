@@ -250,6 +250,7 @@ export default function AdminPairingTab() {
               requests={selfMatchRequests}
               onApprove={handleApprove}
               onBulkApprove={handleBulkApproveSelfMatch}
+              onRevert={(req) => handleRevertPairing(req as any)}
               onManualPair={(user) => { setManualPairUser1(user); setShowManualPairModal(true); }}
               onReject={(id) => { setRejectingId(id); setShowRejectModal(true); }}
             />

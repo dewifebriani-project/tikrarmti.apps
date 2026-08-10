@@ -71,44 +71,48 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Dashboard Personal',
         icon: <LayoutGrid className="h-5 w-5 text-emerald-600" />,
       });
-      baseItems.push({
-        href: isAdmin ? '/statistik' : '/dashboard',
-        label: 'Ringkasan Statistik',
-        icon: <BarChart3 className="h-5 w-5" />,
-      });
-
-      // SECTION: ALUR PENDAFTARAN
-      baseItems.push({ type: 'header', label: 'Alur Pendaftaran' });
       if (isAdmin) {
+        baseItems.push({
+          href: '/statistik',
+          label: 'Ringkasan Statistik',
+          icon: <BarChart3 className="h-5 w-5" />,
+        });
+
+        // SECTION: ALUR PENDAFTARAN (Admin Only)
+        baseItems.push({ type: 'header', label: 'Alur Pendaftaran' });
         baseItems.push({
           href: '/admin/muallimah',
           label: 'Daftar Muallimah',
           icon: <GraduationCap className="h-5 w-5 text-green-600" />,
         });
+        baseItems.push({
+          href: '/admin/tikrar',
+          label: 'Pendaftaran & Seleksi',
+          icon: <ClipboardList className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin/daftar-ulang',
+          label: 'Daftar Ulang',
+          icon: <UserCheck className="h-5 w-5" />,
+        });
       }
-      baseItems.push({
-        href: '/admin/tikrar',
-        label: 'Pendaftaran & Seleksi',
-        icon: <ClipboardList className="h-5 w-5" />,
-      });
-      baseItems.push({
-        href: '/admin/daftar-ulang',
-        label: 'Daftar Ulang',
-        icon: <UserCheck className="h-5 w-5" />,
-      });
 
       // SECTION: ALUR PEMBELAJARAN
       baseItems.push({ type: 'header', label: 'Alur Pembelajaran' });
-      baseItems.push({
-        href: '/admin/halaqah',
-        label: 'Manajemen Halaqah',
-        icon: <Users className="h-5 w-5" />,
-      });
-      baseItems.push({
-        href: '/admin/partner',
-        label: 'Manajemen Partner',
-        icon: <HeartHandshake className="h-5 w-5" />,
-      });
+      
+      if (isAdmin) {
+        baseItems.push({
+          href: '/admin/halaqah',
+          label: 'Manajemen Halaqah',
+          icon: <Users className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin/partner',
+          label: 'Manajemen Partner',
+          icon: <HeartHandshake className="h-5 w-5" />,
+        });
+      }
+      
       baseItems.push({
         href: '/admin/jadwal-harian',
         label: 'Jadwal Harian',
@@ -119,20 +123,22 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Presensi & Jurnal',
         icon: <BookOpen className="h-5 w-5" />,
       });
-      baseItems.push({
-        href: '/admin/exams',
-        label: 'Manajemen Ujian',
-        icon: <GraduationCap className="h-5 w-5" />,
-      });
-
-      // SECTION: ALUR KELULUSAN
-      baseItems.push({ type: 'header', label: 'Alur Kelulusan' });
-      baseItems.push({
-        href: '/kelulusan-sertifikat',
-        label: 'Penerbitan Syahadah',
-        icon: <Award className="h-5 w-5 text-amber-600" />,
-      });
+      
       if (isAdmin) {
+        baseItems.push({
+          href: '/admin/exams',
+          label: 'Manajemen Ujian',
+          icon: <GraduationCap className="h-5 w-5" />,
+        });
+
+        // SECTION: ALUR KELULUSAN
+        baseItems.push({ type: 'header', label: 'Alur Kelulusan' });
+        baseItems.push({
+          href: '/kelulusan-sertifikat',
+          label: 'Penerbitan Syahadah',
+          icon: <Award className="h-5 w-5 text-amber-600" />,
+        });
+        
         baseItems.push({
           href: '/admin/testimonials',
           label: 'Testimoni Alumni',
@@ -144,7 +150,6 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           icon: <HeartHandshake className="h-5 w-5" />,
         });
       }
-
       // SECTION: PENGATURAN & DATA (Admin Only)
       if (isAdmin) {
         baseItems.push({ type: 'header', label: 'Pengaturan & Data' });

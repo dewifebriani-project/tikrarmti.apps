@@ -5,6 +5,7 @@ import { AdminUser, MuallimahRegistration } from './types';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { getPrimaryRole } from '@/lib/roles';
 
 // Re-export specific modal
 export { MergeUserModal } from './MergeUserModal';
@@ -212,7 +213,7 @@ export function EditRoleModal({ user, isOpen, onClose, onSuccess }: EditRoleModa
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: selectedRoles.includes('admin') ? 'admin' : 'thalibah',
+          role: getPrimaryRole(selectedRoles),
           roles: selectedRoles
         }),
       });
@@ -262,6 +263,54 @@ export function EditRoleModal({ user, isOpen, onClose, onSuccess }: EditRoleModa
               <span className="text-xs opacity-70 font-medium">Akses penuh ke seluruh sistem manajemen</span>
             </div>
             {selectedRoles.includes('admin') && <CheckCircle className="h-5 w-5 text-purple-600" />}
+          </button>
+
+          <button
+            onClick={() => toggleRole('roisah')}
+            className={cn(
+              "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between group",
+              selectedRoles.includes('roisah')
+                ? "border-indigo-600 bg-indigo-50 text-indigo-900"
+                : "border-gray-100 hover:border-gray-200"
+            )}
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="font-bold">ROISAH</span>
+              <span className="text-xs opacity-70 font-medium">Kepala Musyrifah / Pimpinan</span>
+            </div>
+            {selectedRoles.includes('roisah') && <CheckCircle className="h-5 w-5 text-indigo-600" />}
+          </button>
+
+          <button
+            onClick={() => toggleRole('musyrifah')}
+            className={cn(
+              "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between group",
+              selectedRoles.includes('musyrifah')
+                ? "border-blue-600 bg-blue-50 text-blue-900"
+                : "border-gray-100 hover:border-gray-200"
+            )}
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="font-bold">MUSYRIFAH</span>
+              <span className="text-xs opacity-70 font-medium">Pembina Muallimah & Pengawas</span>
+            </div>
+            {selectedRoles.includes('musyrifah') && <CheckCircle className="h-5 w-5 text-blue-600" />}
+          </button>
+
+          <button
+            onClick={() => toggleRole('muallimah')}
+            className={cn(
+              "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center justify-between group",
+              selectedRoles.includes('muallimah')
+                ? "border-amber-600 bg-amber-50 text-amber-900"
+                : "border-gray-100 hover:border-gray-200"
+            )}
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="font-bold">MUALLIMAH</span>
+              <span className="text-xs opacity-70 font-medium">Pengajar Halaqah</span>
+            </div>
+            {selectedRoles.includes('muallimah') && <CheckCircle className="h-5 w-5 text-amber-600" />}
           </button>
 
           <button

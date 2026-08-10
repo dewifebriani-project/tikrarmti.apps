@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Save } from 'lucide-react';
+import { X, Loader2, Save, Search, UserMinus, UserPlus, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { updateHalaqah } from '@/app/(protected)/admin/halaqah/actions';
+import { updateHalaqah, searchUsersForAsisten, assignAsisten, removeAsisten } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Halaqah {
   id: string;
@@ -29,6 +29,12 @@ interface Halaqah {
       name: string;
     };
   };
+  mentors?: {
+    id: string;
+    mentor_id: string;
+    role: string;
+    users?: { full_name: string; email: string };
+  }[];
 }
 
 interface Program {
@@ -46,6 +52,15 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
   const [saving, setSaving] = useState(false);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [zoomLinks, setZoomLinks] = useState<{name: string, url: string}[]>([]);
+
+  // Assistant Assignment State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [existingAssistant, setExistingAssistant] = useState<any>(
+    halaqah.mentors?.find(m => m.role === 'musyrifah' || m.role === 'roisah') || null
+  );
+  const [assigningUserId, setAssigningUserId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: halaqah.name,
@@ -132,6 +147,62 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
     return days[dayNum] || '-';
   };
 
+  // Assistant Logic
+  useEffect(() => {
+    const delaySearch = setTimeout(async () => {
+      if (searchQuery.length >= 3) {
+        setIsSearching(true);
+        const res = await searchUsersForAsisten(searchQuery);
+        if (res.success && res.data) {
+          setSearchResults(res.data);
+        }
+        setIsSearching(false);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+    
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  const handleAssignAssistant = async (userId: string, userFullName: string) => {
+    setAssigningUserId(userId);
+    const asistenRole = halaqah.program?.class_type?.toLowerCase().includes('pra') ? 'musyrifah' : 'roisah';
+    
+    const res = await assignAsisten(halaqah.id, userId, asistenRole);
+    
+    if (res.success) {
+      toast.success(`Berhasil menugaskan ${userFullName} sebagai ${asistenRole}`);
+      setExistingAssistant({
+        mentor_id: userId,
+        role: asistenRole,
+        users: { full_name: userFullName, email: '' }
+      });
+      setSearchQuery('');
+      setSearchResults([]);
+      onSuccess(); // Trigger reload
+    } else {
+      toast.error('Gagal menugaskan asisten: ' + res.error);
+    }
+    setAssigningUserId(null);
+  };
+
+  const handleRemoveAssistant = async () => {
+    if (!existingAssistant || !existingAssistant.mentor_id) return;
+    
+    setAssigningUserId('removing');
+    const res = await removeAsisten(halaqah.id, existingAssistant.mentor_id);
+    
+    if (res.success) {
+      toast.success('Berhasil menghapus asisten');
+      setExistingAssistant(null);
+      onSuccess();
+    } else {
+      toast.error('Gagal menghapus asisten: ' + res.error);
+    }
+    setAssigningUserId(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -202,6 +273,92 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Assistant Assignment (Roisah / Musyrifah) */}
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-green-700" />
+              Asisten Halaqah (Raisah / Musyrifah)
+            </h3>
+            
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+              {existingAssistant ? (
+                <div className="flex justify-between items-center bg-white p-3 border border-gray-200 rounded-md">
+                  <div>
+                    <p className="font-medium text-gray-900">{existingAssistant.users?.full_name}</p>
+                    <p className="text-xs text-gray-500 capitalize bg-green-100 text-green-800 px-2 py-0.5 rounded-full inline-block mt-1">
+                      {halaqah.program?.class_type?.toLowerCase().includes('pra') ? 'Musyrifah' : 'Raisah'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAssistant}
+                    disabled={assigningUserId === 'removing'}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Remove assistant"
+                  >
+                    {assigningUserId === 'removing' ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserMinus className="w-4 h-4" />}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500">
+                    Cari thalibah untuk ditugaskan sebagai {halaqah.program?.class_type?.toLowerCase().includes('pra') ? 'Musyrifah' : 'Raisah'}.
+                  </p>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Cari nama atau email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  {isSearching && (
+                    <div className="flex justify-center py-2">
+                      <Loader2 className="w-5 h-5 animate-spin text-green-600" />
+                    </div>
+                  )}
+                  
+                  {searchResults.length > 0 && !isSearching && (
+                    <ul className="mt-2 bg-white border border-gray-200 rounded-md divide-y divide-gray-200 max-h-48 overflow-y-auto">
+                      {searchResults.map((user) => (
+                        <li key={user.id} className="p-3 flex justify-between items-center hover:bg-gray-50">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">{user.full_name}</span>
+                            <span className="text-xs text-gray-500">{user.email}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAssignAssistant(user.id, user.full_name)}
+                            disabled={assigningUserId === user.id}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                          >
+                            {assigningUserId === user.id ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <UserPlus className="w-3 h-3 mr-1" />
+                            )}
+                            Assign
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  
+                  {searchQuery.length >= 3 && searchResults.length === 0 && !isSearching && (
+                    <p className="text-sm text-gray-500 text-center py-2">
+                      Tidak ada user ditemukan.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

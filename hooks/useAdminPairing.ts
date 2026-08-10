@@ -80,20 +80,8 @@ export function useAdminPairing() {
     totalPages: number
   } | null>(null)
 
-  // Memoized derived data
-  const pairingsWithSlots = useMemo(() => {
-    return systemMatchRequests
-      .filter(r => r.is_paired && r.partner_id)
-      .map(r => ({
-        id: r.id, // submission id
-        user_1_name: r.user_name,
-        user_2_name: r.partner_name || '-',
-        user_1_time: r.main_time_slot,
-        user_2_time: r.partner_details?.main_time_slot,
-        user_1_juz: r.chosen_juz,
-        user_2_juz: r.partner_details?.chosen_juz || '-'
-      }))
-  }, [systemMatchRequests])
+  // State for available pairings from API
+  const [pairingsWithSlots, setPairingsWithSlots] = useState<any[]>([])
 
   // Data Fetching
   const loadBatches = useCallback(async () => {
@@ -152,6 +140,9 @@ export function useAdminPairing() {
           setSystemMatchRequests(Array.isArray(payload.system_match_requests) ? payload.system_match_requests : [])
           setTarteelRequests(Array.isArray(payload.tarteel_requests) ? payload.tarteel_requests : [])
           setFamilyRequests(Array.isArray(payload.family_requests) ? payload.family_requests : [])
+          if (payload.pairings_with_slots) {
+            setPairingsWithSlots(payload.pairings_with_slots)
+          }
         } else {
           // Backward-compatible fallback if an older API returns one array.
           const requests = Array.isArray(payload) ? payload : []
@@ -605,7 +596,7 @@ export function useAdminPairing() {
   }
 
   const handleRevertTarteelPairing = async (request: TarteelRequest) => {
-    if (!request.is_paired || !request.pairing_id) return toast.error('This request has not been paired yet')
+    if (!request.is_paired) return toast.error('This request has not been paired yet')
     const toastId = toast.loading('Removing tarteel pairing...')
     try {
       const resp = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {
@@ -623,7 +614,7 @@ export function useAdminPairing() {
   }
 
   const handleRevertFamilyPairing = async (request: FamilyRequest) => {
-    if (!request.is_paired || !request.pairing_id) return toast.error('This request has not been paired yet')
+    if (!request.is_paired) return toast.error('This request has not been paired yet')
     const toastId = toast.loading('Removing family pairing...')
     try {
       const resp = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {

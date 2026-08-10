@@ -24,6 +24,7 @@ export interface HalaqahForReminder {
     full_name: string;
     preferred_juz?: string;
   }>;
+  max_students?: number;
 }
 
 export function getHijriDate(date: Date): string {
@@ -119,13 +120,23 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
   const class_type_label = getClassTypeLabel(halaqah.class_type);
 
   const students = halaqah.students || [];
+  const maxStudents = halaqah.max_students || 20; // Default fallback
   const count = students.length;
   
-  const studentList = students.map((s, index) => {
-    const studentJuz = s.preferred_juz || juz;
-    const juzLabel = studentJuz && !isPraTahfidz ? `(Juz ${studentJuz})` : '';
-    return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
-  }).join('\n');
+  let studentList = '';
+  let tholibahHeader = '';
+
+  if (isPraTahfidz) {
+    tholibahHeader = `👥  Jumlah Thalibah : ${maxStudents} orang`;
+    studentList = ''; // Pra Tikrar has no list of names
+  } else {
+    tholibahHeader = `👥  ${count} Tholibah :`;
+    studentList = students.map((s, index) => {
+      const studentJuz = s.preferred_juz || juz;
+      const juzLabel = studentJuz && !isPraTahfidz ? `(Juz ${studentJuz})` : '';
+      return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
+    }).join('\n');
+  }
 
   return `╔❀◎🎓◎❀════════════════╗
  🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
@@ -160,7 +171,7 @@ ${zoom_url}
 Izin tag Ustadzah dan Thalibah 
 👑 Ustadzah: ${muallimah_name}
 
-👥  ${count} Tholibah :
+${tholibahHeader}
 ${studentList}
 
 ⛔ *FREE SHARE LINK KELUAR MTI*
