@@ -1,15 +1,27 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
-import { checkAdminAPI } from '@/lib/auth-server';
-import { logger } from '@/lib/logger';
+import { createSupabaseAdmin } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase/server';
+import { logError } from '@/lib/logger';
 import { logAudit } from '@/lib/audit-log';
 
 export async function POST(request: Request) {
   try {
-    const adminAuth = await checkAdminAPI();
-    if (!adminAuth.isAuthenticated || !adminAuth.user) {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Check if user is admin
+    const { data: adminRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (!user || !adminRole) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabaseAdmin = createSupabaseAdmin();
 
     // Get active batch
     const { data: activeBatch } = await supabaseAdmin
@@ -84,14 +96,14 @@ export async function POST(request: Request) {
 
         successCount++;
       } catch (err) {
-        logger.error(`Failed to downgrade user ${p.user_id}`, { error: err as Error });
+        logError(err as Error, { context: `Failed to downgrade user ${p.user_id}` });
         failedCount++;
       }
     }
 
     // Log the bulk action
     await logAudit({
-      user_id: adminAuth.user.id,
+      user_id: user.id,
       action: 'BULK_FINALIZE_EXAMS',
       entity_type: 'pendaftaran_tikrar_tahfidz',
       entity_id: activeBatch.id, // using batch id as reference

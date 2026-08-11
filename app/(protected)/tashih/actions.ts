@@ -48,9 +48,10 @@ export async function saveTashihRecord(data: TashihFormData) {
   }
 
   // Check if daftar ulang is approved
-  const isDaftarUlangApproved = Array.isArray(reg.daftar_ulang) 
-    ? reg.daftar_ulang.some((du: any) => du.status === 'approved')
-    : reg.daftar_ulang?.status === 'approved'
+  const du = reg.daftar_ulang as any;
+  const isDaftarUlangApproved = Array.isArray(du) 
+    ? du.some((d: any) => d.status === 'approved')
+    : du?.status === 'approved'
 
   if (reg.status !== 'approved' && !isDaftarUlangApproved) {
     return { 
