@@ -42,7 +42,7 @@ export async function saveJurnalRecord(data: JurnalFormData) {
     // Fetch user's registrations to get his juz
     const { data: registrations } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('chosen_juz, daftar_ulang:daftar_ulang_submissions(confirmed_chosen_juz)')
+      .select('status, chosen_juz, daftar_ulang:daftar_ulang_submissions(status, confirmed_chosen_juz)')
       .eq('user_id', authUser.id)
       .in('status', ['approved', 'selected'])
       .limit(1)
@@ -53,11 +53,25 @@ export async function saveJurnalRecord(data: JurnalFormData) {
     if (!reg) {
       return { 
         success: false, 
-        error: 'Afwan Ukhti, akun ini belum terdaftar atau pendaftaran belum disetujui untuk batch aktif. Jurnal hanya bisa diisi oleh thalibah yang terdaftar resmi.' 
+        error: 'Afwan Ukhti, akun ini belum terdaftar untuk batch aktif. Jurnal hanya bisa diisi oleh thalibah yang terdaftar resmi.' 
       }
     }
 
-    const juzCode = reg?.daftar_ulang?.[0]?.confirmed_chosen_juz || reg?.chosen_juz
+    // Check if daftar ulang is approved
+    const isDaftarUlangApproved = Array.isArray(reg.daftar_ulang) 
+      ? reg.daftar_ulang.some((du: any) => du.status === 'approved')
+      : reg.daftar_ulang?.status === 'approved'
+
+    if (reg.status !== 'approved' && !isDaftarUlangApproved) {
+      return { 
+        success: false, 
+        error: 'Afwan Ukhti, Daftar Ulang Anda belum disetujui. Jurnal harian baru dapat diakses setelah pendaftaran ulang disetujui oleh admin.' 
+      }
+    }
+
+    const juzCode = Array.isArray(reg.daftar_ulang) && reg.daftar_ulang.length > 0
+      ? reg.daftar_ulang[0].confirmed_chosen_juz || reg.chosen_juz
+      : reg.chosen_juz
 
     if (juzCode) {
       // Get all blocks for this juz

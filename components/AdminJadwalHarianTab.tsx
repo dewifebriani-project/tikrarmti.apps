@@ -671,38 +671,67 @@ export default function AdminJadwalHarianTab() {
                         </button>
                       </td>
                       <td className="py-4 px-6">
-                          <div className="flex flex-col gap-2 min-w-[140px]">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* Dropdown Template Chat */}
+                            <details className="relative group">
+                              <summary className="list-none cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-100 transition-colors">
+                                <FileText className="h-3.5 w-3.5" />
+                                Template Chat
+                                <ChevronDown className="h-3 w-3 opacity-70" />
+                              </summary>
+                              {/* Overlay for clicking outside to close (hack using fixed full screen before the dropdown content) */}
+                              <div 
+                                className="fixed inset-0 z-40 hidden group-open:block"
+                                onClick={(e) => {
+                                  const details = e.currentTarget.parentElement;
+                                  if (details) details.removeAttribute('open');
+                                }}
+                              />
+                              <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-1.5 hidden group-open:flex flex-col gap-1">
+                                <button
+                                  onClick={() => {
+                                    copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!');
+                                    const details = document.activeElement?.closest('details');
+                                    if (details) details.removeAttribute('open');
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors text-left"
+                                >
+                                  <Copy className="h-3.5 w-3.5 shrink-0" />
+                                  <span>Reminder Kelas</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!');
+                                    const details = document.activeElement?.closest('details');
+                                    if (details) details.removeAttribute('open');
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors text-left"
+                                >
+                                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                                  <span>Berita Acara (BA)</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    copyToClipboard(generateMuallimahReminder(halaqah, dateForTemplate), 'Reminder Muallimah berhasil disalin!');
+                                    const details = document.activeElement?.closest('details');
+                                    if (details) details.removeAttribute('open');
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-purple-50 hover:text-purple-700 rounded-lg transition-colors text-left"
+                                >
+                                  <Copy className="h-3.5 w-3.5 shrink-0" />
+                                  <span>Reminder Muallimah</span>
+                                </button>
+                              </div>
+                            </details>
+
+                            {/* Button Poster */}
                             <button
-                              onClick={() => copyToClipboard(generateHalaqahReminder(halaqah, dateForTemplate), 'Reminder Kelas berhasil disalin!')}
-                              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 w-full"
+                              onClick={() => handleDownloadTerimaKasih(halaqah.muallimah?.full_name || '')}
+                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 shrink-0"
                             >
-                              <Copy className="h-3.5 w-3.5" />
-                              Reminder
+                              <ImageIcon className="h-3.5 w-3.5" />
+                              Poster
                             </button>
-                            
-                            <div className="grid grid-cols-1 gap-2">
-                              <button
-                                onClick={() => copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!')}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-100 w-full"
-                              >
-                                <FileText className="h-3 w-3" />
-                                BA
-                              </button>
-                              <button
-                                onClick={() => copyToClipboard(generateMuallimahReminder(halaqah, dateForTemplate), 'Reminder Muallimah berhasil disalin!')}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-100 col-span-2"
-                              >
-                                <Copy className="h-3 w-3" />
-                                Reminder Muallimah
-                              </button>
-                              <button
-                                onClick={() => handleDownloadTerimaKasih(halaqah.muallimah?.full_name || '')}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-100 col-span-2 mt-1"
-                              >
-                                <ImageIcon className="h-3 w-3" />
-                                Poster Terima Kasih
-                              </button>
-                            </div>
                           </div>
                         </td>
                     </tr>

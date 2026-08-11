@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, FileText } from 'lucide-react';
+import { Shield, ArrowLeft, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { DaftarUlangV2Tab } from '@/components/admin/daftar-ulang-v2/DaftarUlangV2Tab';
+import { Button } from "@/components/ui/button";
 
 export default function AdminDaftarUlangPage() {
   const [mounted, setMounted] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -16,6 +18,34 @@ export default function AdminDaftarUlangPage() {
   if (!mounted) {
     return <div className="min-h-screen bg-gray-50/50" />;
   }
+
+  const handleFinalizeExams = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin memfinalisasi ujian untuk batch aktif? Aksi ini akan menurukan target hafalan thalibah yang belum lulus ke Juz 30A secara massal. Lanjutkan?")) {
+      return;
+    }
+    
+    try {
+      setIsFinalizing(true);
+      const res = await fetch('/api/admin/daftar-ulang/finalize-exams', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to finalize exams');
+      
+      if (data.downgradedCount > 0) {
+        toast.success(data.message, { duration: 5000 });
+        // Optional: reload the page to refresh data in tabs
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast.info(data.message);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Terjadi kesalahan saat finalisasi ujian');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -48,6 +78,16 @@ export default function AdminDaftarUlangPage() {
             </div>
             
             <div className="flex items-center gap-3">
+              <Button 
+                variant="destructive" 
+                className="h-10 px-4 rounded-xl shadow-sm gap-2"
+                onClick={handleFinalizeExams}
+                disabled={isFinalizing}
+              >
+                {isFinalizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+                Finalisasi Ujian
+              </Button>
+
               <div className="h-10 px-4 rounded-xl bg-gray-100/50 border border-gray-100 flex items-center gap-2">
                 <FileText className="h-4 w-4 text-gray-400" />
                 <span className="text-sm font-bold text-gray-600">

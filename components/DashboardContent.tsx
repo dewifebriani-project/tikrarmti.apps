@@ -592,79 +592,100 @@ export default function DashboardContent() {
       })() && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {tashihStatus && (
-          <Card className="overflow-hidden border-none shadow-xl glass-premium">
-            <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <BookOpen className="h-5 w-5" />
+            <Link href="/tashih" className="block group">
+              <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-emerald-500/20">
+                <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+                        <BookOpen className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
+                            Progress Tashih
+                          </CardTitle>
+                          <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[9px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded flex items-center font-bold">
+                            Isi <ChevronRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                        <CardDescription className="text-[10px] sm:text-xs font-medium text-emerald-700">
+                          Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg sm:text-xl font-black text-emerald-700">
+                        {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
+                      </p>
+                      <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                        {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-sm sm:text-base font-bold text-gray-900">
-                      Progress Tashih
-                    </CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs font-medium text-emerald-700">
-                      Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
-                    </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
+                    ></div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg sm:text-xl font-black text-emerald-700">
-                    {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
-                  </p>
-                  <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
-                    {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 pt-1">
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
-                ></div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            </Link>
+          )}
 
-        {hasRegistered && jurnalStatus && (
-          <Card className="overflow-hidden border-none shadow-xl glass-premium">
-            <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 sm:px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
-                    <FileText className="h-5 w-5" />
+        {hasRegistered && jurnalStatus && (() => {
+          const hasWeek2Started = activeBatch?.first_week_start_date && (() => {
+            const date = new Date(activeBatch.first_week_start_date);
+            date.setDate(date.getDate() + 7);
+            return date <= new Date();
+          })();
+          return hasWeek2Started;
+        })() && (
+            <Link href="/jurnal-harian" className="block group">
+              <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-purple-500/20">
+                <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 sm:px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                            Progress Jurnal
+                          </CardTitle>
+                          <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[9px] uppercase tracking-wider bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded flex items-center font-bold">
+                            Isi <ChevronRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                        <CardDescription className="text-[10px] sm:text-xs font-medium text-purple-700">
+                          Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg sm:text-xl font-black text-purple-700">
+                        {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
+                      </p>
+                      <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                        {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-sm sm:text-base font-bold text-gray-900">
-                      Progress Jurnal
-                    </CardTitle>
-                    <CardDescription className="text-[10px] sm:text-xs font-medium text-purple-700">
-                      Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
-                    </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
+                    ></div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg sm:text-xl font-black text-purple-700">
-                    {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
-                  </p>
-                  <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
-                    {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 pt-1">
-              <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-1000 ease-out"
-                  style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
-                ></div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </Link>
           )}
         </div>
       )}

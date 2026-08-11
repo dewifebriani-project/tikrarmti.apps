@@ -30,14 +30,64 @@ export async function saveTashihRecord(data: TashihFormData) {
   console.log('[saveTashihRecord] User ID:', authUser.id)
   console.log('[saveTashihRecord] Data:', data)
 
+  // 2. Validasi Pendaftaran dan Daftar Ulang
+  const { data: registrations } = await supabase
+    .from('pendaftaran_tikrar_tahfidz')
+    .select('status, chosen_juz, daftar_ulang:daftar_ulang_submissions(status, confirmed_chosen_juz)')
+    .eq('user_id', authUser.id)
+    .in('status', ['approved', 'selected'])
+    .limit(1)
+
+  const reg = registrations?.[0]
+  
+  if (!reg) {
+    return { 
+      success: false, 
+      error: 'Afwan Ukhti, akun ini belum terdaftar untuk batch aktif. Tashih hanya bisa diisi oleh thalibah yang terdaftar resmi.' 
+    }
+  }
+
+  // Check if daftar ulang is approved
+  const isDaftarUlangApproved = Array.isArray(reg.daftar_ulang) 
+    ? reg.daftar_ulang.some((du: any) => du.status === 'approved')
+    : reg.daftar_ulang?.status === 'approved'
+
+  if (reg.status !== 'approved' && !isDaftarUlangApproved) {
+    return { 
+      success: false, 
+      error: 'Afwan Ukhti, Daftar Ulang Anda belum disetujui. Catatan Tashih baru dapat diakses setelah pendaftaran ulang disetujui oleh admin.' 
+    }
+  }
+
   try {
+    let finalUstadzahId = data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null)
+    let finalNamaPemeriksa = data.nama_pemeriksa || null
+
+    if (finalUstadzahId) {
+      // Find muallimah_registrations.id because tashih_records_ustadzah_id_fkey points to it
+      const { data: reg } = await supabase
+        .from('muallimah_registrations')
+        .select('id')
+        .eq('user_id', finalUstadzahId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      
+      if (reg && reg.id) {
+        finalUstadzahId = reg.id
+      } else {
+        // Fallback to manual mode if no registration record found
+        finalUstadzahId = null
+      }
+    }
+
     const recordData = {
       user_id: authUser.id, // Menggunakan authUser.id dari server, dijamin sama dengan auth.uid()
       blok: data.blok,
       lokasi: data.lokasi,
       lokasi_detail: data.lokasi_detail || null,
-      ustadzah_id: data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null),
-      nama_pemeriksa: data.nama_pemeriksa || null,
+      ustadzah_id: finalUstadzahId,
+      nama_pemeriksa: finalNamaPemeriksa,
       jumlah_kesalahan_tajwid: data.jumlah_kesalahan_tajwid,
       masalah_tajwid: data.masalah_tajwid,
       catatan_tambahan: data.catatan_tambahan || null,

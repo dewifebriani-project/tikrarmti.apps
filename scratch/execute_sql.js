@@ -5,9 +5,10 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 async function run() {
   const { data, error } = await supabase.rpc('admin_exec_sql', { 
     sql_query: `
-      SELECT tablename, policyname, permissive, roles, cmd, qual 
-      FROM pg_policies 
-      WHERE tablename IN ('users', 'batch_zoom_links', 'halaqah')
+      SELECT conname, pg_get_constraintdef(c.oid) AS constraint_def
+      FROM pg_constraint c
+      JOIN pg_class t ON c.conrelid = t.oid
+      WHERE conname = 'tashih_records_ustadzah_id_fkey'
     `
   });
   console.log(error || data);

@@ -92,13 +92,20 @@ export default function JurnalHarianPage() {
                       (activeRegistration as any)?.chosen_juz ||
                       (isAdmin ? '30A' : null)
 
-  const batchStartDate = activeRegistration?.batch?.start_date || (isAdmin ? new Date().toISOString() : null)
+  const firstWeekStartDate = activeRegistration?.batch?.first_week_start_date || (isAdmin ? new Date().toISOString() : null)
+  
+  const jurnalStartDate = React.useMemo(() => {
+    if (!firstWeekStartDate) return null;
+    const date = new Date(firstWeekStartDate);
+    date.setDate(date.getDate() + 7); // Jurnal starts 1 week after Tahsih
+    return date.toISOString();
+  }, [firstWeekStartDate]);
 
-  const isBatchStarted = React.useMemo(() => {
+  const isJurnalStarted = React.useMemo(() => {
     if (isAdmin) return true;
-    if (!batchStartDate) return false;
-    return new Date().getTime() >= new Date(batchStartDate).getTime();
-  }, [batchStartDate, isAdmin]);
+    if (!jurnalStartDate) return false;
+    return new Date().getTime() >= new Date(jurnalStartDate).getTime();
+  }, [jurnalStartDate, isAdmin]);
 
   useEffect(() => {
     if (juzToUse) {
@@ -107,13 +114,13 @@ export default function JurnalHarianPage() {
   }, [juzToUse])
 
   useEffect(() => {
-    if (batchStartDate) {
-      const startDate = new Date(batchStartDate)
+    if (jurnalStartDate) {
+      const startDate = new Date(jurnalStartDate)
       const diffDays = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      const weekNum = Math.max(1, Math.floor((Math.max(0, diffDays - 7)) / 7) + 1)
+      const weekNum = Math.max(1, Math.floor(diffDays / 7) + 1)
       setCurrentWeekNumber(weekNum)
     }
-  }, [batchStartDate])
+  }, [jurnalStartDate])
 
   const loadJuzInfo = async (juzCode: string) => {
     setIsLoadingJuz(true)
@@ -228,7 +235,7 @@ export default function JurnalHarianPage() {
       {viewMode === 'status' ? (
         <>
           {/* Grid Section */}
-          {(jurnalStatus || isAdmin || hasNoActiveRegistration) && (isBatchStarted || hasNoActiveRegistration) && (
+          {(jurnalStatus || isAdmin || hasNoActiveRegistration) && (isJurnalStarted || hasNoActiveRegistration) && (
             <JurnalStatusGrid 
               blocks={jurnalStatus?.blocks || []} 
               currentWeekNumber={currentWeekNumber}
@@ -244,10 +251,10 @@ export default function JurnalHarianPage() {
             </div>
           )}
 
-          {!isBatchStarted && !hasNoActiveRegistration && (
+          {!isJurnalStarted && !hasNoActiveRegistration && (
             <div className="text-center py-12 glass-premium rounded-3xl mt-4">
-              <h2 className="text-xl font-bold text-gray-800">Program Belum Dimulai</h2>
-              <p className="text-gray-500 mt-2">Halaman ini akan terbuka secara otomatis saat tanggal dimulainya batch tiba.</p>
+              <h2 className="text-xl font-bold text-gray-800">Jurnal Belum Dimulai</h2>
+              <p className="text-gray-500 mt-2">Jurnal Harian baru dapat diisi 1 pekan setelah program (Tahsih) dimulai.</p>
             </div>
           )}
         </>
