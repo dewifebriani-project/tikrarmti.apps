@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 
 interface MuallimahOption {
   id: string
+  user_id: string
   full_name: string
 }
 
@@ -200,13 +201,13 @@ export function TashihEntryForm({
                               key={m.id}
                               type="button"
                               onClick={() => {
-                                setFormData(prev => ({ ...prev, ustadzahId: m.id, ustadzahName: m.full_name }));
+                                setFormData(prev => ({ ...prev, ustadzahId: m.user_id, ustadzahName: m.full_name }));
                                 setIsDropdownOpen(false);
                                 setTeacherSearch('');
                               }}
                               className={cn(
                                 "w-full text-left p-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all mb-1",
-                                formData.ustadzahId === m.id ? "bg-green-600 text-white shadow-md shadow-green-600/10" : "hover:bg-green-50 text-gray-700"
+                                formData.ustadzahId === m.user_id ? "bg-green-600 text-white shadow-md shadow-green-600/10" : "hover:bg-green-50 text-gray-700"
                               )}
                             >
                               {m.full_name}
