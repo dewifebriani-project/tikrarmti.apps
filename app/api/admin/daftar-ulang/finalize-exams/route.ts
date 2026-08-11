@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    logger.error('Error in POST /api/admin/daftar-ulang/finalize-exams', { error: error as Error });
+    logError(error as Error, { context: 'Error in POST /api/admin/daftar-ulang/finalize-exams' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
