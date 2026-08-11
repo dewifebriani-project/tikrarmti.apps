@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     // Log the bulk action
     await logAudit({
       user_id: user.id,
-      action: 'BULK_FINALIZE_EXAMS',
+      action: 'UPDATE',
       entity_type: 'pendaftaran_tikrar_tahfidz',
       entity_id: activeBatch.id, // using batch id as reference
       details: {
