@@ -1881,7 +1881,7 @@ export function HalaqahManagementTab() {
       {/* Edit Halaqah Modal */}
       {editingHalaqah && (
         <EditHalaqahModal
-          halaqah={editingHalaqah}
+          halaqah={editingHalaqah as any}
           onClose={() => setEditingHalaqah(null)}
           onSuccess={() => {
             setEditingHalaqah(null);
