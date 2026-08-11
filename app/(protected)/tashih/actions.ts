@@ -69,7 +69,7 @@ export async function saveTashihRecord(data: TashihFormData) {
         .from('muallimah_registrations')
         .select('id')
         .eq('user_id', finalUstadzahId)
-        .order('created_at', { ascending: false })
+        .order('submitted_at', { ascending: false })
         .limit(1)
         .single()
       
