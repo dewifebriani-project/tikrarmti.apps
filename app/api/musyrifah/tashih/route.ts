@@ -120,6 +120,7 @@ export async function GET(request: Request) {
     const blok = searchParams.get('blok');
     const batchId = searchParams.get('batch_id');
     const statusParam = searchParams.get('status');
+    const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = (page - 1) * limit;
@@ -183,6 +184,14 @@ export async function GET(request: Request) {
     if (activeBatchId) {
       countQuery = countQuery.eq('batch_id', activeBatchId);
     }
+    
+    if (search) {
+      const safeSearch = search.replace(/,/g, '');
+      const searchPattern = `%${safeSearch}%`;
+      const orString = `full_name.ilike.${searchPattern},nama_kunyah.ilike.${searchPattern}`;
+      countQuery = countQuery.or(orString, { foreignTable: 'users' });
+    }
+    
     const { count: totalCount } = await countQuery;
 
     // Then, get paginated submissions
@@ -201,6 +210,13 @@ export async function GET(request: Request) {
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
+    }
+
+    if (search) {
+      const safeSearch = search.replace(/,/g, '');
+      const searchPattern = `%${safeSearch}%`;
+      const orString = `full_name.ilike.${searchPattern},nama_kunyah.ilike.${searchPattern}`;
+      submissionsQuery = submissionsQuery.or(orString, { foreignTable: 'users' });
     }
 
     const { data: daftarUlangUsers, error: daftarUlangError } = await submissionsQuery;
@@ -523,11 +539,29 @@ export async function POST(request: Request) {
       return ApiResponses.notFound('Thalibah not found');
     }
 
+    let finalUstadzahId = validatedData.ustadzah_id === 'manual' ? null : (validatedData.ustadzah_id || null);
+
+    if (finalUstadzahId) {
+      const { data: reg } = await supabase
+        .from('muallimah_registrations')
+        .select('id')
+        .eq('user_id', finalUstadzahId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (reg && reg.id) {
+        finalUstadzahId = reg.id;
+      } else {
+        finalUstadzahId = null;
+      }
+    }
+
     const { data: newRecord, error } = await supabase
       .from('tashih_records')
       .insert({
         ...validatedData,
-        ustadzah_id: validatedData.ustadzah_id === 'manual' ? null : (validatedData.ustadzah_id || null),
+        ustadzah_id: finalUstadzahId,
         created_at: new Date().toISOString(),
       })
       .select()

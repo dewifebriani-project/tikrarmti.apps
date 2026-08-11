@@ -81,6 +81,15 @@ interface Halaqah {
     full_name?: string;
     email?: string;
   };
+  mentors?: {
+    id: string;
+    mentor_id: string;
+    role: string;
+    users?: {
+      full_name?: string;
+      email?: string;
+    };
+  }[];
   _count?: {
     students: number;
   };
@@ -1408,6 +1417,25 @@ export function HalaqahManagementTab() {
                     : 'Not assigned'}
                 </p>
               </div>
+              <div>
+                <p className="text-sm text-gray-500">Musyrifah / Roisah</p>
+                {selectedHalaqah.mentors && selectedHalaqah.mentors.length > 0 ? (
+                  <div className="flex flex-col mt-1 gap-1">
+                    {selectedHalaqah.mentors.map((mentor) => (
+                      <p key={mentor.id} className="font-medium text-sm flex items-center gap-1.5">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          mentor.role === 'roisah' ? 'bg-purple-50 text-purple-700 border border-purple-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                        }`}>
+                          {mentor.role === 'roisah' ? 'ROISAH' : 'MUSYRIFAH'}
+                        </span>
+                        <span>{mentor.users?.full_name || 'Unknown'}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-medium text-gray-400 italic">Belum diassign</p>
+                )}
+              </div>
             </div>
 
             <div className="border-t border-gray-200 pt-6">
@@ -1489,6 +1517,9 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
+                        Musyrifah/Roisah
+                      </th>
                       <th
                         onClick={() => handleSort('_count')}
                         className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
@@ -1562,6 +1593,24 @@ export function HalaqahManagementTab() {
                           <p className="text-sm text-gray-900">
                             {halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name}` : 'Not assigned'}
                           </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {halaqah.mentors && halaqah.mentors.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {halaqah.mentors.map((mentor) => (
+                                <p key={mentor.id} className="text-sm text-gray-900 flex items-center gap-1.5">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                    mentor.role === 'roisah' ? 'bg-purple-50 text-purple-700 border border-purple-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                  }`}>
+                                    {mentor.role === 'roisah' ? 'ROISAH' : 'MUSYRIFAH'}
+                                  </span>
+                                  <span>{mentor.users?.full_name || 'Unknown'}</span>
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 italic">Belum diassign</p>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-2">
@@ -1691,6 +1740,25 @@ export function HalaqahManagementTab() {
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Muallimah</span>
                         <span className="truncate font-semibold">{halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name.split(' ')[0]}` : 'Belum Ada'}</span>
+                      </div>
+                      <div className="col-span-2 flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Musyrifah/Roisah</span>
+                        {halaqah.mentors && halaqah.mentors.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {halaqah.mentors.map((mentor) => (
+                              <span key={mentor.id} className="truncate font-semibold flex items-center gap-1">
+                                <span className={`px-1 rounded text-[8px] font-bold ${
+                                  mentor.role === 'roisah' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                                }`}>
+                                  {mentor.role === 'roisah' ? 'ROISAH' : 'MUSYRIFAH'}
+                                </span>
+                                {mentor.users?.full_name?.split(' ')[0] || 'Unknown'}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="truncate font-semibold text-gray-400 italic">Belum Ada</span>
+                        )}
                       </div>
                       <div className="col-span-2 flex flex-col gap-0.5">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Jadwal</span>

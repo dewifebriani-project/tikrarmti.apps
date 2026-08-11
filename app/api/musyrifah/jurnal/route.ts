@@ -332,6 +332,7 @@ export async function GET(request: Request) {
     const statusParam = searchParams.get('status');
     const isBlacklisted = searchParams.get('is_blacklisted') === 'true';
     const isDropout = searchParams.get('is_dropout') === 'true';
+    const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = (page - 1) * limit;
@@ -405,6 +406,14 @@ export async function GET(request: Request) {
     if (activeBatchId) {
       countQuery = countQuery.eq('batch_id', activeBatchId);
     }
+    
+    if (search) {
+      const safeSearch = search.replace(/,/g, '');
+      const searchPattern = `%${safeSearch}%`;
+      const orString = `full_name.ilike.${searchPattern},nama_kunyah.ilike.${searchPattern}`;
+      countQuery = countQuery.or(orString, { foreignTable: 'users' });
+    }
+    
     const { count: totalCount } = await countQuery;
 
     // Then, get paginated submissions
@@ -423,6 +432,13 @@ export async function GET(request: Request) {
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
+    }
+
+    if (search) {
+      const safeSearch = search.replace(/,/g, '');
+      const searchPattern = `%${safeSearch}%`;
+      const orString = `full_name.ilike.${searchPattern},nama_kunyah.ilike.${searchPattern}`;
+      submissionsQuery = submissionsQuery.or(orString, { foreignTable: 'users' });
     }
 
     const { data: daftarUlangUsers, error: daftarUlangError } = await submissionsQuery;
