@@ -11,7 +11,7 @@ import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle, Heart } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle, Heart, AppWindow, Users } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
@@ -430,7 +430,7 @@ export default function PerjalananSaya() {
 
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
-    const hasWritten = !!(registrationStatus?.examStatus === 'completed' || registrationStatus?.examScore != null || registrationStatus?.examSubmittedAt != null);
+    const hasWritten = !!(registrationStatus?.examStatus === 'completed');
 
     return [
       { 
@@ -502,8 +502,8 @@ export default function PerjalananSaya() {
             name: 'Test Tertulis', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isAlumnus || isPraTikrar || isJuz30 || (hasFormPendaftaran && hasWritten), 
-            data: (isAlumnus || isPraTikrar || isJuz30) ? `Tidak wajib (${isPraTikrar ? 'Pra-Tikrar' : (isJuz30 ? 'Juz 30' : 'Alumni')}) ✓` : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
-            reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
+            data: (isAlumnus || isPraTikrar || isJuz30) ? `Tidak wajib (${isPraTikrar ? 'Pra-Tikrar' : (isJuz30 ? 'Juz 30' : 'Alumni')}) ✓` : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (registrationStatus?.examScore != null ? `Nilai: ${registrationStatus.examScore} (Belum Lulus)` : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu'))), 
+            reviewType: hasFormPendaftaran && (hasWritten || registrationStatus?.examScore != null) ? 'written' : null,
             isLocked: !hasFormPendaftaran || !isSelectionDone || (!isSelectionPassed && !isPraTikrar),
             isTestAction: hasFormPendaftaran && !isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten && isSelectionDone && isSelectionPassed,
             // Uploading the akad must not close the written-exam portal. The exam
@@ -547,6 +547,7 @@ export default function PerjalananSaya() {
             data: isPraTikrar ? 'Tidak wajib (Pra-Tikrar) ✓' : (() => {
               if (!hasAkadFiles) return 'Belum submit akad';
               if (!isAkadSubmitted) return 'Silakan klik Mulai di Upload Akad terlebih dahulu';
+              if (!isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten) return 'Selesaikan Test Tertulis terlebih dahulu';
               // Build detailed status showing what's done and what's missing
               const parts: string[] = [];
               parts.push(hasHalaqah ? `Halaqah: ✓` : `Halaqah belum dipilih`);
@@ -567,11 +568,11 @@ export default function PerjalananSaya() {
               
               return parts.join(' · ');
             })(),
-            isMutualMatch: pairingData?.partner_details?.is_mutual_match,
+            pairingType: pairingData?.partner_details?.partner_type,
             reviewType: hasPartner ? 'pairing' : null,
-            isLocked: !hasAkad,
-            isTestAction: !isPraTikrar && hasAkad && !(hasHalaqah && hasPartnerSelection),
-            isTestDisabled: !hasAkad || isReEnrollmentDoneByDate,
+            isLocked: !hasAkad || (!isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten),
+            isTestAction: !isPraTikrar && hasAkad && (isAlumnus || isPraTikrar || isJuz30 || hasWritten) && !(hasHalaqah && hasPartnerSelection),
+            isTestDisabled: !hasAkad || (!isAlumnus && !isPraTikrar && !isJuz30 && !hasWritten) || isReEnrollmentDoneByDate,
             testUrl: `/pilih-pasangan?batchId=${batchId}`,
             isEditAction: !isPraTikrar && hasAkad && hasHalaqah && hasPartnerSelection,
             isEditDisabled: isReEnrollmentDoneByDate || isPartnerSubmitted,
@@ -955,11 +956,23 @@ export default function PerjalananSaya() {
                           <span className="text-xs font-medium text-gray-300">—</span>
                           <span className="text-xs font-medium text-gray-500 break-words flex items-center gap-1.5">
                             {sub.data}
-                            {(sub as any).isMutualMatch && (
-                              <span title="Mutual Self Match (Jodoh)" className="inline-flex">
-                                <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
-                              </span>
-                            )}
+                            {(() => {
+                              const pType = (sub as any).pairingType;
+                              if (!pType) return null;
+                              if (pType === 'self_match') return (
+                                <span title="Mutual Self Match (Jodoh)" className="inline-flex"><Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" /></span>
+                              );
+                              if (pType === 'system_match') return (
+                                <span title="System Match" className="inline-flex"><Heart className="w-3.5 h-3.5 text-blue-500 fill-blue-500" /></span>
+                              );
+                              if (pType === 'tarteel') return (
+                                <span title="Tarteel Match" className="inline-flex"><AppWindow className="w-3.5 h-3.5 text-indigo-500" /></span>
+                              );
+                              if (pType === 'family') return (
+                                <span title="Family Match" className="inline-flex"><Users className="w-3.5 h-3.5 text-orange-500" /></span>
+                              );
+                              return null;
+                            })()}
                           </span>
                           {(sub as any).reviewType && (
                             <button 

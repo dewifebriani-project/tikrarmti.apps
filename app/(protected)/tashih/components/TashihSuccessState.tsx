@@ -13,7 +13,47 @@ interface TashihSuccessStateProps {
   totalBlocks: number
   teacherName?: string | null
   juzCode: string
+  totalErrors?: number
   onBackToStatus: () => void
+}
+
+function getRatingDetails(errors: number) {
+  if (errors === 0) {
+    return {
+      stars: 5,
+      rank: 'Mumtaz Sempurna',
+      motivation: 'Maa syaa Allah, luar biasa! Bacaan sangat lancar dan sempurna tanpa cela. Pertahankan terus kualitas hafalanmu! 🌟',
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    }
+  } else if (errors === 1) {
+    return {
+      stars: 4,
+      rank: 'Mumtaz',
+      motivation: 'Maa syaa Allah, sangat baik! Hanya ada 1 kesalahan kecil. Sedikit lagi menuju sempurna! ✨',
+      color: 'bg-teal-50 text-teal-700 border-teal-200'
+    }
+  } else if (errors <= 3) {
+    return {
+      stars: 3,
+      rank: 'Jayyid Jiddan',
+      motivation: "Barakallahu fiiki, pencapaian yang bagus! Bacaan sudah lancar dengan sedikit perbaikan. Tetap semangat muraja'ah! 💪",
+      color: 'bg-blue-50 text-blue-700 border-blue-200'
+    }
+  } else if (errors <= 5) {
+    return {
+      stars: 2,
+      rank: 'Jayyid',
+      motivation: 'Alhamdulillah, sudah cukup baik! Ada beberapa catatan tajwid yang perlu diperhatikan. Semangat memperbaiki di pekan berikutnya! ❤️',
+      color: 'bg-amber-50 text-amber-700 border-amber-200'
+    }
+  } else {
+    return {
+      stars: 1,
+      rank: 'Maqbul',
+      motivation: 'Alhamdulillah, teruslah berjuang! Masih banyak catatan tajwid yang harus dipelajari lagi. Jangan berkecil hati, mari latihan lebih giat! 🔥',
+      color: 'bg-rose-50 text-rose-700 border-rose-200'
+    }
+  }
 }
 
 export function TashihSuccessState({
@@ -23,8 +63,11 @@ export function TashihSuccessState({
   totalBlocks,
   teacherName,
   juzCode,
+  totalErrors = 0,
   onBackToStatus
 }: TashihSuccessStateProps) {
+  const details = getRatingDetails(totalErrors)
+
   return (
     <div className="flex flex-col items-center justify-center py-8 px-4 animate-fadeInUp text-center">
       {/* Celebration Icon - Styled with Green/Gold */}
@@ -37,8 +80,13 @@ export function TashihSuccessState({
       </div>
 
       <h1 className="text-2xl font-black text-gray-900 mb-1 tracking-tight">Barakallahu Fiiki!</h1>
-      <p className="text-[10px] uppercase font-bold text-gray-400 mb-6 tracking-widest">
+      <p className="text-[10px] uppercase font-bold text-gray-400 mb-3 tracking-widest">
         Tashih Pekan {weekNumber} Selesai
+      </p>
+
+      {/* Motivational & Description Text */}
+      <p className="text-xs text-gray-600 max-w-xs mb-6 px-4 leading-relaxed font-medium">
+        "{details.motivation}"
       </p>
 
       {/* Summary Card - Compact */}
@@ -59,10 +107,17 @@ export function TashihSuccessState({
             <p className="text-xs font-bold text-green-700">{completedCount}/{totalBlocks} Blok Lunas</p>
           </div>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-gray-400">Peringkat</p>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full w-fit">
-              <Star className="w-2.5 h-2.5 fill-current" />
-              <span className="text-[8px] font-black uppercase tracking-widest">Mumtaz</span>
+            <p className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Peringkat</p>
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border w-fit ${details.color}`}>
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Star 
+                    key={idx} 
+                    className={`w-2.5 h-2.5 ${idx < details.stars ? 'text-amber-500 fill-amber-500' : 'text-gray-300'}`} 
+                  />
+                ))}
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-widest">{details.rank}</span>
             </div>
           </div>
         </div>

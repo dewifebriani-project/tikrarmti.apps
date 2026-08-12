@@ -18,9 +18,10 @@ interface JurnalHeaderProps {
     completed: number
     total: number
   }
+  streakCount?: number
 }
 
-export function JurnalHeader({ title, subtitle, juzInfo, progress }: JurnalHeaderProps) {
+export function JurnalHeader({ title, subtitle, juzInfo, progress, streakCount }: JurnalHeaderProps) {
   const percentage = progress ? Math.round((progress.completed / progress.total) * 100) : 0
 
   return (
@@ -34,6 +35,21 @@ export function JurnalHeader({ title, subtitle, juzInfo, progress }: JurnalHeade
           </h1>
           <p className="text-gray-700 text-[10px] font-black uppercase tracking-widest leading-none mt-1">{subtitle}</p>
         </div>
+
+        {/* Streak Badge */}
+        {streakCount !== undefined && streakCount > 0 && (
+          <div 
+            className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-2xl shadow-sm cursor-pointer group relative"
+          >
+            <span className="text-sm animate-pulse">🔥</span>
+            <span className="text-xs font-black uppercase tracking-wider">{streakCount} Hari</span>
+            
+            {/* Tooltip */}
+            <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-48 bg-gray-950 text-white text-[9px] p-2 rounded-xl shadow-lg leading-normal z-50">
+              Streak dihitung dari laporan Senin-Kamis. Jumat-Ahad adalah masa toleransi untuk melengkapi laporan tanpa memutus streak!
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Slim Integrated Juz & Progress Card */}

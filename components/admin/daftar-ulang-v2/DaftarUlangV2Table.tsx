@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart, CheckCircle, XCircle, MoreVertical, Edit, Trash2, Undo2 } from 'lucide-react';
+import { Eye, FileText, RefreshCw, RotateCcw, MessageSquare, ArrowUp, ArrowDown, ArrowUpDown, Heart, CheckCircle, XCircle, MoreVertical, Edit, Trash2, Undo2, AppWindow, Users } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { DaftarUlangSubmission } from './types';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
@@ -221,11 +221,35 @@ export function DaftarUlangV2Table({
         </div>
       );
     }
-    if (submission.partner_type === 'family' || submission.partner_type === 'tarteel') {
-      return submission.partner_name || '-';
+    if (submission.partner_type === 'family') {
+      return (
+        <div className="flex items-center gap-1.5">
+          <span>{submission.partner_name || '-'}</span>
+          <span title="Family Match" className="inline-flex">
+            <Users className="w-3.5 h-3.5 text-orange-500" />
+          </span>
+        </div>
+      );
+    }
+    if (submission.partner_type === 'tarteel') {
+      return (
+        <div className="flex items-center gap-1.5">
+          <span>{submission.partner_name || '-'}</span>
+          <span title="Tarteel Match" className="inline-flex">
+            <AppWindow className="w-3.5 h-3.5 text-indigo-500" />
+          </span>
+        </div>
+      );
     }
     if (submission.partner_type === 'system_match') {
-      return 'System Match';
+      return (
+        <div className="flex items-center gap-1.5">
+          <span>System Match</span>
+          <span title="System Match" className="inline-flex">
+            <Heart className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
+          </span>
+        </div>
+      );
     }
     return '-';
   };

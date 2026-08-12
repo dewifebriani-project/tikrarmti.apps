@@ -246,11 +246,13 @@ export async function POST(request: NextRequest) {
     let downgradedTo30A = false;
     let newChosenJuz = registration.chosen_juz;
 
-    if (!isPassed) {
-        // Failed any attempt, automatically drop to Juz 30A
+    // Only downgrade if they failed AND they have reached max attempts
+    if (!isPassed && attemptsCount >= maxAttempts) {
         newChosenJuz = '30A';
         downgradedTo30A = true;
     }
+
+    const newExamStatus = (isPassed || attemptsCount >= maxAttempts) ? 'completed' : 'in_progress';
 
     // Update registration with exam results
     const { error: updateRegError } = await supabaseAdmin
@@ -261,7 +263,7 @@ export async function POST(request: NextRequest) {
         exam_attempt_id: attemptId,
         exam_score: score,
         exam_submitted_at: new Date().toISOString(),
-        exam_status: 'completed'
+        exam_status: newExamStatus
       })
       .eq('id', registration.id);
 

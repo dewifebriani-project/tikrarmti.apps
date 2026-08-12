@@ -9,12 +9,17 @@ import { Batch, Program, PROGRAM_STATUSES } from './types';
 interface ProgramFormModalProps {
   program: Program | null;
   batches: Batch[];
+  programs?: Program[];
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function ProgramFormModal({ program, batches, isOpen, onClose, onSuccess }: ProgramFormModalProps) {
+export function ProgramFormModal({ program, batches, programs = [], isOpen, onClose, onSuccess }: ProgramFormModalProps) {
+  const uniqueProgramNames = Array.from(new Set(programs.map(p => p.name))).filter(Boolean);
+  const isCustomName = program ? !uniqueProgramNames.includes(program.name) : false;
+  const [showCustomName, setShowCustomName] = useState(isCustomName);
+
   const [formData, setFormData] = useState({
     id: program?.id,
     batch_id: program?.batch_id || '',
@@ -112,15 +117,64 @@ export function ProgramFormModal({ program, batches, isOpen, onClose, onSuccess 
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nama Program</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Template Program</label>
+                  <select
+                    value={showCustomName ? 'custom' : (formData.name || '')}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'custom') {
+                        setShowCustomName(true);
+                        setFormData({ ...formData, name: '' });
+                      } else {
+                        setShowCustomName(false);
+                        // Auto-fill from most recent matching program
+                        const template = programs.find(p => p.name === val);
+                        setFormData({
+                          ...formData,
+                          name: val,
+                          ...(template ? {
+                            description: template.description || '',
+                            target_level: template.target_level || '',
+                            duration_weeks: template.duration_weeks || 0,
+                            max_thalibah: template.max_thalibah || 0,
+                            is_free: template.is_free ?? true,
+                            price: template.price || 0,
+                          } : {})
+                        });
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 bg-white"
+                  >
+                    <option value="">Pilih Program...</option>
+                    {uniqueProgramNames.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                    {!uniqueProgramNames.includes('Pra-Tikrar MTI') && <option value="Pra-Tikrar MTI">Pra-Tikrar MTI</option>}
+                    {!uniqueProgramNames.includes('Tahfidz Tikrar MTI') && <option value="Tahfidz Tikrar MTI">Tahfidz Tikrar MTI</option>}
+                    {!uniqueProgramNames.includes('Muallimah MTI') && <option value="Muallimah MTI">Muallimah MTI</option>}
+                    <option value="custom">Lainnya (Ketik Manual)...</option>
+                  </select>
+                </div>
+                
+                {showCustomName ? (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nama Program Baru</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Masukkan nama program"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center pt-6">
+                    <span className="text-xs text-gray-400 italic px-2">Data akan diisi otomatis jika memilih template</span>
+                  </div>
+                )}
               </div>
 
               <div>

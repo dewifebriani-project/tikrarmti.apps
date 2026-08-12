@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     let query = supabaseAdmin
       .from('batches')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
+      .order('start_date', { ascending: false });
 
     if (status && status !== 'all') {
       query = query.eq('status', status);
@@ -136,16 +136,18 @@ export async function POST(request: Request) {
       return ApiResponses.customValidationError([{ field: 'general', message: 'Missing required fields: name, start_date, end_date', code: 'REQUIRED' }]);
     }
 
-    const toDateOrNull = (value: any) => (value === '' || value === null || value === undefined) ? null : value;
+    const appendTz = (val: string) => { if (val.includes('+') || val.endsWith('Z')) return val; return `${val}:00+07:00`; };
+    const toStartDate = (value: any) => (value === '' || value === null || value === undefined) ? null : (value.includes('T') ? appendTz(value) : `${value}T00:01:00+07:00`);
+    const toEndDate = (value: any) => (value === '' || value === null || value === undefined) ? null : (value.includes('T') ? appendTz(value) : `${value}T23:59:59+07:00`);
 
     // 4. Prepare data
     const batchData: any = {
       name: body.name,
       description: body.description || null,
-      start_date: body.start_date,
-      end_date: body.end_date,
-      registration_start_date: toDateOrNull(body.registration_start_date),
-      registration_end_date: toDateOrNull(body.registration_end_date),
+      start_date: toStartDate(body.start_date),
+      end_date: toEndDate(body.end_date),
+      registration_start_date: toStartDate(body.registration_start_date),
+      registration_end_date: toEndDate(body.registration_end_date),
       status: body.status || 'draft',
       duration_weeks: body.duration_weeks || 13,
       program_type: body.program_type || null,
@@ -160,19 +162,19 @@ export async function POST(request: Request) {
         const match = body.name?.match(/Batch\s*(\d+)/i);
         return match && parseInt(match[1], 10) >= 3 ? 80 : 70;
       })(),
-      selection_start_date: toDateOrNull(body.selection_start_date),
-      selection_end_date: toDateOrNull(body.selection_end_date),
-      selection_result_date: toDateOrNull(body.selection_result_date),
-      re_enrollment_date: toDateOrNull(body.re_enrollment_date),
-      opening_class_date: toDateOrNull(body.opening_class_date),
-      first_week_start_date: toDateOrNull(body.first_week_start_date),
-      first_week_end_date: toDateOrNull(body.first_week_end_date),
-      review_week_start_date: toDateOrNull(body.review_week_start_date),
-      review_week_end_date: toDateOrNull(body.review_week_end_date),
-      final_exam_start_date: toDateOrNull(body.final_exam_start_date),
-      final_exam_end_date: toDateOrNull(body.final_exam_end_date),
-      graduation_start_date: toDateOrNull(body.graduation_start_date),
-      graduation_end_date: toDateOrNull(body.graduation_end_date),
+      selection_start_date: toStartDate(body.selection_start_date),
+      selection_end_date: toEndDate(body.selection_end_date),
+      selection_result_date: toStartDate(body.selection_result_date),
+      re_enrollment_date: toStartDate(body.re_enrollment_date),
+      opening_class_date: toStartDate(body.opening_class_date),
+      first_week_start_date: toStartDate(body.first_week_start_date),
+      first_week_end_date: toEndDate(body.first_week_end_date),
+      review_week_start_date: toStartDate(body.review_week_start_date),
+      review_week_end_date: toEndDate(body.review_week_end_date),
+      final_exam_start_date: toStartDate(body.final_exam_start_date),
+      final_exam_end_date: toEndDate(body.final_exam_end_date),
+      graduation_start_date: toStartDate(body.graduation_start_date),
+      graduation_end_date: toEndDate(body.graduation_end_date),
       holiday_dates: body.holiday_dates || [],
       whatsapp_group_link: body.whatsapp_group_link || null,
       group_reminder_link: body.group_reminder_link || null,

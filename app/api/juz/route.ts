@@ -39,37 +39,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let activeJuzOptions = allJuz;
-
-    // If we have a batch ID, filter by batch_juz_options
-    if (batchIdToUse) {
-      const { data: mappedJuz, error: mapError } = await supabaseAdmin
-        .from('batch_juz_options')
-        .select('juz_code')
-        .eq('batch_id', batchIdToUse)
-        .eq('is_active', true);
-
-      // If there is no error (meaning table exists) and we got some mappings
-      // If table doesn't exist, we fall back to allJuz.
-      if (!mapError) {
-        // If there are no mappings at all, it might mean the admin hasn't set them up yet.
-        // We could return empty or fallback to the old global `is_active`. 
-        // For safety, let's strictly use the mapping. If empty, it's empty.
-        const activeCodes = new Set(mappedJuz?.map(m => m.juz_code) || []);
-        if (activeCodes.size > 0) {
-          activeJuzOptions = allJuz.filter(juz => activeCodes.has(juz.code));
-        } else {
-           // Fallback to global is_active if no mapping is found for the batch (e.g., newly created batch without juz)
-           activeJuzOptions = allJuz.filter(juz => juz.is_active);
-        }
-      } else {
-        // Fallback to global is_active if table missing
-        activeJuzOptions = allJuz.filter(juz => juz.is_active);
-      }
-    } else {
-      // Fallback if no batch is active
-      activeJuzOptions = allJuz.filter(juz => juz.is_active);
-    }
+    let activeJuzOptions = allJuz.filter(juz => juz.is_active);
 
     // The written-test target list follows the new-thalibah registration form.
     // Only target Bagian A is selectable. This is separate from the question

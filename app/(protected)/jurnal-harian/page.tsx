@@ -230,6 +230,7 @@ export default function JurnalHarianPage() {
           completed: jurnalStatus.summary.completed_blocks,
           total: jurnalStatus.summary.total_blocks
         } : (isAdmin ? { completed: 0, total: 40 } : undefined)}
+        streakCount={jurnalStatus?.summary?.streak_count}
       />
 
       {viewMode === 'status' ? (

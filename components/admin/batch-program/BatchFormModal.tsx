@@ -13,21 +13,26 @@ interface BatchFormModalProps {
   onSuccess: () => void;
 }
 
-const extractDate = (value?: string | null): string => {
+const extractDateTime = (value?: string | null, defaultTime: string = '00:01'): string => {
   if (!value) return '';
-  try {
-    return value.split('T')[0];
-  } catch {
-    return '';
+  if (value.includes('T')) {
+    return value.substring(0, 16);
   }
+  if (value.length === 10) {
+    return `${value}T${defaultTime}`;
+  }
+  return '';
 };
 
 const calculateEndDate = (startDate: string, weeks: number): string => {
   if (!startDate || weeks <= 0) return '';
-  const start = new Date(startDate);
+  const [datePart] = startDate.split('T');
+  if (!datePart) return '';
+  const start = new Date(`${datePart}T00:00:00Z`);
   const end = new Date(start);
   end.setDate(start.getDate() + weeks * 7 - 1);
-  return end.toISOString().split('T')[0];
+  const endStr = end.toISOString().split('T')[0];
+  return `${endStr}T23:59`;
 };
 
 export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormModalProps) {
@@ -35,10 +40,10 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     id: batch?.id,
     name: batch?.name || '',
     description: batch?.description || '',
-    start_date: extractDate(batch?.start_date),
-    end_date: extractDate(batch?.end_date),
-    registration_start_date: extractDate(batch?.registration_start_date),
-    registration_end_date: extractDate(batch?.registration_end_date),
+    start_date: extractDateTime(batch?.start_date, '00:01'),
+    end_date: extractDateTime(batch?.end_date, '23:59'),
+    registration_start_date: extractDateTime(batch?.registration_start_date, '00:01'),
+    registration_end_date: extractDateTime(batch?.registration_end_date, '23:59'),
     duration_weeks: batch?.duration_weeks || 0,
     status: batch?.status || 'draft',
     program_type: batch?.program_type || '',
@@ -50,20 +55,20 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     whatsapp_group_link: batch?.whatsapp_group_link || '',
     group_reminder_link: batch?.group_reminder_link || '',
     group_diskusi_link: batch?.group_diskusi_link || '',
-    selection_start_date: extractDate(batch?.selection_start_date),
-    selection_end_date: extractDate(batch?.selection_end_date),
-    selection_result_date: extractDate(batch?.selection_result_date),
-    re_enrollment_date: extractDate(batch?.re_enrollment_date),
-    opening_class_date: extractDate(batch?.opening_class_date),
-    first_week_start_date: extractDate(batch?.first_week_start_date),
-    first_week_end_date: extractDate(batch?.first_week_end_date),
-    review_week_start_date: extractDate(batch?.review_week_start_date),
-    review_week_end_date: extractDate(batch?.review_week_end_date),
-    final_exam_start_date: extractDate(batch?.final_exam_start_date),
-    final_exam_end_date: extractDate(batch?.final_exam_end_date),
-    graduation_start_date: extractDate(batch?.graduation_start_date),
-    graduation_end_date: extractDate(batch?.graduation_end_date),
-    holiday_dates: Array.isArray(batch?.holiday_dates) ? batch!.holiday_dates!.map(d => extractDate(d)) : [],
+    selection_start_date: extractDateTime(batch?.selection_start_date, '00:01'),
+    selection_end_date: extractDateTime(batch?.selection_end_date, '23:59'),
+    selection_result_date: extractDateTime(batch?.selection_result_date, '00:01'),
+    re_enrollment_date: extractDateTime(batch?.re_enrollment_date, '00:01'),
+    opening_class_date: extractDateTime(batch?.opening_class_date, '00:01'),
+    first_week_start_date: extractDateTime(batch?.first_week_start_date, '00:01'),
+    first_week_end_date: extractDateTime(batch?.first_week_end_date, '23:59'),
+    review_week_start_date: extractDateTime(batch?.review_week_start_date, '00:01'),
+    review_week_end_date: extractDateTime(batch?.review_week_end_date, '23:59'),
+    final_exam_start_date: extractDateTime(batch?.final_exam_start_date, '00:01'),
+    final_exam_end_date: extractDateTime(batch?.final_exam_end_date, '23:59'),
+    graduation_start_date: extractDateTime(batch?.graduation_start_date, '00:01'),
+    graduation_end_date: extractDateTime(batch?.graduation_end_date, '23:59'),
+    holiday_dates: Array.isArray(batch?.holiday_dates) ? batch!.holiday_dates!.map(d => extractDateTime(d, '00:01').split('T')[0]) : [],
   });
 
   const [saving, setSaving] = useState(false);
@@ -236,7 +241,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal Mulai</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     required
                     value={formData.start_date}
                     onChange={(e) => handleStartDateChange(e.target.value)}
@@ -258,7 +263,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tanggal Selesai</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     required
                     value={formData.end_date}
                     readOnly
@@ -273,7 +278,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pendaftaran Mulai</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     value={formData.registration_start_date}
                     onChange={(e) => setFormData({ ...formData, registration_start_date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
@@ -282,7 +287,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pendaftaran Selesai</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     value={formData.registration_end_date}
                     onChange={(e) => setFormData({ ...formData, registration_end_date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
@@ -319,53 +324,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Link Komunikasi Grup</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">WhatsApp Group (Zoom)</label>
-                    <input
-                      type="url"
-                      value={formData.whatsapp_group_link}
-                      onChange={(e) => setFormData({ ...formData, whatsapp_group_link: e.target.value })}
-                      placeholder="https://chat.whatsapp.com/..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Group Reminder</label>
-                    <input
-                      type="url"
-                      value={formData.group_reminder_link}
-                      onChange={(e) => setFormData({ ...formData, group_reminder_link: e.target.value })}
-                      placeholder="https://chat.whatsapp.com/..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Group Diskusi</label>
-                    <input
-                      type="url"
-                      value={formData.group_diskusi_link}
-                      onChange={(e) => setFormData({ ...formData, group_diskusi_link: e.target.value })}
-                      placeholder="https://chat.whatsapp.com/..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Tipe Program</label>
-                  <input
-                    type="text"
-                    value={formData.program_type}
-                    onChange={(e) => setFormData({ ...formData, program_type: e.target.value })}
-                    placeholder="cth. tikrar-tahfidz"
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
-                  />
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Kuota Total</label>
                   <input
@@ -428,15 +387,15 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Mulai</label>
-                        <input type="date" value={formData.selection_start_date} onChange={(e) => setFormData({ ...formData, selection_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.selection_start_date} onChange={(e) => setFormData({ ...formData, selection_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Selesai</label>
-                        <input type="date" value={formData.selection_end_date} onChange={(e) => setFormData({ ...formData, selection_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.selection_end_date} onChange={(e) => setFormData({ ...formData, selection_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pengumuman</label>
-                        <input type="date" value={formData.selection_result_date} onChange={(e) => setFormData({ ...formData, selection_result_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.selection_result_date} onChange={(e) => setFormData({ ...formData, selection_result_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                     </div>
                   </div>
@@ -447,11 +406,11 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Daftar Ulang</label>
-                        <input type="date" value={formData.re_enrollment_date} onChange={(e) => setFormData({ ...formData, re_enrollment_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.re_enrollment_date} onChange={(e) => setFormData({ ...formData, re_enrollment_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Kelas Pembuka</label>
-                        <input type="date" value={formData.opening_class_date} onChange={(e) => setFormData({ ...formData, opening_class_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.opening_class_date} onChange={(e) => setFormData({ ...formData, opening_class_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                     </div>
                   </div>
@@ -462,19 +421,19 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 1 Mulai</label>
-                        <input type="date" value={formData.first_week_start_date} onChange={(e) => setFormData({ ...formData, first_week_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.first_week_start_date} onChange={(e) => setFormData({ ...formData, first_week_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 1 Selesai</label>
-                        <input type="date" value={formData.first_week_end_date} onChange={(e) => setFormData({ ...formData, first_week_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.first_week_end_date} onChange={(e) => setFormData({ ...formData, first_week_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 12 (Review) Mulai</label>
-                        <input type="date" value={formData.review_week_start_date} onChange={(e) => setFormData({ ...formData, review_week_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.review_week_start_date} onChange={(e) => setFormData({ ...formData, review_week_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 12 Selesai</label>
-                        <input type="date" value={formData.review_week_end_date} onChange={(e) => setFormData({ ...formData, review_week_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.review_week_end_date} onChange={(e) => setFormData({ ...formData, review_week_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                     </div>
                     <p className="text-[10px] text-purple-700 mt-2 italic">Pekan 2-11 akan dihitung otomatis</p>
@@ -486,19 +445,19 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 13 (Ujian) Mulai</label>
-                        <input type="date" value={formData.final_exam_start_date} onChange={(e) => setFormData({ ...formData, final_exam_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.final_exam_start_date} onChange={(e) => setFormData({ ...formData, final_exam_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 13 Selesai</label>
-                        <input type="date" value={formData.final_exam_end_date} onChange={(e) => setFormData({ ...formData, final_exam_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.final_exam_end_date} onChange={(e) => setFormData({ ...formData, final_exam_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 14 (Wisuda) Mulai</label>
-                        <input type="date" value={formData.graduation_start_date} onChange={(e) => setFormData({ ...formData, graduation_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.graduation_start_date} onChange={(e) => setFormData({ ...formData, graduation_start_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 14 Selesai</label>
-                        <input type="date" value={formData.graduation_end_date} onChange={(e) => setFormData({ ...formData, graduation_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <input type="datetime-local" value={formData.graduation_end_date} onChange={(e) => setFormData({ ...formData, graduation_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                     </div>
                   </div>

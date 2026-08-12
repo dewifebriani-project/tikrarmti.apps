@@ -10,7 +10,6 @@ interface BatchTableProps {
   pagination?: PaginationMeta | null;
   onPageChange?: (page: number) => void;
   onEdit: (batch: Batch) => void;
-  onManageJuz?: (batch: Batch) => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -29,8 +28,7 @@ function formatDate(value?: string | null) {
     return '-';
   }
 }
-
-export function BatchTable({ batches, isLoading, pagination, onPageChange, onEdit, onManageJuz }: BatchTableProps) {
+export function BatchTable({ batches, isLoading, pagination, onPageChange, onEdit }: BatchTableProps) {
   if (isLoading && batches.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -128,16 +126,6 @@ export function BatchTable({ batches, isLoading, pagination, onPageChange, onEdi
                         <Edit3 className="h-4 w-4" />
                         Edit
                       </button>
-                      {onManageJuz && (
-                        <button
-                          onClick={() => onManageJuz(batch)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-xs inline-flex items-center gap-1.5 transition-colors"
-                          title="Kelola Juz Pendaftaran"
-                        >
-                          <BookOpen className="h-4 w-4" />
-                          Juz
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>

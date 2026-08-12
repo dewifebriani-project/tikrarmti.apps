@@ -25,6 +25,8 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
 
   const [halaqahs, setHalaqahs] = useState<any[]>([]);
   const [loadingHalaqah, setLoadingHalaqah] = useState(false);
+  const [juzOptions, setJuzOptions] = useState<any[]>([]);
+  const [loadingJuz, setLoadingJuz] = useState(false);
 
   useEffect(() => {
     const fetchHalaqah = async () => {
@@ -45,6 +47,24 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
       fetchHalaqah();
     }
   }, [submission.batch_id]);
+
+  useEffect(() => {
+    const fetchJuzOptions = async () => {
+      setLoadingJuz(true);
+      try {
+        const res = await fetch('/api/juz');
+        const data = await res.json();
+        if (data.data) {
+          setJuzOptions(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingJuz(false);
+      }
+    };
+    fetchJuzOptions();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -99,7 +119,18 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Pilihan Juz</label>
-                  <input type="text" name="confirmed_chosen_juz" value={formData.confirmed_chosen_juz} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                  <select 
+                    name="confirmed_chosen_juz" 
+                    value={formData.confirmed_chosen_juz} 
+                    onChange={handleChange} 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    disabled={loadingJuz}
+                  >
+                    <option value="">(Belum Memilih)</option>
+                    {juzOptions.map(j => (
+                      <option key={j.id} value={j.code}>Juz {j.juz_number} Part {j.part} ({j.name})</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Waktu Utama</label>

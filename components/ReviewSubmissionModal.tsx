@@ -24,7 +24,7 @@ import {
   Mail,
   MapPin,
   Phone,
-  HeartHandshake,
+  HeartHandshake, Heart, AppWindow, Users
   Clock,
   Star,
   FileCheck,
@@ -560,6 +560,27 @@ export function ReviewSubmissionModal({
           <div className="relative z-10">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1">Partner Belajar Ukhti</p>
             <h3 className="text-2xl font-black text-gray-900 leading-tight">{partner?.full_name || 'Menunggu Pasangan'}</h3>
+            {(() => {
+              const pType = pairingData?.partner_details?.partner_type;
+              if (!pType) return null;
+              
+              const typeConfig: Record<string, { label: string, icon: any, color: string, fill?: string }> = {
+                'self_match': { label: 'Mutual Self Match', icon: Heart, color: 'text-pink-600 bg-pink-100 border-pink-200', fill: 'fill-pink-600' },
+                'system_match': { label: 'System Match', icon: Heart, color: 'text-blue-600 bg-blue-100 border-blue-200', fill: 'fill-blue-600' },
+                'tarteel': { label: 'Tarteel', icon: AppWindow, color: 'text-indigo-600 bg-indigo-100 border-indigo-200' },
+                'family': { label: 'Family', icon: Users, color: 'text-orange-600 bg-orange-100 border-orange-200' }
+              };
+              const config = typeConfig[pType];
+              if (!config) return null;
+              
+              const Icon = config.icon;
+              return (
+                <div className={`mt-2 mx-auto flex items-center gap-1.5 w-max px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${config.color}`}>
+                  <Icon className={`w-3 h-3 ${config.fill || ''}`} />
+                  {config.label}
+                </div>
+              );
+            })()}
             <p className="text-xs font-bold text-emerald-700 mt-2 bg-emerald-200/50 px-4 py-1.5 rounded-full inline-block">
               Thalibah Batch {reg?.batch?.batch_number || '-'}
             </p>

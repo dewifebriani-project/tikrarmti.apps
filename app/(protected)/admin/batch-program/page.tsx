@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers, BookMarked, ClipboardList, Video } from 'lucide-react';
+import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers, BookMarked, ClipboardList, Video, MessageCircle } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAdminBatches, useAdminPrograms } from '@/lib/hooks/useAdminData';
@@ -17,9 +17,9 @@ import { AdminFormBuilderTab } from '@/components/admin/batch-program/AdminFormB
 import { AdminReregFormBuilderTab } from '@/components/admin/batch-program/AdminReregFormBuilderTab';
 import { AdminMuallimahFormBuilderTab } from '@/components/admin/batch-program/AdminMuallimahFormBuilderTab';
 import { AdminAkadQuizTab } from '@/components/admin/batch-program/AdminAkadQuizTab';
-import { BatchJuzModal } from '@/components/admin/batch-program/BatchJuzModal';
+import { AdminCommunicationTab } from '@/components/admin/batch-program/AdminCommunicationTab';
 
-type TabType = 'batches' | 'programs' | 'juz' | 'zoom' | 'form-builder' | 'quiz';
+type TabType = 'batches' | 'programs' | 'juz' | 'zoom' | 'communication' | 'form-builder' | 'quiz';
 
 export default function AdminBatchProgramPage() {
   const [mounted, setMounted] = useState(false);
@@ -38,7 +38,6 @@ export default function AdminBatchProgramPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [showProgramModal, setShowProgramModal] = useState(false);
-  const [showJuzModal, setShowJuzModal] = useState(false);
   const [activeFormSubTab, setActiveFormSubTab] = useState<'pendaftaran' | 'daftar-ulang' | 'muallimah'>('pendaftaran');
   const [activeQuizSubTab, setActiveQuizSubTab] = useState<'pemahaman-akad'>('pemahaman-akad');
 
@@ -231,6 +230,17 @@ export default function AdminBatchProgramPage() {
             {activeTab === 'zoom' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-700 rounded-full" />}
           </button>
           <button
+            onClick={() => setActiveTab('communication')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'communication' ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Link Komunikasi
+            {activeTab === 'communication' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />}
+          </button>
+          <button
             onClick={() => setActiveTab('form-builder')}
             className={cn(
               'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
@@ -324,10 +334,6 @@ export default function AdminBatchProgramPage() {
               onEdit={(batch) => {
                 setEditingBatch(batch);
                 setShowBatchModal(true);
-              }}
-              onManageJuz={(batch) => {
-                setEditingBatch(batch);
-                setShowJuzModal(true);
               }}
             />
           </>
@@ -426,6 +432,10 @@ export default function AdminBatchProgramPage() {
           <AdminZoomTab batches={batches as Batch[]} />
         )}
 
+        {activeTab === 'communication' && (
+          <AdminCommunicationTab batches={batches as Batch[]} />
+        )}
+
         {activeTab === 'form-builder' && (
           <div className="space-y-6">
             <div className="flex p-1 space-x-1 bg-white/50 border border-gray-200 rounded-xl max-w-2xl">
@@ -510,23 +520,13 @@ export default function AdminBatchProgramPage() {
           key={editingProgram?.id || 'new-program'}
           program={editingProgram}
           batches={batches as Batch[]}
+          programs={programs as Program[]}
           isOpen={showProgramModal}
           onClose={() => {
             setShowProgramModal(false);
             setEditingProgram(null);
           }}
           onSuccess={handleProgramSuccess}
-        />
-      )}
-
-      {editingBatch && (
-        <BatchJuzModal
-          batch={editingBatch}
-          isOpen={showJuzModal}
-          onClose={() => {
-            setShowJuzModal(false);
-            setEditingBatch(null);
-          }}
         />
       )}
     </div>

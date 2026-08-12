@@ -345,6 +345,7 @@ export default function TashihPage() {
 
   const weekCompleted = isWeekCompleted()
   const currentWeekNum = getCurrentWeekNumber()
+  const totalWeekErrors = weekRecords.reduce((sum, r) => sum + (r.jumlah_kesalahan_tajwid || 0), 0)
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 animate-fadeInUp">
@@ -379,6 +380,7 @@ export default function TashihPage() {
           completedCount={4}
           totalBlocks={4}
           teacherName={tashihData.ustadzahName}
+          totalErrors={totalWeekErrors}
           onBackToStatus={() => setViewMode('status')}
         />
       ) : (

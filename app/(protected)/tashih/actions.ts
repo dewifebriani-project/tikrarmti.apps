@@ -64,24 +64,6 @@ export async function saveTashihRecord(data: TashihFormData) {
     let finalUstadzahId = data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null)
     let finalNamaPemeriksa = data.nama_pemeriksa || null
 
-    if (finalUstadzahId) {
-      // Find muallimah_registrations.id because tashih_records_ustadzah_id_fkey points to it
-      const { data: reg } = await supabase
-        .from('muallimah_registrations')
-        .select('id')
-        .eq('user_id', finalUstadzahId)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .single()
-      
-      if (reg && reg.id) {
-        finalUstadzahId = reg.id
-      } else {
-        // Fallback to manual mode if no registration record found
-        finalUstadzahId = null
-      }
-    }
-
     const recordData = {
       user_id: authUser.id, // Menggunakan authUser.id dari server, dijamin sama dengan auth.uid()
       blok: data.blok,
