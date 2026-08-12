@@ -205,7 +205,7 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
       })
 
       // Calculate streak dynamically
-      const uniqueDates = Array.from(new Set(jurnalRecords.map((r: any) => r.tanggal_setor as string)));
+      const uniqueDates: string[] = Array.from(new Set<string>(jurnalRecords.map((r: any) => String(r.tanggal_setor))));
       streakCount = calculateJurnalStreak(uniqueDates);
     }
   }
