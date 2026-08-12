@@ -563,6 +563,7 @@ export interface JurnalStatusData {
     total_blocks: number
     completed_blocks: number
     pending_blocks: number
+    streak_count?: number
     sp_summary: {
       sp_level: number
       week_number: number
