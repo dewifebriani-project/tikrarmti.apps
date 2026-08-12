@@ -105,6 +105,8 @@ interface PairingData {
     partner_notes: string | null;
     partner_wa_phone: string | null;
     is_mutual_match?: boolean;
+    partner_type?: string;
+    partner_user_id?: string;
   } | null;
 }
 
