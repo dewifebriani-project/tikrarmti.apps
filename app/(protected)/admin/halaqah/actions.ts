@@ -1662,8 +1662,9 @@ export async function assignAsisten(halaqahId: string, userId: string, asistenRo
     
     // 3. Add role to user if they don't have it
     const roles = userData.roles || []
-    if (!roles.includes(asistenRole)) {
-      roles.push(asistenRole)
+    const roleForUsersTable = asistenRole === 'roisah' ? 'musyrifah' : asistenRole
+    if (!roles.includes(roleForUsersTable)) {
+      roles.push(roleForUsersTable)
       const { error: updateRoleError } = await supabaseAdmin
         .from('users')
         .update({ roles })

@@ -7,21 +7,28 @@ const supabase = createClient(
 );
 
 async function main() {
-  const { data, error } = await supabase
+  const { data: ania } = await supabase
+    .from('users')
+    .select('id, full_name, roles')
+    .ilike('full_name', '%ania%');
+    
+  console.log('Ania:', ania);
+  
+  if (ania && ania.length > 0) {
+    const { data: halaqah } = await supabase
       .from('halaqah')
-      .select(`
-        id,
-        mentors:halaqah_mentors(
-          id, mentor_id, role,
-          users:users!halaqah_mentors_mentor_id_fkey(full_name, email)
-        )
-      `)
-      .not('mentors', 'is', null);
-
-  // filter locally just in case
-  const withMusyrifah = data?.filter(h => h.mentors.some(m => m.role === 'musyrifah' || m.role === 'roisah'));
-  console.log(JSON.stringify(withMusyrifah?.slice(0, 2), null, 2));
-  console.log('Error:', error);
+      .select('id, name')
+      .eq('muallimah_id', ania[0].id);
+      
+    console.log('Halaqah Ania:', halaqah);
+    
+    const { data: mentors } = await supabase
+      .from('halaqah_mentors')
+      .select('*')
+      .eq('halaqah_id', halaqah[0].id);
+      
+    console.log('Mentors for Ania halaqah:', mentors);
+  }
 }
 
 main();
