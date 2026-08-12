@@ -24,7 +24,7 @@ import {
   Mail,
   MapPin,
   Phone,
-  HeartHandshake, Heart, AppWindow, Users
+  HeartHandshake, Heart, AppWindow, Users,
   Clock,
   Star,
   FileCheck,
