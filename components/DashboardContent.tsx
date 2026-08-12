@@ -586,7 +586,7 @@ export default function DashboardContent() {
           new Date(activeBatch.first_week_start_date) <= new Date();
         const userRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
           reg.batch_id === activeBatch.id &&
-          (reg.status === 'approved' || reg.selection_status === 'selected')
+          (reg.status === 'approved')
         );
         return hasWeek1Started && userRegisteredInActiveBatch;
       })() && (

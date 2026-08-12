@@ -1673,16 +1673,19 @@ export async function assignAsisten(halaqahId: string, userId: string, asistenRo
     }
     
     // 4. Add to halaqah_mentors using 'musyrifah' as the accepted enum value (DB constraint limitation for 'roisah')
-    const { error: insertError } = await supabaseAdmin
-      .from('halaqah_mentors')
-      .upsert({
-        halaqah_id: halaqahId,
-        mentor_id: userId,
-        role: 'musyrifah', 
-        is_primary: false
-      }, { onConflict: 'halaqah_id,mentor_id' })
-      
-    if (insertError) throw insertError
+    const isAlreadyAssigned = existingMentors?.some(m => m.mentor_id === userId)
+    if (!isAlreadyAssigned) {
+      const { error: insertError } = await supabaseAdmin
+        .from('halaqah_mentors')
+        .insert({
+          halaqah_id: halaqahId,
+          mentor_id: userId,
+          role: 'musyrifah', 
+          is_primary: false
+        })
+        
+      if (insertError) throw insertError
+    }
     
     // 5. Log audit
     const { ip, userAgent } = getRequestInfo()
