@@ -1260,7 +1260,10 @@ function HalaqahSelectionStep({
   const expectedProgramType = isPraTikrar ? 'pra_tahfidz' : 'tikrar_tahfidz'
   
   const sortedHalaqahData = [...halaqahData]
-    .filter(h => h.program_class_type === expectedProgramType || !h.program_class_type) // Fallback if no program_class_type is found
+    .filter(h => {
+      const classType = h.program?.class_type || h.program_class_type;
+      return classType === expectedProgramType || !classType;
+    })
     .sort((a, b) => {
       // Sort by day of week first
       const dayA = a.day_of_week || 0
