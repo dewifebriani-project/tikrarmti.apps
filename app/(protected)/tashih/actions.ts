@@ -64,6 +64,25 @@ export async function saveTashihRecord(data: TashihFormData) {
     let finalUstadzahId = data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null)
     let finalNamaPemeriksa = data.nama_pemeriksa || null
 
+    // If finalUstadzahId is present, it's a users.id from the frontend.
+    // We must resolve it to muallimah_registrations.id to satisfy the foreign key.
+    if (finalUstadzahId) {
+      const { data: reg } = await supabase
+        .from('muallimah_registrations')
+        .select('id')
+        .eq('user_id', finalUstadzahId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (reg) {
+        finalUstadzahId = reg.id
+      } else {
+        // Fallback if not found, to avoid FK violation
+        finalUstadzahId = null
+      }
+    }
+
     const recordData = {
       user_id: authUser.id, // Menggunakan authUser.id dari server, dijamin sama dengan auth.uid()
       blok: data.blok,

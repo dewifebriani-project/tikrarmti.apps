@@ -854,6 +854,7 @@ function DaftarUlangContent() {
                 onChange={setFormData}
                 reregQuestions={reregQuestions}
                 isPraTikrar={isPraTikrar}
+                isLocked={isGlobalSubmitted}
               />
             )}
 
@@ -1187,13 +1188,15 @@ function HalaqahSelectionStep({
   formData,
   onChange,
   reregQuestions,
-  isPraTikrar
+  isPraTikrar,
+  isLocked = false
 }: {
   halaqahData: HalaqahData[]
   formData: any
   onChange: (data: any) => void
   reregQuestions: any[]
   isPraTikrar: boolean
+  isLocked?: boolean
 }) {
   const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
 
@@ -1301,7 +1304,7 @@ function HalaqahSelectionStep({
             return (
               <div
                 key={halaqah.id}
-                onClick={() => !halaqah.is_full && togglePackage(halaqah.id)}
+                onClick={() => !isLocked && !halaqah.is_full && togglePackage(halaqah.id)}
                 className={`
                   relative border-2 rounded-xl overflow-hidden transition-all shadow-sm hover:shadow-md cursor-pointer
                   ${halaqah.is_full && !selected ? 'bg-gray-50 border-gray-300 opacity-75' : 'bg-white border-gray-200 hover:border-emerald-300'}
@@ -1312,7 +1315,7 @@ function HalaqahSelectionStep({
                   ${selected ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
                   {selected && <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>}
                 </div>
-                {/* Header with name and class type badge */}                {/* Header with name and class type badge */}
+                {/* Header with name only */}
                 <div className={`
                   px-4 py-3 flex items-center justify-between
                   ${ujianSelected || tashihSelected ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-gray-50 to-gray-100'}
@@ -1321,18 +1324,10 @@ function HalaqahSelectionStep({
                     <h4 className={`font-semibold ${ujianSelected || tashihSelected ? 'text-white' : 'text-gray-900'}`}>
                       {halaqah.name}
                     </h4>
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getClassTypeColor(halaqah.class_type)}`}>
-                      {getClassTypeLabel(halaqah.class_type)}
-                    </span>
                     {halaqah.is_full && (
                       <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full">Penuh</span>
                     )}
                   </div>
-                  {isBothRequired && (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-                      Wajib Keduanya
-                    </span>
-                  )}
                 </div>
 
                 <div className="p-4">
@@ -1448,8 +1443,8 @@ function HalaqahSelectionStep({
                     {/* Combined Button for Tashih+Ujian */}
                     {isBothRequired ? (
                       <button
-                        onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
-                        disabled={halaqah.is_full || (() => {
+                        onClick={() => !isLocked && !halaqah.is_full && toggleUjian(halaqah.id)}
+                        disabled={isLocked || halaqah.is_full || (() => {
                           const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
                           const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
                           const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
@@ -1485,8 +1480,8 @@ function HalaqahSelectionStep({
                         {/* Separate Ujian Button */}
                         {hasUjian(halaqah) && (
                           <button
-                            onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
-                            disabled={halaqah.is_full || (() => {
+                            onClick={() => !isLocked && !halaqah.is_full && toggleUjian(halaqah.id)}
+                            disabled={isLocked || halaqah.is_full || (() => {
                               const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
                               const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
                               const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
@@ -1521,8 +1516,8 @@ function HalaqahSelectionStep({
                         {/* Separate Tashih Button */}
                         {hasTashih(halaqah) && (
                           <button
-                            onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
-                            disabled={halaqah.is_full || (() => {
+                            onClick={() => !isLocked && !halaqah.is_full && toggleTashih(halaqah.id)}
+                            disabled={isLocked || halaqah.is_full || (() => {
                               const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
                               const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
                               const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
