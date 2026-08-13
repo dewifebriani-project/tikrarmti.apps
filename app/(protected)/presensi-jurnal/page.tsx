@@ -295,7 +295,7 @@ function PresensiJurnalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal' | 'blacklist' | 'dropout'>('jurnal');
+  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah'>('jurnal');
   const [isMounted, setIsMounted] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
@@ -397,8 +397,8 @@ function PresensiJurnalContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'jurnal' || tab === 'presensi' || tab === 'blacklist' || tab === 'dropout') {
-      setActiveTab(tab as 'presensi' | 'jurnal' | 'blacklist' | 'dropout');
+    if (tab === 'jurnal' || tab === 'presensi' || tab === 'blacklist' || tab === 'dropout' || tab === 'halaqah') {
+      setActiveTab(tab as 'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah');
     }
   }, [searchParams]);
 

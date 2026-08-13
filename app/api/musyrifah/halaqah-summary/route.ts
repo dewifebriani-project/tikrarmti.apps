@@ -150,7 +150,7 @@ export async function GET(request: Request) {
       return {
         id: h.id,
         name: h.name,
-        muallimah_name: h.muallimah?.full_name || 'Tanpa Muallimah',
+        muallimah_name: (Array.isArray(h.muallimah) ? h.muallimah[0]?.full_name : (h.muallimah as any)?.full_name) || 'Tanpa Muallimah',
         total_thalibah: halaqahStudents.length,
         thalibah: halaqahStudents
       };

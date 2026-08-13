@@ -15,6 +15,8 @@ interface HalaqahSummary {
   muallimah_name: string;
   total_thalibah: number;
   thalibah: ThalibahSummary[];
+}
+
 interface HalaqahSummaryTabProps {
   batchId?: string;
 }
