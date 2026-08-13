@@ -168,7 +168,7 @@ export function HalaqahManagementTab() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [emptyOnly, setEmptyOnly] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tikrar_tahfidz' | 'pra_tahfidz' | 'tikrar_berbayar'>('tikrar_tahfidz');
+  const [activeTab, setActiveTab] = useState<'tikrar_tahfidz' | 'pra_tahfidz' | 'tikrar_berbayar' | 'muallimah'>('tikrar_tahfidz');
 
   // Sort - default to day_of_week then start_time
   const [sortColumn, setSortColumn] = useState<keyof Halaqah>('day_of_week');
@@ -1035,6 +1035,15 @@ export function HalaqahManagementTab() {
   const tabHalaqahs = useMemo(() => {
     return halaqahs.filter(h => {
       const type = h.class_type || h.program?.class_type;
+      
+      if (activeTab === 'muallimah') {
+        return !type && h.program?.name?.toLowerCase().includes('muallimah');
+      }
+      
+      if (activeTab === 'tikrar_berbayar') {
+        return type === 'tikrar_berbayar' || h.program?.name?.toLowerCase().includes('berbayar');
+      }
+
       return type === activeTab;
     });
   }, [halaqahs, activeTab]);
@@ -1200,6 +1209,16 @@ export function HalaqahManagementTab() {
             } whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors`}
           >
             Berbayar
+          </button>
+          <button
+            onClick={() => setActiveTab('muallimah')}
+            className={`${
+              activeTab === 'muallimah'
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-4 border-b-2 font-bold text-sm transition-colors`}
+          >
+            Muallimah
           </button>
         </nav>
       </div>

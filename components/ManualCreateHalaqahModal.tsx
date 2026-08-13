@@ -14,6 +14,7 @@ interface Program {
   id: string;
   name: string;
   batch_id: string;
+  class_type?: string;
 }
 
 interface Muallimah {
@@ -57,6 +58,7 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
   const [loading, setLoading] = useState(false);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [muallimahs, setMuallimahs] = useState<Muallimah[]>([]);
+  const [selectedClassType, setSelectedClassType] = useState<string>('tikrar_tahfidz');
 
   const [formData, setFormData] = useState<HalaqahFormData>({
     name: '',
@@ -211,6 +213,71 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Class Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Jenis Halaqah (Filter Program)
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="classType"
+                  value="tikrar_tahfidz"
+                  checked={selectedClassType === 'tikrar_tahfidz'}
+                  onChange={(e) => {
+                    setSelectedClassType(e.target.value);
+                    setFormData({ ...formData, program_id: '' });
+                  }}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm">Tikrar Per Juz</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="classType"
+                  value="pra_tahfidz"
+                  checked={selectedClassType === 'pra_tahfidz'}
+                  onChange={(e) => {
+                    setSelectedClassType(e.target.value);
+                    setFormData({ ...formData, program_id: '' });
+                  }}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm">Pra Tikrar</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="classType"
+                  value="tikrar_berbayar"
+                  checked={selectedClassType === 'tikrar_berbayar'}
+                  onChange={(e) => {
+                    setSelectedClassType(e.target.value);
+                    setFormData({ ...formData, program_id: '' });
+                  }}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm">Berbayar</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="classType"
+                  value="muallimah"
+                  checked={selectedClassType === 'muallimah'}
+                  onChange={(e) => {
+                    setSelectedClassType(e.target.value);
+                    setFormData({ ...formData, program_id: '' });
+                  }}
+                  className="text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm">Muallimah</span>
+              </label>
+            </div>
+          </div>
+
           {/* Program Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -224,7 +291,17 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
               required
             >
               <option value="">Pilih program...</option>
-              {programs.map((program) => (
+              {programs
+                .filter(p => {
+                  if (selectedClassType === 'muallimah') {
+                    return !p.class_type && p.name.toLowerCase().includes('muallimah');
+                  }
+                  if (selectedClassType === 'tikrar_berbayar') {
+                    return p.class_type === 'tikrar_berbayar' || p.name.toLowerCase().includes('berbayar');
+                  }
+                  return p.class_type === selectedClassType;
+                })
+                .map((program) => (
                 <option key={program.id} value={program.id}>
                   {program.name}
                 </option>
