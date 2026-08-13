@@ -23,6 +23,7 @@ export interface HalaqahForReminder {
   students?: Array<{
     full_name: string;
     preferred_juz?: string;
+    phone?: string;
   }>;
   max_students?: number;
 }
@@ -134,7 +135,15 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
     studentList = students.map((s, index) => {
       const studentJuz = s.preferred_juz || juz;
       const juzLabel = studentJuz && !isPraTahfidz ? `(Juz ${studentJuz})` : '';
-      return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}`.trim();
+      
+      let phoneLink = '';
+      if (s.phone) {
+        // Remove non-digit characters and replace leading 0 with 62
+        const cleanPhone = s.phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
+        phoneLink = ` - wa.me/${cleanPhone}`;
+      }
+
+      return `${index + 1}. ${toTitleCase(s.full_name)} ${juzLabel}${phoneLink}`.trim();
     }).join('\n');
   }
 
@@ -182,7 +191,7 @@ ${studentList}
 🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
 }
 
-export function generateDailyReminder(batchName: string, halaqahs: HalaqahForReminder[], date: Date = new Date()): string {
+export function generateDailyReminder(batchName: string, halaqahs: HalaqahForReminder[], date: Date = new Date(), coordinatorName: string = ''): string {
   const day_name = new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date).toUpperCase();
   const date_masehi = getMasehiDate(date).toUpperCase();
   
@@ -202,10 +211,11 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
       : `𝗞𝗘𝗟𝗔𝗦 𝗧𝗜𝗞𝗥𝗔𝗥${h.preferred_juz ? ` 𝗝𝗨𝗭 ${h.preferred_juz}` : ''}`;
     const coordinatorLabel = isPraTikrar ? 'Musyrifah' : 'Roisah';
 
+    const coordinatorNameFormatted = coordinatorName ? coordinatorName : '........................';
     return `🛡️  ${classLabel}
 ⏰  *${formatTimeShort(h.start_time)} WIB*
 👑  Ustadzah ${h.muallimah?.full_name || ''}
-🎗️  ${coordinatorLabel} : ........................
+🎗️  ${coordinatorLabel} : ${coordinatorNameFormatted}
 🌐  Link Zoom${getZoomEmoji(h.zoom_name) ? ' ' + getZoomEmoji(h.zoom_name) : ''}
 ${h.zoom_link || ''}
 
@@ -243,7 +253,7 @@ ${scheduleStr}
 
 
 
-export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = new Date()): string {
+export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = new Date(), coordinatorName: string = ''): string {
   const juz = halaqah.preferred_juz || '';
   const muallimah_name = toTitleCase(halaqah.muallimah?.full_name || '');
   const time = formatTimeShort(halaqah.start_time);
@@ -261,11 +271,13 @@ export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = n
   const isPraTikrar = halaqah.class_type === 'pra_tahfidz';
   const classLabel = isPraTikrar ? 'PRA TIKRAR UMUM MTI' : `TIKRAR MTI Juz ${juz}`;
 
+  const coordinatorNameFormatted = coordinatorName ? coordinatorName : '........................';
+
   return `*BERITA ACARA KELAS ${classLabel}.*
 ${day}, Pukul ${time} WIB
 
 👑Ustadzah ${muallimah_name} حفظها الله تعالى
-🏅Raisah : ........................ 
+🏅Raisah : ${coordinatorNameFormatted} 
 🗓 ${day}, ${dateStr} | ${tanggal_hijri}
 
 Keterangan:

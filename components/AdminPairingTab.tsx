@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { ChevronDown, ChevronRight, Info } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import { ChevronDown, ChevronRight, Info, Search } from 'lucide-react'
 import { useAdminPairing } from '@/hooks/useAdminPairing'
 import { PairingStatsCard } from './pairing/PairingStatsCard'
 import { SelfMatchTab } from './pairing/SelfMatchTab'
@@ -82,6 +82,25 @@ export default function AdminPairingTab() {
     handleAddToPair,
     getSortedMatchCandidates,
   } = useAdminPairing()
+
+  const [searchQuery, setSearchQuery] = React.useState('')
+
+  const filterRequests = (reqs: any[]) => {
+    if (!searchQuery) return reqs;
+    const q = searchQuery.toLowerCase();
+    return reqs.filter(r => 
+      r.user_name?.toLowerCase().includes(q) ||
+      r.user_email?.toLowerCase().includes(q) ||
+      r.partner_name?.toLowerCase().includes(q) ||
+      r.paired_partner_name?.toLowerCase().includes(q) ||
+      (r.partner_details && r.partner_details.full_name?.toLowerCase().includes(q))
+    );
+  }
+
+  const filteredSelfMatch = React.useMemo(() => filterRequests(selfMatchRequests), [selfMatchRequests, searchQuery])
+  const filteredSystemMatch = React.useMemo(() => filterRequests(systemMatchRequests), [systemMatchRequests, searchQuery])
+  const filteredTarteel = React.useMemo(() => filterRequests(tarteelRequests), [tarteelRequests, searchQuery])
+  const filteredFamily = React.useMemo(() => filterRequests(familyRequests), [familyRequests, searchQuery])
 
   const hasTimeSlotOverlap = (slot1: string, slot2: string): boolean => {
     if (!slot1 || !slot2) return false
@@ -175,7 +194,19 @@ export default function AdminPairingTab() {
   return (
     <div className="space-y-6">
       {/* Action Area (Header) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Search Bar */}
+        <div className="relative w-full md:w-80">
+          <input
+            type="text"
+            placeholder="Cari nama thalibah atau partner..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all font-medium text-gray-700"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        </div>
+
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <div className="relative w-full sm:w-64">
             <select
@@ -207,10 +238,10 @@ export default function AdminPairingTab() {
       <div className="bg-white border-b border-gray-200 mb-6 px-2 rounded-2xl shadow-sm">
         <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
           {[
-            { id: 'self', label: 'Pilih Sendiri', count: stats.selfMatch.submitted },
-            { id: 'system', label: 'Cari Sistem', count: stats.systemMatch.submitted },
-            { id: 'tarteel', label: 'Tarteel', count: stats.tarteel.submitted },
-            { id: 'family', label: 'Family', count: stats.family.submitted }
+            { id: 'self', label: 'Pilih Sendiri', count: searchQuery ? filteredSelfMatch.length : stats.selfMatch.submitted },
+            { id: 'system', label: 'Cari Sistem', count: searchQuery ? filteredSystemMatch.length : stats.systemMatch.submitted },
+            { id: 'tarteel', label: 'Tarteel', count: searchQuery ? filteredTarteel.length : stats.tarteel.submitted },
+            { id: 'family', label: 'Family', count: searchQuery ? filteredFamily.length : stats.family.submitted }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -247,7 +278,7 @@ export default function AdminPairingTab() {
         <div className="space-y-4">
           {activeTab === 'self' && (
             <SelfMatchTab
-              requests={selfMatchRequests}
+              requests={filteredSelfMatch}
               onApprove={handleApprove}
               onBulkApprove={handleBulkApproveSelfMatch}
               onRevert={(req) => handleRevertPairing(req as any)}
@@ -258,7 +289,7 @@ export default function AdminPairingTab() {
 
           {activeTab === 'system' && (
             <SystemMatchTab
-              requests={systemMatchRequests}
+              requests={filteredSystemMatch}
               onFindMatches={handleFindMatches}
               onBulkPair={handleBulkPair}
               onRevertAll={handleRevertAllPairings}
@@ -276,7 +307,7 @@ export default function AdminPairingTab() {
 
           {activeTab === 'tarteel' && (
             <TarteelTab
-              requests={tarteelRequests}
+              requests={filteredTarteel}
               onApprove={handleApproveTarteel}
               onBulkApprove={handleBulkApproveTarteel}
               onRevert={handleRevertTarteelPairing}
@@ -287,7 +318,7 @@ export default function AdminPairingTab() {
 
           {activeTab === 'family' && (
             <FamilyTab
-              requests={familyRequests}
+              requests={filteredFamily}
               onApprove={handleApproveFamily}
               onBulkApprove={handleBulkApproveFamily}
               onRevert={handleRevertFamilyPairing}

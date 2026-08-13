@@ -100,7 +100,7 @@ export default function AdminJadwalHarianTab() {
           zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
           program:programs!inner(class_type, batch_id, batch:batches(name)),
-          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name))
+          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, phone))
         `)
         .eq('program.batch_id', batch.id)
         .eq('status', 'active');
@@ -152,7 +152,8 @@ export default function AdminJadwalHarianTab() {
               .filter((s: any) => s.status === 'active')
               .map((s: any) => [s.thalibah_id, {
                 full_name: confirmedNameMap.get(s.thalibah_id) || s.thalibah?.full_name,
-                preferred_juz: h.preferred_juz
+                preferred_juz: h.preferred_juz,
+                phone: s.thalibah?.phone
               }])
           ).values()
         )
@@ -176,8 +177,10 @@ export default function AdminJadwalHarianTab() {
     }
   };
 
+  const userName = (user as any)?.user_metadata?.full_name || (user as any)?.full_name || '';
+
   const handleCopyRekapan = () => {
-    const text = generateDailyReminder(activeBatchName, activeProgramHalaqahs, getNextDateForDay(activeDay));
+    const text = generateDailyReminder(activeBatchName, activeProgramHalaqahs, getNextDateForDay(activeDay), userName);
     copyToClipboard(text, 'Rekapan Harian berhasil disalin!');
   };
 
@@ -701,7 +704,7 @@ export default function AdminJadwalHarianTab() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate), 'Berita Acara berhasil disalin!');
+                                    copyToClipboard(generateLaporanKelas(halaqah, dateForTemplate, userName), 'Berita Acara berhasil disalin!');
                                     const details = document.activeElement?.closest('details');
                                     if (details) details.removeAttribute('open');
                                   }}

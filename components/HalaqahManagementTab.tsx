@@ -347,6 +347,7 @@ export function HalaqahManagementTab() {
           .map((s: any) => ({
             full_name: s.thalibah?.full_name || 'Unknown',
             preferred_juz: halaqah.preferred_juz,
+            phone: s.thalibah?.phone
           }));
       }
     } catch (error) {

@@ -41,9 +41,11 @@ import {
   ShieldAlert,
   Check,
   CheckCheck,
-  ArrowLeft
+  ArrowLeft,
+  LayoutList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HalaqahSummaryTab } from './components/HalaqahSummaryTab';
 
 function Pagination({ 
   currentPage, 
@@ -634,7 +636,24 @@ function PresensiJurnalContent() {
           </div>
         </div>
 
-        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-xl mx-auto sm:mx-0">
+        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-2xl mx-auto sm:mx-0 overflow-x-auto hide-scrollbar">
+          <button
+            onClick={() => {
+              setActiveTab('halaqah');
+              setCurrentPage(1);
+              router.push('/presensi-jurnal?tab=halaqah', { scroll: false });
+            }}
+            className={cn(
+              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              activeTab === 'halaqah'
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                : "text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
+            )}
+          >
+            <LayoutList className="w-4 h-4" />
+            <span className="hidden sm:inline">Per Kelas Halaqah</span>
+            <span className="sm:hidden">Halaqah</span>
+          </button>
           <button
             onClick={() => {
               setActiveTab('jurnal');
@@ -642,7 +661,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=jurnal', { scroll: false });
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
               activeTab === 'jurnal'
                 ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
                 : "text-gray-500 hover:text-green-900 hover:bg-green-50"
@@ -659,7 +678,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=presensi', { scroll: false });
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
               activeTab === 'presensi'
                 ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
                 : "text-gray-500 hover:text-green-900 hover:bg-green-50"
@@ -675,7 +694,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=blacklist', { scroll: false });
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
               activeTab === 'blacklist'
                 ? "bg-rose-700 text-white shadow-lg shadow-rose-900/20"
                 : "text-gray-500 hover:text-rose-700 hover:bg-rose-50"
@@ -703,112 +722,100 @@ function PresensiJurnalContent() {
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-end">
-          <div className="flex flex-wrap gap-3 items-end w-full lg:w-auto">
-            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[300px]">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Cari Thalibah</label>
-              <div className="relative group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-green-900 transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Nama Thalibah atau Kunyah..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-white border-0 shadow-sm rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none"
-                />
+        {/* Filter & Search Headers (Only for non-halaqah tabs) */}
+        {activeTab !== 'halaqah' && (
+          <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-end">
+            <div className="flex flex-wrap gap-3 items-end w-full lg:w-auto">
+              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[300px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Cari Thalibah</label>
+                <div className="relative group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-green-900 transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Nama Thalibah atau Kunyah..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-white border-0 shadow-sm rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[180px]">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Batch</label>
-              <select
-                value={selectedBatchId}
-                onChange={(e) => {
-                  setSelectedBatchId(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 w-full focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
-              >
-                {batchList.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} {b.status === 'open' ? '(Aktif)' : b.status === 'closed' ? '(Selesai)' : `(${b.status})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[120px]">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tampilkan</label>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none appearance-none cursor-pointer"
-              >
-                <option value={10}>10 Baris</option>
-                <option value={20}>20 Baris</option>
-                <option value={50}>50 Baris</option>
-                <option value={100}>100 Baris</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Filter Blok</label>
-              <select
-                value={selectedBlok}
-                onChange={(e) => {
-                  setSelectedBlok(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 min-w-[140px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
-              >
-                <option value="all">Semua Blok</option>
-                {availableBloks.map(b => (
-                  <option key={b} value={b}>Blok {b}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tampilkan</label>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 min-w-[100px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
-              >
-                <option value={10}>10 Data</option>
-                <option value={20}>20 Data</option>
-                <option value={50}>50 Data</option>
-                <option value={100}>100 Data</option>
-              </select>
-            </div>
-            {activeTab === 'jurnal' && (
-              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Pekan Aktif (Remind)</label>
+              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[180px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Batch</label>
                 <select
-                  value={overrideWeek}
-                  onChange={(e) => setOverrideWeek(Number(e.target.value))}
-                  className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+                  value={selectedBatchId}
+                  onChange={(e) => {
+                    setSelectedBatchId(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 w-full focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
                 >
-                  {[...Array(10)].map((_, i) => (
-                    <option key={i+1} value={i+1}>Pekan {i+1} {i+1 === currentWeek ? '(Sesuai Jadwal)' : ''}</option>
+                  {batchList.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} {b.status === 'open' ? '(Aktif)' : b.status === 'closed' ? '(Selesai)' : `(${b.status})`}
+                    </option>
                   ))}
                 </select>
               </div>
-            )}
-            <button 
-              onClick={loadData}
-              className="p-2.5 bg-white text-gray-500 rounded-xl shadow-sm hover:text-green-900 hover:bg-green-50 transition-all group"
-              title="Refresh Data"
-            >
-              <ArrowUpDown className={cn("w-5 h-5 transition-transform duration-500", dataLoading && "rotate-180")} />
-            </button>
+              
+              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[120px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tampilkan</label>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none appearance-none cursor-pointer"
+                >
+                  <option value={10}>10 Baris</option>
+                  <option value={20}>20 Baris</option>
+                  <option value={50}>50 Baris</option>
+                  <option value={100}>100 Baris</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Filter Blok</label>
+                <select
+                  value={selectedBlok}
+                  onChange={(e) => {
+                    setSelectedBlok(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 min-w-[140px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+                >
+                  <option value="all">Semua Blok</option>
+                  {availableBloks.map(b => (
+                    <option key={b} value={b}>Blok {b}</option>
+                  ))}
+                </select>
+              </div>
+
+              {activeTab === 'jurnal' && (
+                <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Pekan Aktif (Remind)</label>
+                  <select
+                    value={overrideWeek}
+                    onChange={(e) => setOverrideWeek(Number(e.target.value))}
+                    className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+                  >
+                    {[...Array(10)].map((_, i) => (
+                      <option key={i+1} value={i+1}>Pekan {i+1} {i+1 === currentWeek ? '(Sesuai Jadwal)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button 
+                onClick={loadData}
+                className="p-2.5 bg-white text-gray-500 rounded-xl shadow-sm hover:text-green-900 hover:bg-green-50 transition-all group"
+                title="Refresh Data"
+              >
+                <ArrowUpDown className={cn("w-5 h-5 transition-transform duration-500", dataLoading && "rotate-180")} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="relative">
           {dataLoading ? (
@@ -818,7 +825,11 @@ function PresensiJurnalContent() {
              </div>
           ) : (
             <div className="space-y-6">
-              {activeTab === 'dropout' ? (
+              {activeTab === 'halaqah' ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <HalaqahSummaryTab batchId={selectedBatchId} />
+                </div>
+              ) : activeTab === 'dropout' ? (
                 <JurnalTabSimple 
                   entries={jurnalEntries} 
                   currentWeek={overrideWeek || currentWeek}
