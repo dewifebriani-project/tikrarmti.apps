@@ -100,7 +100,7 @@ export default function AdminJadwalHarianTab() {
           zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
           muallimah:users!halaqah_muallimah_id_fkey(full_name),
           program:programs!inner(class_type, batch_id, batch:batches(name)),
-          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, phone))
+          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, whatsapp))
         `)
         .eq('program.batch_id', batch.id)
         .eq('status', 'active');
@@ -153,7 +153,7 @@ export default function AdminJadwalHarianTab() {
               .map((s: any) => [s.thalibah_id, {
                 full_name: confirmedNameMap.get(s.thalibah_id) || s.thalibah?.full_name,
                 preferred_juz: h.preferred_juz,
-                phone: s.thalibah?.phone
+                phone: s.thalibah?.whatsapp || s.thalibah?.phone
               }])
           ).values()
         )

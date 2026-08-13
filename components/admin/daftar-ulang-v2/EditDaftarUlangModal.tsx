@@ -201,9 +201,17 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   >
                     <option value="">(Belum Dialokasikan)</option>
-                    {halaqahs.map(h => (
-                      <option key={h.id} value={h.id}>{h.name} - {h.muallimah?.full_name}</option>
-                    ))}
+                    {halaqahs.map(h => {
+                      const totalUsed = h.quota_details?.total_used || 0;
+                      const maxStudents = h.max_students || 0;
+                      const sisaKuota = maxStudents > 0 ? maxStudents - totalUsed : 0;
+                      
+                      return (
+                        <option key={h.id} value={h.id}>
+                          {h.name} - Muallimah: {h.muallimah?.full_name} (Sisa Kuota: {sisaKuota})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>

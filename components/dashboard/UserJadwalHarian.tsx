@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Video, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { formatTimeShort } from '@/lib/reminder-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -29,10 +29,11 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         // Fetch ALL active halaqahs for this batch
         const { data: allHalaqahsData } = await supabase.from('halaqah')
           .select(`
-            id, name, day_of_week, start_time, end_time, zoom_link, location,
+            id, name, day_of_week, start_time, end_time, zoom_link, location, max_students,
             zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
             muallimah:users!halaqah_muallimah_id_fkey(full_name),
-            program:programs!inner(batch_id, class_type)
+            program:programs!inner(batch_id, class_type),
+            students:halaqah_students(status)
           `)
           .eq('program.batch_id', activeBatch.id)
           .eq('status', 'active');
@@ -102,9 +103,17 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
               </span>
             </div>
             <h4 className="font-bold text-gray-900 text-base leading-tight">{schedule.name}</h4>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 font-medium">
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>{schedule.muallimah?.full_name || 'Menunggu Muallimah'}</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>{schedule.muallimah?.full_name || 'Menunggu Muallimah'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                <Users className="w-3.5 h-3.5" />
+                <span>
+                  {schedule.students?.filter((st: any) => st.status === 'active').length || 0} / {schedule.max_students || '-'} Thalibah
+                </span>
+              </div>
             </div>
           </div>
         </div>

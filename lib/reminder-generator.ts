@@ -212,10 +212,13 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
     const coordinatorLabel = isPraTikrar ? 'Musyrifah' : 'Roisah';
 
     const coordinatorNameFormatted = coordinatorName ? coordinatorName : '........................';
+    const activeStudents = h.students?.filter((st: any) => st.status === 'active').length || 0;
+    const maxStudents = h.max_students || '-';
     return `🛡️  ${classLabel}
 ⏰  *${formatTimeShort(h.start_time)} WIB*
 👑  Ustadzah ${h.muallimah?.full_name || ''}
 🎗️  ${coordinatorLabel} : ${coordinatorNameFormatted}
+👥  Kuota : ${activeStudents}/${maxStudents} Thalibah
 🌐  Link Zoom${getZoomEmoji(h.zoom_name) ? ' ' + getZoomEmoji(h.zoom_name) : ''}
 ${h.zoom_link || ''}
 

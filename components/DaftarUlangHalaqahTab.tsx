@@ -34,6 +34,7 @@ interface ThalibahInfo {
   submitted_at: string;
   confirmed_juz?: string;
   confirmed_time_slot?: string;
+  whatsapp?: string;
   type: 'ujian' | 'tashih' | 'both';
 }
 
@@ -289,6 +290,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             submitted_at: sub.submitted_at || sub.created_at,
             confirmed_juz: sub.confirmed_chosen_juz || '-',
             confirmed_time_slot: sub.confirmed_main_time_slot || '-',
+            whatsapp: sub.confirmed_wa_phone || sub.user?.whatsapp || sub.user?.phone || '-',
             type: 'ujian'
           });
         }
@@ -345,6 +347,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             submitted_at: sub.submitted_at || sub.created_at,
             confirmed_juz: sub.confirmed_chosen_juz || '-',
             confirmed_time_slot: sub.confirmed_main_time_slot || '-',
+            whatsapp: sub.confirmed_wa_phone || sub.user?.whatsapp || sub.user?.phone || '-',
             type: 'tashih'
           });
         }
@@ -644,13 +647,14 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         t.full_name,
         t.confirmed_juz || '-',
         t.confirmed_time_slot || '-',
+        t.whatsapp || '-',
         t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
         formatDate(t.submitted_at)
       ]);
 
       autoTable(doc, {
         startY: yPos + 2,
-        head: [['No', 'Nama', 'Juz', 'Slot Waktu', 'Tipe', 'Submitted']],
+        head: [['No', 'Nama', 'Juz', 'Slot Waktu', 'WhatsApp', 'Tipe', 'Submitted']],
         body: tableData,
         styles: {
           fontSize: 9,
@@ -666,11 +670,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         },
         columnStyles: {
           0: { cellWidth: 10 },
-          1: { cellWidth: 55 },
+          1: { cellWidth: 40 },
           2: { cellWidth: 18 },
           3: { cellWidth: 30 },
-          4: { cellWidth: 25 },
-          5: { cellWidth: 40 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 20 },
+          6: { cellWidth: 30 },
         },
       });
 
@@ -740,6 +745,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           index + 1,
           t.full_name,
           t.confirmed_juz || '-',
+          t.whatsapp || '-',
           t.type === 'both' ? 'Paket' : t.type,
         ]);
 
@@ -750,7 +756,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
         autoTable(doc, {
           startY: yPos,
-          head: [['No', 'Nama', 'Juz', 'Tipe']],
+          head: [['No', 'Nama', 'Juz', 'WhatsApp', 'Tipe']],
           body: tableData,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: {
@@ -760,11 +766,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           },
           columnStyles: {
             0: { cellWidth: 10 },
-            1: { cellWidth: 65 },
-            2: { cellWidth: 18 },
-            3: { cellWidth: 30 },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 15 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 },
           },
-          didDrawPage: (data) => {
+          didDrawPage: (data: any) => {
             yPos = (data.cursor?.y ?? 50) + 10;
           },
         });

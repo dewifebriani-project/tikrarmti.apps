@@ -175,6 +175,7 @@ export async function GET(request: Request) {
             main_time_slot: partnerDetailsExt?.main_time_slot,
             backup_time_slot: partnerDetailsExt?.backup_time_slot,
             whatsapp: partnerDetailsExt?.whatsapp,
+            status: submissionData.status,
           },
         }
       })
@@ -251,6 +252,7 @@ export async function GET(request: Request) {
           partner_type: submissionData.partner_type,
           partner_user_id: submissionData.partner_user_id,
           is_mutual_match: pairing.pairing_type === 'self_match',
+          status: submissionData.status,
         } : null,
       }
     })

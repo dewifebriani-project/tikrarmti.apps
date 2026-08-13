@@ -105,7 +105,7 @@ export async function GET(
     // Fetch user data using admin client
     const { data: usersData } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, email, phone')
+      .select('id, full_name, email, whatsapp')
       .in('id', userIds)
 
     // Create a map for quick lookup

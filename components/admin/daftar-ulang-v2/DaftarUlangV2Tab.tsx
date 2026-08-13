@@ -752,8 +752,15 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
         const formattedName = toProperCase(fullName);
         const formattedDomicile = toProperCase(domicile);
         
-        // MTI3_nama_tahun lahir_kota domisili
-        const name = `MTI${itemBatchNumber}_${formattedName}_${birthYearYY}_${formattedDomicile}`;
+        const chosenJuz = item.confirmed_chosen_juz || item.registration?.chosen_juz || '';
+        let juzStr = 'J-';
+        if (chosenJuz) {
+          const match = chosenJuz.match(/30A|30B|\d+/i);
+          juzStr = match ? `J${match[0].toUpperCase()}` : `J${chosenJuz}`;
+        }
+        
+        // MTI3_nama_juz_tahun lahir_kota domisili🌹
+        const name = `MTI${itemBatchNumber}_${formattedName}_${juzStr}_${birthYearYY}_${formattedDomicile}🌹`;
 
         vcfLines.push('BEGIN:VCARD');
         vcfLines.push('VERSION:3.0');

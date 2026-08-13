@@ -694,7 +694,7 @@ export function ReviewSubmissionModal({
               <Clock className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-gray-900 text-lg">Proses Pengecekan</h4>
-            {pairingData?.partner_details?.partner_type === 'self_match' ? (
+            {pairingData?.partner_details?.partner_type === 'self_match' && (!pairingData?.partner_details?.is_mutual_match) ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
                 Anda memilih <b>{pairingData?.partner_details?.partner_name}</b> sebagai partner. Kami sedang menunggu yang bersangkutan untuk memilih Anda juga (mutual match).
               </p>
@@ -702,11 +702,11 @@ export function ReviewSubmissionModal({
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
                 Sistem kami sedang mencari thalibah dengan kecocokan jadwal dan juz terbaik untuk Anda. Silakan cek kembali nanti.
               </p>
-            ) : pairingData?.partner_details?.partner_type === 'family' ? (
+            ) : pairingData?.partner_details?.partner_type === 'family' && pairingData?.status !== 'approved' && pairingData?.partner_details?.status !== 'approved' ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
                 Anda memilih belajar bersama keluarga ({pairingData?.partner_details?.partner_name}). Menunggu verifikasi dari admin.
               </p>
-            ) : pairingData?.partner_details?.partner_type === 'tarteel' ? (
+            ) : pairingData?.partner_details?.partner_type === 'tarteel' && pairingData?.status !== 'approved' && pairingData?.partner_details?.status !== 'approved' ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
                 Anda memilih ujian mandiri via Tarteel. Menunggu verifikasi dari admin.
               </p>
