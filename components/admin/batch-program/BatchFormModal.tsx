@@ -8,6 +8,7 @@ import { Batch, BATCH_STATUSES } from './types';
 
 interface BatchFormModalProps {
   batch: Batch | null;
+  programs?: import('./types').Program[];
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -35,7 +36,7 @@ const calculateEndDate = (startDate: string, weeks: number): string => {
   return `${endStr}T23:59`;
 };
 
-export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormModalProps) {
+export function BatchFormModal({ batch, programs = [], isOpen, onClose, onSuccess }: BatchFormModalProps) {
   const [formData, setFormData] = useState({
     id: batch?.id,
     name: batch?.name || '',
@@ -70,6 +71,23 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     graduation_end_date: extractDateTime(batch?.graduation_end_date, '23:59'),
     holiday_dates: Array.isArray(batch?.holiday_dates) ? batch!.holiday_dates!.map(d => extractDateTime(d, '00:01').split('T')[0]) : [],
   });
+
+  const [activeTab, setActiveTab] = useState<'batch' | 'tikrar' | 'pratikrar' | 'muallimah'>('batch');
+
+  const getProgramData = (keyword: string) => {
+    const p = (programs || []).find(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+    return {
+      id: p?.id,
+      enabled: !!p,
+      registration_start_date: extractDateTime(p?.registration_start_date, '00:01'),
+      registration_end_date: extractDateTime(p?.registration_end_date, '23:59'),
+      max_thalibah: p?.max_thalibah || 100,
+    };
+  };
+
+  const [tikrarData, setTikrarData] = useState(() => getProgramData('tikrar'));
+  const [pratikrarData, setPratikrarData] = useState(() => getProgramData('pra-tikrar'));
+  const [muallimahData, setMuallimahData] = useState(() => getProgramData('muallimah'));
 
   const [saving, setSaving] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
@@ -155,10 +173,45 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
       const result = await response.json();
       if (!response.ok) {
         toast.error(result.error?.message || result.error || 'Gagal menyimpan batch');
-      } else {
-        toast.success(batch ? 'Batch berhasil diperbarui' : 'Batch berhasil dibuat');
-        onSuccess();
+        setSaving(false);
+        return;
       }
+      
+      const batchId = result.data?.id || batch?.id;
+      
+      // Save programs
+      if (batchId) {
+        const programConfigs = [
+          { name: 'Tahfidz Tikrar', data: tikrarData },
+          { name: 'Pra-Tikrar', data: pratikrarData },
+          { name: 'Muallimah', data: muallimahData }
+        ];
+
+        for (const config of programConfigs) {
+          if (config.data.enabled) {
+            const payload = {
+              batch_id: batchId,
+              name: config.name,
+              status: 'open',
+              max_thalibah: config.data.max_thalibah,
+              registration_start_date: config.data.registration_start_date ? new Date(config.data.registration_start_date).toISOString() : null,
+              registration_end_date: config.data.registration_end_date ? new Date(config.data.registration_end_date).toISOString() : null,
+            };
+            
+            const method = config.data.id ? 'PUT' : 'POST';
+            const url = config.data.id ? `/api/program/${config.data.id}` : '/api/program';
+            
+            await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          }
+        }
+      }
+
+      toast.success(batch ? 'Batch dan Program berhasil diperbarui' : 'Batch dan Program berhasil dibuat');
+      onSuccess();
     } catch (error) {
       console.error('Error saving batch:', error);
       toast.error('Gagal menyimpan batch');
@@ -166,6 +219,57 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
       setSaving(false);
     }
   };
+
+  const renderProgramTab = (name: string, data: any, setData: any) => (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex items-center gap-3 bg-purple-50 p-4 rounded-xl border border-purple-100">
+        <input 
+          type="checkbox" 
+          checked={data.enabled} 
+          onChange={e => setData({...data, enabled: e.target.checked})}
+          className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-600"
+          id={`enable-${name}`}
+        />
+        <label htmlFor={`enable-${name}`} className="font-bold text-purple-900 cursor-pointer">
+          Buka Program {name} di Batch ini
+        </label>
+      </div>
+
+      {data.enabled && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Mulai Pendaftaran</label>
+              <input
+                type="datetime-local"
+                value={data.registration_start_date}
+                onChange={e => setData({...data, registration_start_date: e.target.value})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-600/20"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Selesai Pendaftaran</label>
+              <input
+                type="datetime-local"
+                value={data.registration_end_date}
+                onChange={e => setData({...data, registration_end_date: e.target.value})}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-600/20"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Target Kuota (Maks. Thalibah)</label>
+            <input
+              type="number"
+              value={data.max_thalibah}
+              onChange={e => setData({...data, max_thalibah: parseInt(e.target.value) || 0})}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-600/20"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   if (!isOpen) return null;
 
@@ -193,11 +297,44 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b px-8 bg-gray-50/50">
+          <button
+            type="button"
+            onClick={() => setActiveTab('batch')}
+            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'batch' ? "border-green-600 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+          >
+            General Info (Batch)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('tikrar')}
+            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'tikrar' ? "border-green-600 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+          >
+            Tahfidz Tikrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('pratikrar')}
+            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'pratikrar' ? "border-green-600 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+          >
+            Pra-Tikrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('muallimah')}
+            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === 'muallimah' ? "border-green-600 text-green-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+          >
+            Muallimah
+          </button>
+        </div>
+
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="p-8 space-y-6">
-            {/* Basic Info */}
-            <div className="space-y-4">
+            <div className={cn(activeTab === 'batch' ? 'block' : 'hidden')}>
+              {/* Basic Info */}
+              <div className="space-y-4">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Informasi Dasar</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -506,6 +643,11 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                 </div>
               )}
             </div>
+            </div>
+
+            {activeTab === 'tikrar' && renderProgramTab('Tahfidz Tikrar', tikrarData, setTikrarData)}
+            {activeTab === 'pratikrar' && renderProgramTab('Pra-Tikrar', pratikrarData, setPratikrarData)}
+            {activeTab === 'muallimah' && renderProgramTab('Muallimah', muallimahData, setMuallimahData)}
           </div>
 
           {/* Footer */}

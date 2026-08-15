@@ -55,6 +55,8 @@ export interface Program {
   muallimah_count?: number;
   musyrifah_count?: number;
   enrollment_percentage?: number | null;
+  registration_start_date?: string | null;
+  registration_end_date?: string | null;
 }
 
 export interface PaginationMeta {

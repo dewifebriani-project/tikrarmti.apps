@@ -112,8 +112,11 @@ export default function PendaftaranPage() {
       const transformedData: PendaftaranType[] = [];
       const activeBatchIds = new Set<string>();
 
+      // Filter programs to only show those with an active/open batch
+      const activePrograms = programs.filter(program => program.batch?.status === 'open');
+
       // Add programs from database first (this is the primary source)
-      programs.forEach((program) => {
+      activePrograms.forEach((program) => {
         // Skip if this is a Thalibah Tahfidz program that matches an active batch
         if (program.name.toLowerCase().includes('tahfidz') &&
             program.name.toLowerCase().includes('tikrar')) {
@@ -140,12 +143,12 @@ export default function PendaftaranPage() {
           color: programType.color,
           benefits: programType.benefits,
           requirements: programType.requirements,
-          status: mapProgramStatus(program.status, program.batch?.registration_end_date),
+          status: mapProgramStatus(program.status, program.registration_end_date || program.batch?.registration_end_date),
           batchInfo: program.batch ? {
             batch: program.batch.name,
             period: `${formatDate(program.batch.start_date)} - ${formatDate(program.batch.end_date)}`,
-            deadline: formatDate(program.batch.registration_end_date),
-            capacity: program.batch.total_quota || program.max_thalibah || 50,
+            deadline: formatDate(program.registration_end_date || program.batch.registration_end_date),
+            capacity: program.max_thalibah || program.batch.total_quota || 50,
             registered: program.batch.registered_count || 0
           } : undefined,
           price: programPrice,
@@ -243,6 +246,24 @@ export default function PendaftaranPage() {
           'Kemampuan leadership dan problem solving',
           'Bisa berbahasa Inggris (pasif/aktif)',
           'Lulus assessment center dan interview board'
+        ],
+        price: 'GRATIS',
+        duration: '13 pekan'
+      };
+    } else if (name.toLowerCase().includes('pra-tikrar') || name.toLowerCase().includes('pra tikrar')) {
+      return {
+        icon: Users,
+        color: 'fuchsia',
+        benefits: [
+          'Fokus pada perbaikan bacaan dasar (Tahsin)',
+          'Kelas fleksibel dan tidak terikat pada satu halaqah (Zoom terbuka)',
+          'Sertifikat kelulusan Pra-Tikrar',
+          'Persiapan menuju kelas Tikrar Tahfidz'
+        ],
+        requirements: [
+          'Target hafalan otomatis Juz 30',
+          'Hanya melewati seleksi lisan (tanpa tes tertulis)',
+          'Komitmen mengisi Jurnal Harian (Catatan Tashih)'
         ],
         price: 'GRATIS',
         duration: '13 pekan'
@@ -351,14 +372,11 @@ export default function PendaftaranPage() {
     return 'thalibah';
   };
 
-  // Helper function to check if user is registered for a specific role
-  const isRegisteredForRole = (type: PendaftaranType): boolean => {
-    const role = getRoleFromType(type);
+  // Helper function to check if user is registered for a specific program
+  const isRegisteredForProgram = (type: PendaftaranType): boolean => {
     return !!(user && registrations.some(reg => {
       if (reg.batch_id !== type.batchId) return false;
-      const regRole = reg.program?.name?.toLowerCase().includes('muallimah') || 
-                      reg.program?.name?.toLowerCase().includes('musyrifah') ? 'admin' : 'thalibah';
-      if (regRole !== role) return false;
+      if (reg.program_id !== type.programId) return false;
       return ['approved', 'pending'].includes(reg.status);
     }));
   };
@@ -369,11 +387,13 @@ export default function PendaftaranPage() {
       router.push('/alumni');
       return;
     }
-    if (type.status === 'open' && !isRegisteredForRole(type)) {
+    if (type.status === 'open' && !isRegisteredForProgram(type)) {
       // Direct to registration page without showing terms modal
       const queryParams = `?batchId=${type.batchId}&programId=${type.programId}`;
       
-      if (type.title.toLowerCase().includes('tikrar')) {
+      if (type.title.toLowerCase().includes('pra-tikrar') || type.title.toLowerCase().includes('pra tikrar')) {
+        router.push(`/pendaftaran/pra-tikrar${queryParams}`);
+      } else if (type.title.toLowerCase().includes('tikrar')) {
         router.push(`/pendaftaran/tikrar-tahfidz${queryParams}`);
       } else if (type.title.toLowerCase().includes('muallimah')) {
         router.push(`/pendaftaran/muallimah${queryParams}`);
@@ -528,19 +548,19 @@ export default function PendaftaranPage() {
                     {/* Action Button */}
                     <Button
                       onClick={() => handleRegistrationClick(type)}
-                      disabled={type.status !== 'open' || isRegisteredForRole(type) || isAlumniBlocked}
+                      disabled={type.status !== 'open' || isRegisteredForProgram(type) || isAlumniBlocked}
                       className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
-                        type.status === 'open' && !isRegisteredForRole(type)
+                        type.status === 'open' && !isRegisteredForProgram(type)
                           ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
                           : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      {type.status === 'open' && !isRegisteredForRole(type) ? (
+                      {type.status === 'open' && !isRegisteredForProgram(type) ? (
                         <>
                           Daftar Sekarang
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </>
-                      ) : isRegisteredForRole(type) ? (
+                      ) : isRegisteredForProgram(type) ? (
                         'Sudah Terdaftar'
                       ) : type.status === 'upcoming' ? (
                         'Pendaftaran Akan Dibuka'

@@ -506,6 +506,7 @@ export default function AdminBatchProgramPage() {
         <BatchFormModal
           key={editingBatch?.id || 'new-batch'}
           batch={editingBatch}
+          programs={programs as Program[]}
           isOpen={showBatchModal}
           onClose={() => {
             setShowBatchModal(false);

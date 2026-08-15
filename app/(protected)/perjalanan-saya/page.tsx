@@ -358,7 +358,7 @@ export default function PerjalananSaya() {
 
     const isProfileComplete = !!(user.full_name && user.whatsapp && (user as any).tanggal_lahir);
     const isSelectionDone = registrationStatus?.selectionStatus && registrationStatus.selectionStatus !== 'pending';
-    const isPraTikrar = registrationStatus?.selectionStatus === 'waitlist';
+    const isPraTikrar = (registrationStatus?.registration?.program as any)?.class_type === 'pra_tahfidz' || registrationStatus?.selectionStatus === 'waitlist';
     // Lulus jika nilai oral assessment >= 80 atau jika status seleksi sudah 'selected' (misal: alumni yang diluluskan otomatis)
     const isSelectionPassed = (registrationStatus?.oralScore != null && registrationStatus.oralScore >= 80) || registrationStatus?.selectionStatus === 'selected';
     // Pra-Tikrar tidak melalui Daftar Ulang/Akad sama sekali (langsung Jurnal Harian &
@@ -613,7 +613,7 @@ export default function PerjalananSaya() {
           { name: 'Sertifikat', date: batch?.graduation_start_date ? formatDateShort(batch.graduation_start_date) : '', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
         ]
       },
-    ];
+    ].filter(phase => !(isPraTikrar && phase.id === 5));
   }, [user, isLoading, registrationStatus, batch, percentage, pairingData, finalExams, isAdmin, hasPassedAkadQuiz, hasAkad, hasAkadFiles, isAkadSubmitted, hasHalaqah, hasPartnerSelection, hasPhase3, hasPartner, isAlumnus, isJuz30, partnerName, daftarUlangData]);
 
   useEffect(() => {

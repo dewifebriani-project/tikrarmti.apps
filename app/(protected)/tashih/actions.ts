@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export interface TashihFormData {
+  id?: string
   blok: string
   lokasi: string
   lokasi_detail?: string | null
@@ -96,15 +97,36 @@ export async function saveTashihRecord(data: TashihFormData) {
       waktu_tashih: data.waktu_tashih
     }
 
-    const { data: result, error: insertError } = await supabase
-      .from('tashih_records')
-      .insert(recordData)
-      .select()
-      .single()
+    let result;
 
-    if (insertError) {
-      console.error('[saveTashihRecord] Insert error:', insertError)
-      return { success: false, error: insertError.message }
+    if (data.id) {
+      // Update existing record
+      const { data: updateRes, error: updateError } = await supabase
+        .from('tashih_records')
+        .update(recordData)
+        .eq('id', data.id)
+        .eq('user_id', authUser.id) // security measure
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('[saveTashihRecord] Update error:', updateError)
+        return { success: false, error: updateError.message }
+      }
+      result = updateRes
+    } else {
+      // Insert new record
+      const { data: insertRes, error: insertError } = await supabase
+        .from('tashih_records')
+        .insert(recordData)
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('[saveTashihRecord] Insert error:', insertError)
+        return { success: false, error: insertError.message }
+      }
+      result = insertRes
     }
 
     // Revalidate paths
@@ -114,7 +136,7 @@ export async function saveTashihRecord(data: TashihFormData) {
     return {
       success: true,
       data: result,
-      message: 'Tashih berhasil disimpan!'
+      message: data.id ? 'Tashih berhasil diperbarui!' : 'Tashih berhasil disimpan!'
     }
   } catch (error: any) {
     console.error('[saveTashihRecord] Error:', error)

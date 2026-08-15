@@ -14,6 +14,7 @@ interface MuallimahOption {
 
 interface TashihEntryFormProps {
   initialData: {
+    id?: string
     blok: string[]
     lokasi: 'mti' | 'luar'
     lokasiDetail: string

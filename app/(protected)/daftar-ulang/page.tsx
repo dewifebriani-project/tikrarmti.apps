@@ -1261,7 +1261,7 @@ function HalaqahSelectionStep({
   
   const sortedHalaqahData = [...halaqahData]
     .filter(h => {
-      const classType = h.program?.class_type || h.program_class_type;
+      const classType = (h as any).program?.class_type || h.program_class_type;
       return classType === expectedProgramType || !classType;
     })
     .sort((a, b) => {

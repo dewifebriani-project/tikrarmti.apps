@@ -63,7 +63,7 @@ export async function PUT(
     if (authResult) return authResult;
     const { id } = await params;
     const body = await request.json();
-    const { name, description, target_level, duration_weeks, max_thalibah, status } = body;
+    const { name, description, target_level, duration_weeks, max_thalibah, status, registration_start_date, registration_end_date } = body;
 
     const supabase = supabaseAdmin;
 
@@ -76,6 +76,8 @@ export async function PUT(
         duration_weeks,
         max_thalibah,
         status,
+        registration_start_date,
+        registration_end_date,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

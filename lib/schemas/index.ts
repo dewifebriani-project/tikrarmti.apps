@@ -146,6 +146,8 @@ const programCreateSchema = z.object({
   target_level: z.string().optional(),
   duration_weeks: z.number().int().min(1, 'Durasi minimal 1 minggu').optional(),
   max_thalibah: z.number().int().min(1, 'Maksimal thalibah minimal 1').optional(),
+  registration_start_date: z.string().optional().nullable(),
+  registration_end_date: z.string().optional().nullable(),
 })
 
 export const programSchemas = {

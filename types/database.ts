@@ -107,6 +107,8 @@ export interface Program {
   price?: number;
   is_free?: boolean;
   currency?: string;
+  registration_start_date?: string | null;
+  registration_end_date?: string | null;
 }
 
 export interface Halaqah {

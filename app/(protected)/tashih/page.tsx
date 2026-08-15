@@ -35,6 +35,7 @@ interface TashihBlock {
 }
 
 interface TashihData {
+  id?: string
   blok: string[]
   lokasi: 'mti' | 'luar'
   lokasiDetail: string
@@ -258,6 +259,7 @@ export default function TashihPage() {
         const record = weekRecords.find(r => r.blok?.includes(blockCode))
         if (record) {
             setTashihData({
+                id: record.id,
                 blok: typeof record.blok === 'string' ? record.blok.split(',') : (record.blok || []),
                 lokasi: (record.lokasi === 'halaqah' ? 'mti' : record.lokasi) as 'mti' | 'luar',
                 lokasiDetail: record.lokasi_detail || '',
@@ -276,7 +278,18 @@ export default function TashihPage() {
             const blockNumber = match[1]
             const sameWeekBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
             setSelectedBlocksForEditing(sameWeekBlocks)
-            setTashihData(prev => ({ ...prev, blok: sameWeekBlocks }))
+            setTashihData({
+                id: undefined,
+                blok: sameWeekBlocks,
+                lokasi: 'mti',
+                lokasiDetail: '',
+                ustadzahId: null,
+                ustadzahName: null,
+                jumlahKesalahanTajwid: 0,
+                masalahTajwid: [],
+                catatanTambahan: '',
+                tanggalTashih: new Date().toISOString().slice(0, 10)
+            })
         }
     }
     setSelectedWeekNumber(blockWeekNumber)
@@ -287,6 +300,7 @@ export default function TashihPage() {
     if (!user) { toast.error('Silakan login'); return }
     setIsSubmitting(true)
     const submissionData = {
+      id: formData.id,
       blok: formData.blok.join(','),
       lokasi: formData.lokasi,
       lokasi_detail: formData.lokasiDetail,
@@ -372,7 +386,7 @@ export default function TashihPage() {
             />
           )}
         </>
-      ) : weekCompleted ? (
+      ) : (weekCompleted && !tashihData.id) ? (
         <TashihSuccessState 
           weekNumber={selectedWeekNumber}
           juzName={selectedJuzInfo?.name}
@@ -385,6 +399,7 @@ export default function TashihPage() {
         />
       ) : (
         <TashihEntryForm 
+          key={tashihData.id || selectedBlocksForEditing.join(',')}
           initialData={tashihData}
           availableMuallimah={availableMuallimah}
           isLoadingMuallimah={isLoadingMuallimah}

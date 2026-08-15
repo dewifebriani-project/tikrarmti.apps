@@ -201,14 +201,22 @@ export function EditDaftarUlangModal({ submission, onClose, onSaved }: EditDafta
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   >
                     <option value="">(Belum Dialokasikan)</option>
-                    {halaqahs.map(h => {
+                    {halaqahs
+                      .filter(h => !h.program?.name?.toLowerCase().includes('pra-tikrar') && !h.program?.name?.toLowerCase().includes('pra tikrar'))
+                      .map(h => {
                       const totalUsed = h.quota_details?.total_used || 0;
                       const maxStudents = h.max_students || 0;
                       const sisaKuota = maxStudents > 0 ? maxStudents - totalUsed : 0;
                       
+                      const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
+                      const dayName = h.day_of_week ? days[h.day_of_week] : '';
+                      const timeString = (h.start_time || h.end_time) ? 
+                        ` (${dayName ? dayName + ', ' : ''}${h.start_time ? h.start_time.slice(0, 5) : ''}${h.end_time ? ' - ' + h.end_time.slice(0, 5) : ''})` 
+                        : (dayName ? ` (${dayName})` : '');
+                      
                       return (
                         <option key={h.id} value={h.id}>
-                          {h.name} - Muallimah: {h.muallimah?.full_name} (Sisa Kuota: {sisaKuota})
+                          {h.name} - Muallimah: {h.muallimah?.full_name}{timeString} (Sisa Kuota: {sisaKuota})
                         </option>
                       );
                     })}
