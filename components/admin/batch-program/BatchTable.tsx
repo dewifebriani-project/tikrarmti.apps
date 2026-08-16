@@ -44,8 +44,8 @@ export function BatchTable({ batches, isLoading, pagination, onPageChange, onEdi
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="w-full overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="bg-gray-50/50 border-b border-gray-100">
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Batch</th>

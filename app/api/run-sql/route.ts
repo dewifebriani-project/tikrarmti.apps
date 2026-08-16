@@ -9,8 +9,8 @@ export async function GET() {
 
   const { data, error } = await supabase.rpc('admin_exec_sql', {
     sql_query: `
-      ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS registration_start_date timestamp with time zone;
-      ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS registration_end_date timestamp with time zone;
+      ALTER TABLE public.batches ADD COLUMN IF NOT EXISTS transfer_schedule_end_date timestamp with time zone;
+      NOTIFY pgrst, 'reload schema';
     `
   });
 

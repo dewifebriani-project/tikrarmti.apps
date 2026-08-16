@@ -24,14 +24,14 @@ import { JadwalPoster } from './JadwalPoster';
 import { TerimaKasihPoster } from './TerimaKasihPoster';
 
 const DAYS = [
-  { id: 0, name: 'Sepekan' },
   { id: 1, name: 'Senin' },
   { id: 2, name: 'Selasa' },
   { id: 3, name: 'Rabu' },
   { id: 4, name: 'Kamis' },
   { id: 5, name: 'Jumat' },
   { id: 6, name: 'Sabtu' },
-  { id: 7, name: 'Ahad' }
+  { id: 7, name: 'Ahad' },
+  { id: 0, name: 'Sepekan' }
 ];
 
 export default function AdminJadwalHarianTab() {
@@ -600,7 +600,7 @@ export default function AdminJadwalHarianTab() {
                       </td>
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="flex flex-col gap-1.5">
-                          {searchQuery && (
+                          {(searchQuery || activeDay === 0) && (
                             <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5 bg-emerald-50 w-fit px-2 py-0.5 rounded-md">
                               {DAYS.find(d => d.id === halaqah.day_of_week)?.name || '-'}
                             </div>
@@ -658,18 +658,17 @@ export default function AdminJadwalHarianTab() {
                       <td className="py-4 px-6">
                         <div className="flex flex-col gap-1.5">
                           <div className="flex items-center gap-2">
-                            <BookOpen className="h-4 w-4 text-gray-400 shrink-0" />
                             <span className="font-medium text-gray-900 flex items-center gap-1.5">
-                              {halaqah.muallimah?.full_name || '-'}
                               {halaqah.muallimah?.whatsapp ? (
                                 <a href={`https://wa.me/${halaqah.muallimah.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 transition-colors" title="Hubungi Mu'allimah via WhatsApp">
-                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  <MessageCircle className="h-4 w-4" />
                                 </a>
                               ) : (
                                 <span className="text-gray-300 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
-                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  <MessageCircle className="h-4 w-4" />
                                 </span>
                               )}
+                              {halaqah.muallimah?.full_name || '-'}
                             </span>
                           </div>
                           {halaqah.mentors && halaqah.mentors.filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name).length > 0 && (
@@ -678,19 +677,18 @@ export default function AdminJadwalHarianTab() {
                                 .filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name)
                                 .map((m: any, idx: number) => (
                                 <div key={idx} className="flex items-center gap-1.5">
-                                  <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                                   <span className="font-semibold text-emerald-700 text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50 flex items-center gap-1">
-                                    {m.user?.full_name || '-'}
-                                    <span className="opacity-70 font-normal capitalize">({m.role})</span>
                                     {m.user?.whatsapp ? (
-                                      <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 ml-0.5 transition-colors" title="Hubungi via WhatsApp">
+                                      <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 transition-colors" title="Hubungi via WhatsApp">
                                         <MessageCircle className="h-3.5 w-3.5" />
                                       </a>
                                     ) : (
-                                      <span className="text-gray-300 ml-0.5 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                                      <span className="text-gray-300 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
                                         <MessageCircle className="h-3.5 w-3.5" />
                                       </span>
                                     )}
+                                    {m.user?.full_name || '-'}
+                                    <span className="opacity-70 font-normal capitalize">({m.role})</span>
                                   </span>
                                 </div>
                               ))}

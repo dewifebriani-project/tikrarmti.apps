@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users, ArrowRightLeft, MessageCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, Users, AlertCircle, ChevronRight, MessageCircle, BookOpen, ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatTimeShort } from '@/lib/reminder-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransferScheduleModal } from './TransferScheduleModal';
@@ -138,9 +138,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 w-full">
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                  <BookOpen className="w-3.5 h-3.5" />
                   <span className="flex items-center gap-1.5">
-                    {schedule.muallimah?.full_name || 'Menunggu Muallimah'}
                     {schedule.muallimah?.whatsapp ? (
                       <a href={`https://wa.me/${schedule.muallimah.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 transition-colors" title="Hubungi Mu'allimah via WhatsApp">
                         <MessageCircle className="h-3.5 w-3.5" />
@@ -150,6 +148,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
                         <MessageCircle className="h-3.5 w-3.5" />
                       </span>
                     )}
+                    {schedule.muallimah?.full_name || 'Menunggu Muallimah'}
                   </span>
                 </div>
                 {schedule.mentors?.filter((m: any) => m.user?.full_name !== schedule.muallimah?.full_name).length > 0 && (
@@ -158,19 +157,18 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
                       .filter((m: any) => m.user?.full_name !== schedule.muallimah?.full_name)
                       .map((m: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                         <span className="font-semibold text-emerald-700 text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50 flex items-center gap-1">
-                          {m.user?.full_name || 'Menunggu'}
-                          <span className="opacity-70 font-normal capitalize">({m.role})</span>
                           {m.user?.whatsapp ? (
-                            <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 ml-0.5 transition-colors" title="Hubungi via WhatsApp">
+                            <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 transition-colors" title="Hubungi via WhatsApp">
                               <MessageCircle className="h-3.5 w-3.5" />
                             </a>
                           ) : (
-                            <span className="text-gray-300 ml-0.5 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                            <span className="text-gray-300 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
                               <MessageCircle className="h-3.5 w-3.5" />
                             </span>
                           )}
+                          {m.user?.full_name || 'Menunggu'}
+                          <span className="opacity-70 font-normal capitalize">({m.role})</span>
                         </span>
                       </div>
                     ))}
