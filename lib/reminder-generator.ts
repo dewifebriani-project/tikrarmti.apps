@@ -34,6 +34,7 @@ export interface HalaqahForReminder {
     phone?: string;
   }>;
   max_students?: number;
+  activeCount?: number;
 }
 
 export function getHijriDate(date: Date): string {

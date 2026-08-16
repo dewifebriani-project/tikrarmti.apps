@@ -84,29 +84,13 @@ export default function AdminJadwalHarianTab() {
       setZoomLinks(links || []);
 
       // 2. Get ALL halaqahs for this batch (to enable global search)
-      const { data: halaqahData, error } = await supabase
-        .from('halaqah')
-        .select(`
-          id,
-          name,
-          day_of_week,
-          start_time,
-          end_time,
-          preferred_juz,
-          max_students,
-          zoom_link,
-          zoom_link_id,
-          muallimah_id,
-          zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
-          muallimah:users!halaqah_muallimah_id_fkey(full_name, whatsapp),
-          program:programs!inner(class_type, batch_id, batch:batches(name)),
-          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, whatsapp)),
-          mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name, whatsapp))
-        `)
-        .eq('program.batch_id', batch.id)
-        .eq('status', 'active');
-
-      if (error) throw error;
+      // We use the server-side API to bypass RLS so that all authenticated users
+      // (including musyrifah and thalibah) can see the full active roster for 'Jadwal Harian'
+      const response = await fetch(`/api/shared/halaqah-roster?batch_id=${batch.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch halaqah data');
+      }
+      const { data: halaqahData } = await response.json();
 
       let filteredData = halaqahData || [];
 
@@ -127,12 +111,27 @@ export default function AdminJadwalHarianTab() {
       }
 
       // Map to HalaqahForReminder format
-            const { data: sitInLogs } = await supabase
+      const { data: sitInLogs } = await supabase
         .from('audit_logs')
         .select('user_id, created_at, details, user:users(full_name, whatsapp)')
         .eq('action', 'UPDATE')
         .eq('resource', 'halaqah')
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Past 7 days
+
+      // Fetch accurate quota/student counts that bypass RLS
+      let quotas: Record<string, { activeCount: number, maxStudents: number }> = {};
+      try {
+        const quotaRes = await fetch(`/api/shared/halaqah-quota?batch_id=${batch.id}`);
+        if (quotaRes.ok) {
+          const quotaData = await quotaRes.json();
+          // Convert array to map
+          quotaData.forEach((q: any) => {
+            quotas[q.halaqahId] = { activeCount: q.activeCount, maxStudents: q.maxStudents };
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch halaqah quota', err);
+      }
 
       const formattedData: HalaqahForReminder[] = filteredData.map((h: any) => {
         const sitIns = sitInLogs?.filter((log: any) => log.details?.action_type === 'SIT_IN' && log.details?.halaqah_id === h.id) || [];
@@ -177,7 +176,8 @@ export default function AdminJadwalHarianTab() {
               ...sitInStudents.map((s: any) => [s.thalibah_id, s])
             ]
           ).values()
-        )
+        ),
+        activeCount: quotas[h.id]?.activeCount || (h.students?.filter((s: any) => s.status === 'active').length || 0)
       };
     });
 
@@ -260,7 +260,7 @@ export default function AdminJadwalHarianTab() {
       }
       if (sortField === 'class') comparison = (a.name || '').localeCompare(b.name || '', 'id-ID');
       if (sortField === 'muallimah') comparison = (a.muallimah?.full_name || '').localeCompare(b.muallimah?.full_name || '', 'id-ID');
-      if (sortField === 'students') comparison = (a.students?.length || 0) - (b.students?.length || 0);
+      if (sortField === 'students') comparison = (a.activeCount ?? a.students?.length ?? 0) - (b.activeCount ?? b.students?.length ?? 0);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
   }, [halaqahs, activeProgramHalaqahs, searchQuery, sortField, sortOrder]);
@@ -722,11 +722,11 @@ export default function AdminJadwalHarianTab() {
                           onClick={() => setStudentListHalaqah(halaqah)}
                           className="inline-flex items-center justify-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-emerald-50 hover:border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-colors"
                           title="Lihat daftar thalibah"
-                          aria-label={`Lihat ${halaqah.students?.length || 0} thalibah aktif di ${halaqah.name}`}
+                          aria-label={`Lihat ${halaqah.activeCount ?? halaqah.students?.length ?? 0} thalibah aktif di ${halaqah.name}`}
                         >
                           <Users className="h-4 w-4 text-gray-400" />
                           <span className="font-medium text-gray-900">
-                            {halaqah.students?.length || 0}
+                            {halaqah.activeCount ?? halaqah.students?.length ?? 0}
                           </span>
                         </button>
                       </td>
