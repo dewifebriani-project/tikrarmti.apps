@@ -44,22 +44,40 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
       // Find the program type the user is in. We can derive from currentHalaqah
       const classType = currentHalaqah?.program?.class_type || 'tikrar_tahfidz';
 
-      const { data, error } = await supabase
-        .from('halaqah')
-        .select(`
-          id, name, day_of_week, start_time, max_students,
-          muallimah:users!halaqah_muallimah_id_fkey(full_name),
-          program:programs!inner(id, batch_id, class_type),
-          students:halaqah_students(status)
-        `)
-        .eq('program.batch_id', activeBatch.id)
-        .eq('program.class_type', classType)
-        .eq('status', 'active');
+      const [halaqahsResponse, quotaResponse] = await Promise.all([
+        supabase
+          .from('halaqah')
+          .select(`
+            id, name, day_of_week, start_time, max_students,
+            muallimah:users!halaqah_muallimah_id_fkey(full_name),
+            program:programs!inner(id, batch_id, class_type),
+            students:halaqah_students(status),
+            mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name))
+          `)
+          .eq('program.batch_id', activeBatch.id)
+          .eq('program.class_type', classType)
+          .eq('status', 'active'),
+        fetch(`/api/shared/halaqah-quota?batch_id=${activeBatch.id}`)
+      ]);
       
-      if (error) throw error;
+      if (halaqahsResponse.error) throw halaqahsResponse.error;
       
-      // Filter out current halaqah
-      const filtered = (data || []).filter((h: any) => h.id !== currentHalaqah?.id);
+      const quotaData = quotaResponse.ok ? await quotaResponse.json() : null;
+      const quotaMap = new Map();
+      if (quotaData && quotaData.success && quotaData.data?.halaqah) {
+        quotaData.data.halaqah.forEach((q: any) => quotaMap.set(q.id, q.total_current_students));
+      }
+      
+      // Filter out current halaqah and compute active students
+      const filtered = (halaqahsResponse.data || []).filter((h: any) => {
+        if (h.id === currentHalaqah?.id) return false;
+        
+        h.activeCount = quotaMap.has(h.id) 
+          ? quotaMap.get(h.id) 
+          : (h.students?.filter((s: any) => s.status === 'active').length || 0);
+          
+        return true;
+      });
       
       // Sort by day and time
       filtered.sort((a: any, b: any) => {
@@ -133,15 +151,16 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
           ) : (
             <div className="space-y-4">
               {availableHalaqahs.map((halaqah) => {
-                const activeCount = halaqah.students?.filter((s: any) => s.status === 'active').length || 0;
+                const activeCount = halaqah.activeCount || 0;
                 const isFull = activeCount >= (halaqah.max_students || 999);
                 const zoomInfo = registeredZoom[halaqah.id];
+                const validMentors = halaqah.mentors?.filter((m: any) => (m.role === 'raisah' || m.role === 'musyrifah') && m.user?.full_name !== halaqah.muallimah?.full_name) || [];
 
                 return (
                   <div 
                     key={halaqah.id} 
                     className={`border p-5 rounded-xl transition-all bg-white shadow-sm ${
-                      isFull ? 'border-gray-200 opacity-70' : 'border-indigo-100'
+                      isFull ? 'border-gray-200 opacity-60' : 'border-indigo-100'
                     }`}
                   >
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -156,10 +175,15 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
                         </div>
                         <div className="font-bold text-gray-900 text-lg">{halaqah.name}</div>
                         <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                          <span className="font-medium text-gray-700">{halaqah.muallimah?.full_name || 'Menunggu Muallimah'}</span>
+                          <span className="font-medium text-gray-700">Ustadzah: {halaqah.muallimah?.full_name || 'Menunggu'}</span>
                           <span className="text-gray-300">•</span>
                           <span>Kuota: {activeCount} / {halaqah.max_students}</span>
                         </div>
+                        {validMentors.length > 0 && (
+                          <div className="text-[11px] text-emerald-600 mt-1 font-medium">
+                            {validMentors.map((m: any) => `${m.role === 'raisah' ? 'Raisah' : 'Musyrifah'}: ${m.user?.full_name}`).join(', ')}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="shrink-0 w-full md:w-auto flex flex-col gap-2">

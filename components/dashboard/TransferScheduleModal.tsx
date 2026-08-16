@@ -38,25 +38,41 @@ export function TransferScheduleModal({ isOpen, onClose, user, activeBatch, curr
       // Find the program type the user is in. We can derive from currentHalaqah
       const classType = currentHalaqah?.program?.class_type || 'tikrar_tahfidz';
 
-      const { data, error } = await supabase
-        .from('halaqah')
-        .select(`
-          id, name, day_of_week, start_time, max_students,
-          muallimah:users!halaqah_muallimah_id_fkey(full_name),
-          program:programs!inner(id, batch_id, class_type),
-          students:halaqah_students(status)
-        `)
-        .eq('program.batch_id', activeBatch.id)
-        .eq('program.class_type', classType)
-        .eq('status', 'active');
+      const [halaqahsResponse, quotaResponse] = await Promise.all([
+        supabase
+          .from('halaqah')
+          .select(`
+            id, name, day_of_week, start_time, max_students,
+            muallimah:users!halaqah_muallimah_id_fkey(full_name),
+            program:programs!inner(id, batch_id, class_type),
+            students:halaqah_students(status),
+            mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name))
+          `)
+          .eq('program.batch_id', activeBatch.id)
+          .eq('program.class_type', classType)
+          .eq('status', 'active'),
+        fetch(`/api/shared/halaqah-quota?batch_id=${activeBatch.id}`)
+      ]);
       
-      if (error) throw error;
+      if (halaqahsResponse.error) throw halaqahsResponse.error;
       
-      // Filter out current halaqah and full halaqahs
-      const filtered = (data || []).filter((h: any) => {
+      const quotaData = quotaResponse.ok ? await quotaResponse.json() : null;
+      const quotaMap = new Map();
+      if (quotaData && quotaData.success && quotaData.data?.halaqah) {
+        quotaData.data.halaqah.forEach((q: any) => quotaMap.set(q.id, q.total_current_students));
+      }
+      
+      // Map current students and filter out current halaqah
+      const filtered = (halaqahsResponse.data || []).filter((h: any) => {
         if (h.id === currentHalaqah?.id) return false;
-        const activeStudents = h.students?.filter((s: any) => s.status === 'active').length || 0;
-        return activeStudents < (h.max_students || 999);
+        
+        // Calculate active students
+        h.activeCount = quotaMap.has(h.id) 
+          ? quotaMap.get(h.id) 
+          : (h.students?.filter((s: any) => s.status === 'active').length || 0);
+          
+        // Do not strictly remove full halaqahs so we can show them as full
+        return true;
       });
       
       // Sort by day and time
@@ -130,31 +146,50 @@ export function TransferScheduleModal({ isOpen, onClose, user, activeBatch, curr
           ) : (
             <div className="space-y-3">
               {availableHalaqahs.map((halaqah) => {
-                const activeCount = halaqah.students?.filter((s: any) => s.status === 'active').length || 0;
+                const activeCount = halaqah.activeCount || 0;
                 const isSelected = selectedHalaqahId === halaqah.id;
+                const remaining = halaqah.max_students - activeCount;
+                const isFull = remaining <= 0;
+                
+                const validMentors = halaqah.mentors?.filter((m: any) => (m.role === 'raisah' || m.role === 'musyrifah') && m.user?.full_name !== halaqah.muallimah?.full_name) || [];
+
                 return (
                   <div 
                     key={halaqah.id} 
-                    onClick={() => setSelectedHalaqahId(halaqah.id)}
-                    className={`border p-4 rounded-xl cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500 shadow-sm' 
-                        : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                    onClick={() => {
+                      if (!isFull) setSelectedHalaqahId(halaqah.id);
+                    }}
+                    className={`border p-4 rounded-xl transition-all ${
+                      isFull 
+                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : isSelected 
+                          ? 'border-orange-500 bg-orange-50/30 ring-1 ring-orange-500 shadow-sm cursor-pointer' 
+                          : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50 cursor-pointer'
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1">
-                          {DAYS[halaqah.day_of_week || 1]} • {formatTimeShort(halaqah.start_time)}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="text-xs font-bold text-orange-600 uppercase tracking-wider">
+                            {DAYS[halaqah.day_of_week || 1]} • {formatTimeShort(halaqah.start_time)}
+                          </div>
+                          {isFull && (
+                            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full uppercase">Penuh</span>
+                          )}
                         </div>
                         <div className="font-bold text-gray-900">{halaqah.name}</div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {halaqah.muallimah?.full_name || 'Menunggu Muallimah'}
+                          Ustadzah: {halaqah.muallimah?.full_name || 'Menunggu'}
                         </div>
+                        {validMentors.length > 0 && (
+                          <div className="text-[11px] text-emerald-600 mt-0.5 font-medium">
+                            {validMentors.map((m: any) => `${m.role === 'raisah' ? 'Raisah' : 'Musyrifah'}: ${m.user?.full_name}`).join(', ')}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Sisa Kuota</div>
-                        <div className="text-sm font-black text-gray-900">{halaqah.max_students - activeCount}</div>
+                        <div className={`text-sm font-black ${isFull ? 'text-red-500' : 'text-gray-900'}`}>{Math.max(0, remaining)}</div>
                       </div>
                     </div>
                   </div>
