@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users, ArrowRightLeft } from 'lucide-react';
+import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users, ArrowRightLeft, MessageCircle } from 'lucide-react';
 import { formatTimeShort } from '@/lib/reminder-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransferScheduleModal } from './TransferScheduleModal';

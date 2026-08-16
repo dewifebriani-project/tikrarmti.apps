@@ -13,7 +13,15 @@ export interface HalaqahForReminder {
   zoom_claim_host?: string;
   muallimah?: {
     full_name?: string;
+    whatsapp?: string;
   };
+  mentors?: Array<{
+    role?: string;
+    user?: {
+      full_name?: string;
+      whatsapp?: string;
+    };
+  }>;
   program?: {
     class_type?: string;
     batch?: {

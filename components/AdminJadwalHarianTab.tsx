@@ -672,7 +672,7 @@ export default function AdminJadwalHarianTab() {
                               )}
                             </span>
                           </div>
-                          {halaqah.mentors?.filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name).length > 0 && (
+                          {halaqah.mentors && halaqah.mentors.filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name).length > 0 && (
                             <div className="flex flex-col gap-1 mt-0.5">
                               {halaqah.mentors
                                 .filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name)
