@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAnyRole } from '@/lib/rbac';
+import { requireAuth } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
 
 export async function GET(request: Request) {
@@ -23,12 +23,11 @@ export async function GET(request: Request) {
   };
 
   try {
-    // 1. Authorization check
-    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    // 1. Authorization check (Any logged in user can view)
+    const authError = await requireAuth();
     if (authError) return authError;
 
     const supabase = createClient();
-
     const url = new URL(request.url);
     const batchId = url.searchParams.get('batch_id');
 
@@ -57,7 +56,6 @@ export async function GET(request: Request) {
     }
 
     if (batchError || !activeBatch) {
-      console.error('[Halaqah Summary API] No active batch found:', batchError);
       return ApiResponses.notFound('Tidak ada angkatan (batch) yang aktif.');
     }
 
@@ -69,7 +67,7 @@ export async function GET(request: Request) {
 
     const programIds = programs?.map(p => p.id) || [];
     if (programIds.length === 0) {
-      return ApiResponses.success({ halaqahs: [] }, 'No programs found');
+      return ApiResponses.success(null, 'No programs found');
     }
 
     // 4. Get halaqahs, muallimah and students
@@ -78,32 +76,35 @@ export async function GET(request: Request) {
       .select(`
         id, 
         name, 
-        day_of_week, 
-        start_time, 
-        end_time, 
-        status,
-        muallimah:users!halaqah_muallimah_id_fkey(full_name),
+        muallimah:users!halaqah_muallimah_id_fkey(full_name, nama_kunyah),
         students:halaqah_students(
           status, 
-          thalibah_id, 
-          thalibah:users!halaqah_students_thalibah_id_fkey(full_name, is_blacklisted)
+          thalibah_id
         )
       `)
       .in('program_id', programIds)
       .eq('status', 'active');
 
     if (halaqahError) {
-      console.error('[Halaqah Summary API] Error fetching halaqahs:', halaqahError);
       return ApiResponses.databaseError(halaqahError);
     }
 
     const halaqahIds = halaqahs?.map(h => h.id) || [];
     if (halaqahIds.length === 0) {
-      return ApiResponses.success({ halaqahs: [] }, 'No halaqah found');
+      return ApiResponses.success(null, 'No halaqah found');
+    }
+
+    // Filter only Tikrar halaqahs (excluding Pra Tikrar)
+    const tikrarHalaqahs = halaqahs.filter(h => 
+      h.name.toLowerCase().includes('tikrar') && !h.name.toLowerCase().includes('pra')
+    );
+
+    if (tikrarHalaqahs.length === 0) {
+      return ApiResponses.success(null, 'No tikrar halaqah found');
     }
 
     // Extract thalibahIds
-    const thalibahIds = halaqahs?.flatMap(h => 
+    const thalibahIds = tikrarHalaqahs.flatMap(h => 
       h.students?.filter((s: any) => s.status === 'active')?.map((s: any) => s.thalibah_id) || []
     ) || [];
 
@@ -161,60 +162,55 @@ export async function GET(request: Request) {
       : 0;
     const targetBlocks = Math.max(1, currentWeek * 4);
 
-    const result = halaqahs?.map(h => {
+    const result = tikrarHalaqahs.map(h => {
       const activeStudents = h.students?.filter((s: any) => s.status === 'active') || [];
-      const halaqahStudents = activeStudents.map((s: any) => {
+      const halaqahStudentsStats = activeStudents.map((s: any) => {
         const jCount = jurnalCountMap.get(s.thalibah_id) || 0;
         const tCount = tashihCountMap.get(s.thalibah_id) || 0;
         const jurnal_percentage = Math.min(100, Math.round((jCount / targetBlocks) * 100));
         const tashih_percentage = Math.min(100, Math.round((tCount / targetBlocks) * 100));
-        const progress_percentage = Math.round((jurnal_percentage + tashih_percentage) / 2);
-        
         return {
-          user_id: s.thalibah_id,
-          full_name: s.thalibah?.full_name || 'Unknown',
-          is_blacklisted: s.thalibah?.is_blacklisted || false,
-          jurnal_count: jCount,
-          tashih_count: tCount,
-          jurnal_percentage,
-          tashih_percentage,
-          progress_percentage
+          progress: Math.round((jurnal_percentage + tashih_percentage) / 2),
+          hasTashih: tCount > 0,
+          hasJurnal: jCount > 0
         };
       });
-      
-      // Sort students by name
-      halaqahStudents.sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
 
-      const avg_progress = halaqahStudents.length > 0 
-        ? Math.round(halaqahStudents.reduce((acc: number, curr: any) => acc + curr.progress_percentage, 0) / halaqahStudents.length)
+      const avg_progress = halaqahStudentsStats.length > 0 
+        ? Math.round(halaqahStudentsStats.reduce((acc: number, curr: any) => acc + curr.progress, 0) / halaqahStudentsStats.length)
         : 0;
-
-      const avg_jurnal_progress = halaqahStudents.length > 0
-        ? Math.round(halaqahStudents.reduce((acc: number, curr: any) => acc + curr.jurnal_percentage, 0) / halaqahStudents.length)
-        : 0;
-
-      const avg_tashih_progress = halaqahStudents.length > 0
-        ? Math.round(halaqahStudents.reduce((acc: number, curr: any) => acc + curr.tashih_percentage, 0) / halaqahStudents.length)
-        : 0;
+        
+      const perfect_thalibah = halaqahStudentsStats.filter((stat: any) => stat.progress > 0).length;
+      const active_tashih = halaqahStudentsStats.filter((stat: any) => stat.hasTashih).length;
+      const active_jurnal = halaqahStudentsStats.filter((stat: any) => stat.hasJurnal).length;
 
       return {
         id: h.id,
         name: h.name,
-        muallimah_name: (Array.isArray(h.muallimah) ? h.muallimah[0]?.full_name : (h.muallimah as any)?.full_name) || 'Tanpa Muallimah',
-        total_thalibah: halaqahStudents.length,
+        muallimah_name: (() => {
+          const m = Array.isArray(h.muallimah) ? h.muallimah[0] : (h.muallimah as any);
+          if (!m) return 'Tanpa Muallimah';
+          return m.nama_kunyah || m.full_name || 'Tanpa Muallimah';
+        })(),
+        total_thalibah: halaqahStudentsStats.length,
         avg_progress,
-        avg_jurnal_progress,
-        avg_tashih_progress,
-        thalibah: halaqahStudents
+        perfect_thalibah,
+        active_tashih,
+        active_jurnal
       };
-    }) || [];
+    });
 
-    // Sort halaqahs by name
-    result.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort by avg_progress desc, then total_thalibah desc
+    result.sort((a, b) => {
+      if (b.avg_progress !== a.avg_progress) return b.avg_progress - a.avg_progress;
+      return b.total_thalibah - a.total_thalibah;
+    });
 
-    return ApiResponses.success({ halaqahs: result }, 'Halaqah summary retrieved successfully');
+    const topHalaqah = result.length > 0 && result[0].avg_progress > 0 ? result[0] : null;
+
+    return ApiResponses.success(topHalaqah, 'Halaqah of the week retrieved successfully');
   } catch (error) {
-    console.error('[Halaqah Summary API] Unexpected error:', error);
+    console.error('[Halaqah of the week API] Unexpected error:', error);
     return ApiResponses.serverError('Terjadi kesalahan internal server.');
   }
 }

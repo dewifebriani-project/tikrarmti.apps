@@ -54,6 +54,13 @@ interface DashboardData {
     full: number;
     available: number;
   };
+  pendingApprovals: {
+    registrations: number;
+    daftarUlang: number;
+    transfer: number;
+    muallimah: number;
+    oralAssessment: number;
+  };
 }
 
 export function AdminStatistik() {
@@ -265,6 +272,45 @@ export function AdminStatistik() {
                 <h3 className="text-2xl font-bold text-gray-900">{data.counts.totalBatches}</h3>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pending Approvals Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Card className="bg-white border-orange-200 border shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <span className="text-xs font-bold text-orange-600 uppercase mb-2 tracking-widest">Santri Baru</span>
+            <span className="text-3xl font-black text-gray-900">{data.pendingApprovals?.registrations || 0}</span>
+            <span className="text-[10px] text-gray-500 mt-1">Menunggu Review</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-orange-200 border shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <span className="text-xs font-bold text-orange-600 uppercase mb-2 tracking-widest">Daftar Ulang</span>
+            <span className="text-3xl font-black text-gray-900">{data.pendingApprovals?.daftarUlang || 0}</span>
+            <span className="text-[10px] text-gray-500 mt-1">Menunggu Review</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-orange-200 border shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <span className="text-xs font-bold text-orange-600 uppercase mb-2 tracking-widest">Tugas Lisan</span>
+            <span className="text-3xl font-black text-gray-900">{data.pendingApprovals?.oralAssessment || 0}</span>
+            <span className="text-[10px] text-gray-500 mt-1">Menunggu Review</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-orange-200 border shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <span className="text-xs font-bold text-orange-600 uppercase mb-2 tracking-widest">Pindah Jadwal</span>
+            <span className="text-3xl font-black text-gray-900">{data.pendingApprovals?.transfer || 0}</span>
+            <span className="text-[10px] text-gray-500 mt-1">Menunggu Review</span>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-orange-200 border shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex flex-col items-center text-center">
+            <span className="text-xs font-bold text-orange-600 uppercase mb-2 tracking-widest">Akad Mu'allimah</span>
+            <span className="text-3xl font-black text-gray-900">{data.pendingApprovals?.muallimah || 0}</span>
+            <span className="text-[10px] text-gray-500 mt-1">Menunggu Review</span>
           </CardContent>
         </Card>
       </div>

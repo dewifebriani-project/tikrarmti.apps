@@ -61,6 +61,15 @@ export async function saveTashihRecord(data: TashihFormData) {
     }
   }
 
+  // 3. Validasi 4 Blok (1 Pekan)
+  const blocksArr = data.blok.split(',').map(b => b.trim()).filter(Boolean)
+  if (blocksArr.length !== 4) {
+    return {
+      success: false,
+      error: 'Afwan, form Tashih harus diisi sekaligus untuk 4 blok (1 pekan) secara bersamaan, tidak bisa per blok.'
+    }
+  }
+
   try {
     let finalUstadzahId = data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null)
     let finalNamaPemeriksa = data.nama_pemeriksa || null

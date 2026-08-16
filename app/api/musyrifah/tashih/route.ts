@@ -194,6 +194,47 @@ export async function GET(request: Request) {
     
     const { count: totalCount } = await countQuery;
 
+    // Get count specifically for 'approved' status
+    let approvedCountQuery = supabase
+      .from('daftar_ulang_submissions')
+      .select('*, users!daftar_ulang_submissions_user_id_fkey!inner(is_blacklisted)', { count: 'exact', head: true })
+      .eq('status', 'approved');
+      
+    if (isBlacklisted) {
+      approvedCountQuery = approvedCountQuery.eq('users.is_blacklisted', true);
+    } else if (statusParam !== 'dropout') {
+      approvedCountQuery = approvedCountQuery.eq('users.is_blacklisted', false);
+    }
+
+    if (activeBatchId) {
+      approvedCountQuery = approvedCountQuery.eq('batch_id', activeBatchId);
+    }
+
+    if (search) {
+      const safeSearch = search.replace(/,/g, '');
+      const searchPattern = `%${safeSearch}%`;
+      const orString = `full_name.ilike.${searchPattern},nama_kunyah.ilike.${searchPattern}`;
+      approvedCountQuery = approvedCountQuery.or(orString, { foreignTable: 'users' });
+    }
+    
+    const { count: approvedCount } = await approvedCountQuery;
+
+    // Get count specifically for 'dropout' status
+    let dropoutCountQuery = supabase
+      .from('daftar_ulang_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'dropout');
+    if (activeBatchId) dropoutCountQuery = dropoutCountQuery.eq('batch_id', activeBatchId);
+    const { count: dropoutCount } = await dropoutCountQuery;
+
+    // Get count specifically for 'mengundurkan_diri' status
+    let resignCountQuery = supabase
+      .from('daftar_ulang_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'mengundurkan_diri');
+    if (activeBatchId) resignCountQuery = resignCountQuery.eq('batch_id', activeBatchId);
+    const { count: resignCount } = await resignCountQuery;
+
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
@@ -237,6 +278,9 @@ export async function GET(request: Request) {
           totalPages: 0,
           stats: {
             total_active_thalibah: 0,
+            total_approved_thalibah: 0,
+            total_dropout: 0,
+            total_resign: 0,
             total_blacklist: 0,
             overall_avg_progress: 0
           }
@@ -397,6 +441,9 @@ export async function GET(request: Request) {
 
     const stats = {
       total_active_thalibah: totalCount || 0,
+      total_approved_thalibah: approvedCount || 0,
+      total_dropout: dropoutCount || 0,
+      total_resign: resignCount || 0,
       total_blacklist: globalBlacklistCount || 0,
       overall_avg_progress: combinedEntries.length > 0
         ? Math.round(combinedEntries.reduce((acc: number, curr: any) => acc + (curr.summary?.completion_percentage_target || 0), 0) / combinedEntries.length)

@@ -30,7 +30,8 @@ import {
   UserX,
   AlertTriangle,
   Lock,
-  Snowflake
+  Snowflake,
+  Trophy
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -39,7 +40,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
-import { useDashboardStats, useTashihStatus, useJurnalStatus } from '@/hooks/useDashboard'
+import { useDashboardStats, useTashihStatus, useJurnalStatus, useHalaqahOfTheWeek } from '@/hooks/useDashboard'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { createClient } from '@/lib/supabase/client'
 import { usePrayerTimes } from '@/hooks/usePrayerTimes'
@@ -68,6 +69,7 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined, activeBatch?.id)
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined, activeBatch?.id)
+  const { halaqahOfTheWeek, isLoading: halaqahLoading } = useHalaqahOfTheWeek(activeBatch?.id)
   
   const isMurajaahCompleted = useMemo(() => {
     if (!jurnalStatus || !jurnalStatus.blocks) return false;
@@ -528,6 +530,7 @@ export default function DashboardContent() {
       </div>
 
 
+
       {/* SP Warning Banner */}
       {!canSeeAdminStats && jurnalStatus?.summary?.sp_summary && (
         <div className={cn(
@@ -690,7 +693,72 @@ export default function DashboardContent() {
         </div>
       )}
 
-
+      {/* Halaqah of the Week Banner */}
+      {!halaqahLoading && halaqahOfTheWeek && (
+        <div className="relative overflow-hidden rounded-[2rem] p-6 shadow-xl border-l-8 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 animate-fadeInUp mt-4" style={{ animationDelay: '150ms' }}>
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 text-yellow-500 opacity-20">
+            <Trophy className="w-40 h-40" />
+          </div>
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg bg-yellow-400 text-yellow-900">
+              <Trophy className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
+                <span className="text-xs font-black uppercase tracking-widest text-yellow-700 bg-yellow-200/50 px-3 py-1 rounded-full">
+                  Halaqah of the Week
+                </span>
+                <span className="text-xs font-bold text-gray-500">
+                  Angkatan {activeBatch?.id?.split('-')[0] || 'Aktif'}
+                </span>
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-1">
+                {(() => {
+                  if (!halaqahOfTheWeek.name.includes(' | ')) return halaqahOfTheWeek.name;
+                  const parts = halaqahOfTheWeek.name.split(' | ');
+                  const prefixPart = parts[0];
+                  
+                  const newNamePart = `Ustadzah ${halaqahOfTheWeek.muallimah_name}`;
+                  
+                  if (prefixPart.toLowerCase().includes('pra')) {
+                    return `${prefixPart} | ${newNamePart}`;
+                  }
+                  
+                  if (parts.length > 2) {
+                    return `${parts.slice(0, -1).join(' | ')} | ${newNamePart}`;
+                  }
+                  
+                  return `${prefixPart} | ${newNamePart}`;
+                })()}
+              </h2>
+              <p className="text-gray-600 font-medium">
+                Bersama Ustadzah <span className="font-bold text-gray-900">{halaqahOfTheWeek.muallimah_name}</span>
+              </p>
+            </div>
+            <div className="flex items-stretch shrink-0 gap-3">
+              <div className="flex flex-col items-center justify-center bg-white/60 px-4 py-3 rounded-2xl border border-yellow-100 shadow-sm min-w-[120px]">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Disiplin Tashih</span>
+                <div className="flex items-end gap-1.5 text-green-600 mt-1">
+                  <span className="text-2xl font-black leading-none">{halaqahOfTheWeek.active_tashih || 0}</span>
+                  <span className="text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
+                </div>
+                <span className="text-[9px] font-bold text-gray-400 mt-1">Santri Aktif Setor</span>
+              </div>
+              
+              {currentWeek >= 2 && (
+                <div className="flex flex-col items-center justify-center bg-white/60 px-4 py-3 rounded-2xl border border-yellow-100 shadow-sm min-w-[120px]">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Disiplin Jurnal</span>
+                  <div className="flex items-end gap-1.5 text-blue-600 mt-1">
+                    <span className="text-2xl font-black leading-none">{halaqahOfTheWeek.active_jurnal || 0}</span>
+                    <span className="text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-gray-400 mt-1">Santri Aktif Setor</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. Menu Layanan */}
       <div className="space-y-4">

@@ -693,4 +693,42 @@ export function useJurnalStatus(userId?: string, batchId?: string) {
   }
 }
 
+export interface HalaqahOfTheWeekData {
+  id: string;
+  name: string;
+  muallimah_name: string;
+  score: number;
+  total_thalibah: number;
+  active_tashih?: number;
+  active_jurnal?: number;
+  avg_progress: number;
+  perfect_thalibah: number;
+}
+
+/**
+ * Hook for fetching halaqah of the week
+ */
+export function useHalaqahOfTheWeek(batchId?: string) {
+  const queryParams = new URLSearchParams()
+  if (batchId) queryParams.append('batch_id', batchId)
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ''
+  const { data, error, isLoading, mutate } = useSWR<HalaqahOfTheWeekData | null>(
+    `/api/dashboard/halaqah-of-the-week${queryString}`,
+    getFetcher,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 300000, // 5 minutes
+      dedupingInterval: 300000,
+    }
+  )
+
+  return {
+    halaqahOfTheWeek: data || null,
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  }
+}
+
 export default useDashboardStats

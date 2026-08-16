@@ -319,6 +319,9 @@ function PresensiJurnalContent() {
     totalPages: number;
     stats?: {
       total_active_thalibah: number;
+      total_approved_thalibah: number;
+      total_dropout: number;
+      total_resign: number;
       total_blacklist: number;
       overall_avg_progress: number;
     };
@@ -371,6 +374,35 @@ function PresensiJurnalContent() {
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat DO');
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  const handleResign = async (thalibahId: string, batchId: string, name: string) => {
+    if (!batchId) {
+      toast.error('Batch tidak ditemukan untuk thalibah ini');
+      return;
+    }
+    if (!window.confirm(`Apakah Ukhti yakin thalibah ${name} Mengundurkan Diri? Ini akan mengubah status dan memindahkan data.`)) return;
+
+    try {
+      setDataLoading(true);
+      const response = await fetch('/api/musyrifah/resign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thalibah_id: thalibahId, batch_id: batchId })
+      });
+      
+      if (response.ok) {
+        toast.success(`${name} berhasil Mengundurkan Diri`);
+        loadData();
+      } else {
+        const result = await response.json();
+        toast.error(result.error?.message || result.error || 'Gagal mengubah status');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat memproses');
     } finally {
       setDataLoading(false);
     }
@@ -583,56 +615,65 @@ function PresensiJurnalContent() {
         </div>
       </div>
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
-        {/* KPI Cards (Moved from Header) */}
+        {/* KPI Cards */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          {/* Total Thalibah Card */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[200px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+          {/* Total Thalibah (Approved) Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between flex-1 min-w-[160px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 group">
             <div className="space-y-1">
               <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
                 Total Thalibah
               </p>
               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                {pagination?.totalCount || 0}
+                {pagination?.stats?.total_approved_thalibah || 0}
               </h3>
             </div>
-            <div className="p-3 sm:p-4 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-green-500 shadow-lg shadow-green-200 transition-transform duration-300 group-hover:scale-110">
+              <UserCheck className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
           </div>
 
-          {/* Avg Progress Card */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[200px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+          {/* Total Blacklist Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between flex-1 min-w-[160px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 group">
             <div className="space-y-1">
               <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
-                Avg Progress
+                Total Blacklist
               </p>
               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                {!isMounted ? '0' : (() => {
-                  if (pagination?.stats?.overall_avg_progress !== undefined) {
-                    return pagination.stats.overall_avg_progress;
-                  }
-
-                  if (activeTab === 'blacklist') {
-                    const blacklisted = (tashihEntries || []).filter(e => e?.user?.is_blacklisted);
-                    return blacklisted.length > 0 
-                      ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
-                      : 0;
-                  }
-                  if (activeTab === 'presensi') {
-                    const active = (tashihEntries || []).filter(e => e && !e.user?.is_blacklisted);
-                    return active.length > 0
-                      ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                      : 0;
-                  }
-                  const active = (jurnalEntries || []).filter(e => e && !e.user?.is_blacklisted);
-                  return active.length > 0
-                    ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                    : 0;
-                })()}%
+                {pagination?.stats?.total_blacklist || 0}
               </h3>
             </div>
-            <div className="p-3 sm:p-4 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
-              <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-rose-700 shadow-lg shadow-rose-200 transition-transform duration-300 group-hover:scale-110">
+              <Ban className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
+
+          {/* Total Dropout Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between flex-1 min-w-[160px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 group">
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                Total Dropout
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                {pagination?.stats?.total_dropout || 0}
+              </h3>
+            </div>
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-orange-700 shadow-lg shadow-orange-200 transition-transform duration-300 group-hover:scale-110">
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+          </div>
+
+          {/* Total Mengundurkan Diri Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between flex-1 min-w-[160px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 group">
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                Total Mengundurkan Diri
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                {pagination?.stats?.total_resign || 0}
+              </h3>
+            </div>
+            <div className="p-3 sm:p-4 rounded-xl text-white bg-gray-500 shadow-lg shadow-gray-200 transition-transform duration-300 group-hover:scale-110">
+              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
           </div>
         </div>
@@ -864,6 +905,7 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  onResign={handleResign}
                   emptyMessage="Tidak ada thalibah dalam daftar Drop Out."
                 />
               ) : activeTab === 'blacklist' ? (
@@ -881,6 +923,7 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  onResign={handleResign}
                   emptyMessage={{
                     title: "Tidak Ada Thalibah Blacklist",
                     description: "Belum ada thalibah yang terdaftar dalam daftar hitam (blacklist)."
@@ -901,6 +944,7 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  onResign={handleResign}
                 />
               ) : (
                 <JurnalTabSimple 
@@ -917,6 +961,7 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  onResign={handleResign}
                 />
               )}
             </div>
@@ -1132,12 +1177,13 @@ interface TashihTabProps {
   onShowRecords: (user: any, blockCode: string, records: any[]) => void;
   onIssueSP: (user: any, week: number) => void;
   onDropout: (userId: string, batchId: string, name: string) => void;
+  onResign: (userId: string, batchId: string, name: string) => void;
   pagination: any;
   onPageChange: (page: number) => void;
   emptyMessage?: { title: string; description: string };
 }
 
-function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange, emptyMessage }: TashihTabProps) {
+function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -1271,7 +1317,7 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                           <AlertTriangle className="w-3.5 h-3.5" />
                           <span className="inline">SP</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => onDropout(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Lakukan Dropout (DO)"
@@ -1279,37 +1325,13 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                           <Shield className="w-3.5 h-3.5" />
                           <span className="inline">DO</span>
                         </button>
-                        <button 
-                          onClick={() => {
-                            const phone = entry.user.whatsapp?.replace(/[^0-9]/g, '').replace(/^0/, '62');
-                            if (!phone) {
-                              toast.error('Nomor WhatsApp tidak tersedia');
-                              return;
-                            }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
-                            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
-                          title="Kirim Notifikasi DO via WhatsApp"
+                        <button
+                          onClick={() => onResign(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
+                          title="Tandai Mengundurkan Diri"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="inline">WA DO</span>
-                        </button>
-                        <button 
-                          onClick={() => {
-                            const phone = entry.user.whatsapp?.replace(/[^0-9]/g, '').replace(/^0/, '62');
-                            if (!phone) {
-                              toast.error('Nomor WhatsApp tidak tersedia');
-                              return;
-                            }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
-                            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
-                          title="Kirim Notifikasi DO via WhatsApp"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="inline">WA DO</span>
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          <span className="inline">Resign</span>
                         </button>
                         <button 
                            onClick={() => toggleRow(entry.user_id)} 
@@ -1399,12 +1421,13 @@ interface JurnalTabProps {
   onShowRecords: (user: any, blockCode: string, records: any[]) => void;
   onIssueSP: (user: any, week: number) => void;
   onDropout: (userId: string, batchId: string, name: string) => void;
+  onResign: (userId: string, batchId: string, name: string) => void;
   pagination: any;
   onPageChange: (page: number) => void;
   emptyMessage?: string;
 }
 
-function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange, emptyMessage }: JurnalTabProps) {
+function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -1483,7 +1506,6 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                           onClick={() => {
                             const missingBlocks: string[] = [];
                             entry.weekly_status.forEach((w: any) => {
-                              // Hanya ambil blok dari pekan aktif ke belakang
                               if (currentWeek > 0 && w.week_number > currentWeek) return;
                               
                               w.blocks.forEach((b: any) => {
@@ -1499,7 +1521,6 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                             const phone = entry.user.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '62');
                             const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut *belum dilaporkan* (sampai Pekan ${currentWeek}):\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             
-                            // Using api.whatsapp.com/send instead of wa.me for better native app trigger consistency on some mobile browsers
                             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           className="flex items-center gap-1.5 px-2 py-1 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-sm text-[9px] font-bold uppercase tracking-tighter border border-emerald-700 w-full justify-center"
@@ -1553,35 +1574,21 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                           <AlertTriangle className="w-3.5 h-3.5" />
                           <span className="inline">SP</span>
                         </button>
-                        <button 
-                          onClick={() => {
-                            // Find matching registration entry to get batch_id
-                            // Since entries are already filtered/processed, we might need to rely on the entry itself
-                            // JurnalUserEntry should have batch_id ideally, but we know thalibah.id and active batch is usually the one being viewed.
-                            // In this component, we'll try to find it or use a default
-                            onDropout(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah');
-                          }}
+                        <button
+                          onClick={() => onDropout(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Lakukan Dropout (DO)"
                         >
                           <Shield className="w-3.5 h-3.5" />
                           <span className="inline">DO</span>
                         </button>
-                        <button 
-                          onClick={() => {
-                            const phone = entry.user.whatsapp?.replace(/[^0-9]/g, '').replace(/^0/, '62');
-                            if (!phone) {
-                              toast.error('Nomor WhatsApp tidak tersedia');
-                              return;
-                            }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
-                            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
-                          }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
-                          title="Kirim Notifikasi DO via WhatsApp"
+                        <button
+                          onClick={() => onResign(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
+                          title="Tandai Mengundurkan Diri"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="inline">WA DO</span>
+                          <ClipboardList className="w-3.5 h-3.5" />
+                          <span className="inline">Resign</span>
                         </button>
                         <button 
                            onClick={() => toggleRow(entry.user_id)} 

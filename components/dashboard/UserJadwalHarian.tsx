@@ -37,7 +37,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
             .select(`
               id, name, day_of_week, start_time, end_time, zoom_link, location, max_students,
               zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
-              muallimah:users!halaqah_muallimah_id_fkey(full_name),
+              muallimah:users!halaqah_muallimah_id_fkey(full_name, nama_kunyah, whatsapp),
               program:programs!inner(batch_id, class_type),
               students:halaqah_students(status),
               mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name))
@@ -78,7 +78,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         // Check if there's a pending transfer request
         const { data: requestData } = await supabase
           .from('transfer_schedule_requests')
-          .select('id, status, to_halaqah:halaqahs!transfer_schedule_requests_to_halaqah_id_fkey(name)')
+          .select('id, status, to_halaqah:halaqah!transfer_schedule_requests_to_halaqah_id_fkey(name)')
           .eq('user_id', user.id)
           .eq('batch_id', activeBatch.id)
           .order('created_at', { ascending: false })
@@ -134,7 +134,28 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
                 {schedule.program?.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
               </span>
             </div>
-            <h4 className="font-bold text-gray-900 text-base leading-tight">{schedule.name}</h4>
+            <h4 className="font-bold text-gray-900 text-base leading-tight">
+              {(() => {
+                if (!schedule.name.includes(' | ')) return schedule.name;
+                const parts = schedule.name.split(' | ');
+                const prefixPart = parts[0];
+                
+                const muallimahName = schedule.muallimah?.nama_kunyah || schedule.muallimah?.full_name || parts[parts.length - 1];
+                const newNamePart = `Ustadzah ${muallimahName.replace('Ustadzah ', '')}`;
+
+                // Jika Pra-Tikrar, jangan tampilkan Juz (hanya Prefix | Nama)
+                if (prefixPart.toLowerCase().includes('pra')) {
+                  return `${prefixPart} | ${newNamePart}`;
+                }
+                
+                // Jika Tikrar biasa, pertahankan Juz jika ada
+                if (parts.length > 2) {
+                  return `${parts.slice(0, -1).join(' | ')} | ${newNamePart}`;
+                }
+                
+                return `${prefixPart} | ${newNamePart}`;
+              })()}
+            </h4>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 w-full">
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
@@ -148,7 +169,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
                         <MessageCircle className="h-3.5 w-3.5" />
                       </span>
                     )}
-                    {schedule.muallimah?.full_name || 'Menunggu Muallimah'}
+                    {schedule.muallimah ? `Ustadzah ${schedule.muallimah.nama_kunyah || schedule.muallimah.full_name}` : 'Menunggu Muallimah'}
                   </span>
                 </div>
                 {schedule.mentors?.filter((m: any) => m.user?.full_name !== schedule.muallimah?.full_name).length > 0 && (

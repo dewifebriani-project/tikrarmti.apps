@@ -66,6 +66,13 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
       .gte('created_at', thirtyDaysAgo.toISOString())
 
+    // Get recent registrations for activity feed
+    const { data: recentRegs } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('id, created_at, status, users(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(5)
+
     const stats: DashboardStats = {
       totalRegistrations: totalRegistrations || 0,
       activeBatches: activeBatches || 0,
@@ -78,6 +85,15 @@ export async function GET(request: NextRequest) {
         active: totalUsers || 0,
         total: totalUsers || 0,
       },
+      recentActivity: recentRegs?.map(r => ({
+        id: r.id,
+        type: r.status === 'approved' ? 'approval' : 'registration',
+        description: r.status === 'approved' 
+          ? `Pendaftaran ${(r.users as any)?.full_name || 'Santri'} disetujui`
+          : `Pendaftaran baru dari ${(r.users as any)?.full_name || 'Santri'}`,
+        timestamp: r.created_at,
+        user: { name: (r.users as any)?.full_name }
+      })) || [],
     }
 
     return NextResponse.json({

@@ -110,6 +110,15 @@ export async function GET(request: Request) {
       });
     }
 
+    // 6. Fetch Pending Approvals
+    const [{ count: pendingRegCount }, { count: pendingDaftarUlangCount }, { count: pendingTransferCount }, { count: pendingMuallimahCount }, { count: pendingOralCount }] = await Promise.all([
+      supabaseAdmin.from('pendaftaran_tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('daftar_ulang_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('transfer_schedule_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('muallimah_akads').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('pendaftaran_tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('oral_assessment_status', 'pending')
+    ]);
+
     return ApiResponses.success({
       counts,
       rolesDistribution: {
@@ -122,6 +131,13 @@ export async function GET(request: Request) {
       halaqahStatus: {
         full: fullHalaqah,
         available: availableHalaqah
+      },
+      pendingApprovals: {
+        registrations: pendingRegCount || 0,
+        daftarUlang: pendingDaftarUlangCount || 0,
+        transfer: pendingTransferCount || 0,
+        muallimah: pendingMuallimahCount || 0,
+        oralAssessment: pendingOralCount || 0
       }
     });
 
