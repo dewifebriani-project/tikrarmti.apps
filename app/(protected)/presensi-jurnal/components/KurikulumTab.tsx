@@ -17,6 +17,43 @@ interface JuzOption {
 
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis'];
 
+// Reliable cross-browser Hijri date conversion (not relying on Intl locale support)
+const HIJRI_MONTHS_ID = [
+  'Muharram', 'Safar', 'Rabiulawal', 'Rabiulakhir',
+  'Jumadilawal', 'Jumadilakhir', 'Rajab', 'Syakban',
+  'Ramadan', 'Syawal', 'Zulkaidah', 'Zulhijah'
+];
+
+function toHijri(date: Date): { day: number; month: number; year: number } {
+  // Julian Day Number calculation
+  const Y = date.getFullYear();
+  const M = date.getMonth() + 1;
+  const D = date.getDate();
+  const JD = Math.floor((1461 * (Y + 4800 + Math.floor((M - 14) / 12))) / 4) +
+    Math.floor((367 * (M - 2 - 12 * Math.floor((M - 14) / 12))) / 12) -
+    Math.floor((3 * Math.floor((Y + 4900 + Math.floor((M - 14) / 12)) / 100)) / 4) +
+    D - 32075;
+
+  // Convert JD to Hijri
+  const l = JD - 1948440 + 10632;
+  const n = Math.floor((l - 1) / 10631);
+  const l2 = l - 10631 * n + 354;
+  const j = Math.floor((10985 - l2) / 5316) * Math.floor((50 * l2) / 17719) +
+    Math.floor(l2 / 5670) * Math.floor((43 * l2) / 15238);
+  const l3 = l2 - Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) -
+    Math.floor(j / 16) * Math.floor((15238 * j) / 43) + 29;
+  const hMonth = Math.floor((24 * l3) / 709);
+  const hDay = l3 - Math.floor((709 * hMonth) / 24);
+  const hYear = 30 * n + j - 30;
+  return { day: hDay, month: hMonth, year: hYear };
+}
+
+function formatHijriDate(date: Date): string {
+  const h = toHijri(date);
+  const monthName = HIJRI_MONTHS_ID[h.month - 1] || '';
+  return `${h.day} ${monthName.toUpperCase()} ${h.year} H`;
+}
+
 const murajaahSchedule = [
   { day: 'Senin', range: [1, 3], parts: ['A', 'B'], target: '4×', code: 'M1' },
   { day: 'Selasa', range: [3, 5], parts: ['C', 'D'], target: '4×', code: 'M2' },
@@ -113,9 +150,8 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
     const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     const dateStr = dateObj.toLocaleDateString('id-ID', dateOptions).toUpperCase();
     
-    // Fallback for Hijri date using built-in Intl API
-    const hijriOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    const hijriDateStr = dateObj.toLocaleDateString('id-ID-u-ca-islamic-umalqura', hijriOptions).toUpperCase().replace(' AH', ' H');
+    // Reliable cross-browser Hijri date
+    const hijriDateStr = formatHijriDate(dateObj);
 
     const dateHeader = `${hari.toUpperCase()}, ${dateStr} / ${hijriDateStr}`;
 
@@ -153,7 +189,7 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
   const generateDailyText = (pekan: number, hari: string, dateObj: Date) => {
     const { dateHeader, blockString } = getDailyConfig(pekan, hari, dateObj);
 
-    let text = `*KURIKULUM ${hari.toUpperCase()}*\n*PROGRAM TIKRAR TAHFIDZ MTI*\n*${dateHeader}*\n\n`;
+    let text = `*KURIKULUM HARI INI*\n*PROGRAM TIKRAR TAHFIDZ MTI*\n*${dateHeader}*\n\n`;
 
     text += `1. Mendengarkan murottal ${blockString} 3x\n`;
     text += `2. Membaca ${blockString} 40x\n`;

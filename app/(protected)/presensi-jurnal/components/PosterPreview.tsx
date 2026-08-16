@@ -1,10 +1,15 @@
-import React, { useRef } from 'react';
+import React from 'react';
 
 interface PosterPreviewProps {
   dateHeader: string;
   blockString: string;
   juzOptions: Array<{ name: string; start_page: number }>;
 }
+
+// Pre-define font URL at module level
+const FONT_FACE_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+`;
 
 export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps>(
   ({ dateHeader, blockString, juzOptions }, ref) => {
@@ -25,6 +30,8 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
         className="absolute left-[-9999px] top-[-9999px]" // Hide from screen but keep in DOM for html2canvas
         aria-hidden="true"
       >
+        {/* Font injection for html2canvas */}
+        <style dangerouslySetInnerHTML={{ __html: FONT_FACE_CSS }} />
         <div 
           ref={ref}
           className="relative bg-white flex-shrink-0"
@@ -34,7 +41,7 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
             backgroundImage: "url('/images/kurikulum-template.jpg?v=2')",
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif"
+            fontFamily: "'Nunito', 'Comic Sans MS', 'Chalkboard SE', sans-serif"
           }}
         >
           {/* Date Area - single line again */}
