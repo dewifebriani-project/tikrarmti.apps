@@ -38,6 +38,7 @@ import { AssignThalibahModal } from '@/components/AssignThalibahModal';
 import { ManualCreateHalaqahModal } from '@/components/ManualCreateHalaqahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
+import { createClient } from '@/lib/supabase/client';
 import { HalaqahStats, HalaqahStatsData } from '@/components/admin/halaqah/HalaqahStats';
 import { ScheduleOverlapAnalysis } from '@/components/admin/halaqah/ScheduleOverlapAnalysis';
 import {
@@ -156,6 +157,7 @@ function QuotaDetailsCell({ halaqah }: { halaqah: Halaqah }) {
 }
 
 export function HalaqahManagementTab() {
+  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -350,6 +352,23 @@ export function HalaqahManagementTab() {
             phone: s.thalibah?.phone
           }));
       }
+
+      const startOfWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: sitInLogs } = await supabase
+        .from('audit_logs')
+        .select('user_id, created_at, details, user:users(full_name, whatsapp)')
+        .eq('action', 'UPDATE')
+        .eq('resource', 'halaqah')
+        .gte('created_at', startOfWeek);
+
+      const sitIns = sitInLogs?.filter((log: any) => log.details?.action_type === 'SIT_IN' && log.details?.halaqah_id === halaqah.id) || [];
+      const sitInStudents = sitIns.map((log: any) => ({
+        full_name: (log.user?.full_name || 'Hamba Allah') + ' (Sit-In 🌸)',
+        preferred_juz: halaqah.preferred_juz,
+        phone: log.user?.whatsapp
+      }));
+
+      students = [...students, ...sitInStudents];
     } catch (error) {
       console.error('Error fetching students for reminder:', error);
     }

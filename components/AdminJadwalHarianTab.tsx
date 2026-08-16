@@ -127,7 +127,23 @@ export default function AdminJadwalHarianTab() {
       }
 
       // Map to HalaqahForReminder format
-      const formattedData: HalaqahForReminder[] = filteredData.map((h: any) => ({
+            const { data: sitInLogs } = await supabase
+        .from('audit_logs')
+        .select('user_id, created_at, details, user:users(full_name, whatsapp)')
+        .eq('action', 'UPDATE')
+        .eq('resource', 'halaqah')
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Past 7 days
+
+      const formattedData: HalaqahForReminder[] = filteredData.map((h: any) => {
+        const sitIns = sitInLogs?.filter((log: any) => log.details?.action_type === 'SIT_IN' && log.details?.halaqah_id === h.id) || [];
+        const sitInStudents = sitIns.map((log: any) => ({
+          thalibah_id: log.user_id + '_sitin',
+          full_name: (log.user?.full_name || 'Hamba Allah') + ' (Sit-In 🌸)',
+          preferred_juz: h.preferred_juz,
+          phone: log.user?.whatsapp
+        }));
+
+        return {
         ...h,
         class_type: h.program?.class_type,
         zoom_name: h.zoom?.name || '',
@@ -147,19 +163,23 @@ export default function AdminJadwalHarianTab() {
           }
         },
         max_students: h.max_students,
-        // Only active students
+        // Only active students and sit-ins
         students: Array.from(
           new Map(
-            (h.students || [])
-              .filter((s: any) => s.status === 'active')
-              .map((s: any) => [s.thalibah_id, {
-                full_name: confirmedNameMap.get(s.thalibah_id) || s.thalibah?.full_name,
-                preferred_juz: h.preferred_juz,
-                phone: s.thalibah?.whatsapp || s.thalibah?.phone
-              }])
+            [
+              ...(h.students || [])
+                .filter((s: any) => s.status === 'active')
+                .map((s: any) => [s.thalibah_id, {
+                  full_name: confirmedNameMap.get(s.thalibah_id) || s.thalibah?.full_name,
+                  preferred_juz: h.preferred_juz,
+                  phone: s.thalibah?.whatsapp || s.thalibah?.phone
+                }]),
+              ...sitInStudents.map((s: any) => [s.thalibah_id, s])
+            ]
           ).values()
         )
-      }));
+      };
+    });
 
       setHalaqahs(formattedData);
     } catch (err) {
