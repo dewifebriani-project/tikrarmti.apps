@@ -46,8 +46,8 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
         >
           {/* Date Area */}
           <div 
-            className="absolute flex items-center justify-center text-[#5c4033] font-bold tracking-wide"
-            style={{ top: '188px', left: '185px', width: '445px', height: '48px', fontSize: '18px' }}
+            className="absolute flex items-center justify-center text-[#5c4033] font-bold tracking-wide text-center"
+            style={{ top: '186px', left: '175px', width: '465px', height: '52px', fontSize: '17px', lineHeight: '1.35' }}
           >
             {dateHeader}
           </div>
@@ -55,7 +55,7 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
           {/* Notebook Lines */}
           <div 
             className="absolute flex flex-col text-[#5c4033] font-semibold leading-snug" 
-            style={{ top: '370px', left: '108px', width: '415px', fontSize: '20px', gap: '9px' }}
+            style={{ top: '370px', left: '108px', width: '415px', fontSize: '20px', gap: '8px' }}
           >
             <div className="flex gap-1.5">
               <span className="w-7 flex-shrink-0">1.</span>
@@ -114,7 +114,7 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
               display: 'flex',
               flexDirection: 'column',
               gap: '3px',
-              fontSize: '13.5px'
+              fontSize: '12.5px'
             }}
           >
             {notesItems.map((note, idx) => (

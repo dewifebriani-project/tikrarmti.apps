@@ -637,7 +637,7 @@ function PresensiJurnalContent() {
           </div>
         </div>
 
-        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-2xl mx-auto sm:mx-0 overflow-x-auto hide-scrollbar">
+        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full overflow-x-auto hide-scrollbar">
           <button
             onClick={() => {
               setActiveTab('kurikulum');
@@ -645,7 +645,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=kurikulum', { scroll: false });
             }}
             className={cn(
-              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'kurikulum'
                 ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20"
                 : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
@@ -662,15 +662,15 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=halaqah', { scroll: false });
             }}
             className={cn(
-              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'halaqah'
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
                 : "text-gray-500 hover:text-indigo-600 hover:bg-indigo-50"
             )}
           >
             <LayoutList className="w-4 h-4" />
-            <span className="hidden sm:inline">Per Kelas Halaqah</span>
-            <span className="sm:hidden">Halaqah</span>
+            <span className="hidden lg:inline">Per Kelas Halaqah</span>
+            <span className="lg:hidden">Halaqah</span>
           </button>
           <button
             onClick={() => {
@@ -679,7 +679,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=jurnal', { scroll: false });
             }}
             className={cn(
-              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'jurnal'
                 ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
                 : "text-gray-500 hover:text-green-900 hover:bg-green-50"
@@ -696,15 +696,15 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=presensi', { scroll: false });
             }}
             className={cn(
-              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'presensi'
                 ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
                 : "text-gray-500 hover:text-green-900 hover:bg-green-50"
             )}
           >
             <UserCheck className="w-4 h-4" />
-            <span className="hidden sm:inline">Presensi (Tashih)</span>
-            <span className="sm:hidden">Tashih</span>
+            <span className="hidden lg:inline">Presensi (Tashih)</span>
+            <span className="lg:hidden">Tashih</span>
           </button>
           <button
             onClick={() => {
@@ -712,7 +712,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=blacklist', { scroll: false });
             }}
             className={cn(
-              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'blacklist'
                 ? "bg-rose-700 text-white shadow-lg shadow-rose-900/20"
                 : "text-gray-500 hover:text-rose-700 hover:bg-rose-50"
@@ -728,7 +728,7 @@ function PresensiJurnalContent() {
               router.push('/presensi-jurnal?tab=dropout', { scroll: false });
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap",
               activeTab === 'dropout'
                 ? "bg-orange-700 text-white shadow-lg shadow-orange-900/20"
                 : "text-gray-500 hover:text-orange-700 hover:bg-orange-50"
