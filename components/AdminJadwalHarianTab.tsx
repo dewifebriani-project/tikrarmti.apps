@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { isStaff } from '@/lib/roles';
 import { 
   Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon, Pencil, X,
-  Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight
+  Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, MessageCircle
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -98,9 +98,10 @@ export default function AdminJadwalHarianTab() {
           zoom_link_id,
           muallimah_id,
           zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
-          muallimah:users!halaqah_muallimah_id_fkey(full_name),
+          muallimah:users!halaqah_muallimah_id_fkey(full_name, whatsapp),
           program:programs!inner(class_type, batch_id, batch:batches(name)),
-          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, whatsapp))
+          students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, whatsapp)),
+          mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name, whatsapp))
         `)
         .eq('program.batch_id', batch.id)
         .eq('status', 'active');
@@ -136,7 +137,8 @@ export default function AdminJadwalHarianTab() {
         zoom_passcode: h.zoom?.passcode || '',
         zoom_claim_host: h.zoom?.claim_host || '',
         muallimah: {
-          full_name: h.muallimah?.full_name
+          full_name: h.muallimah?.full_name,
+          whatsapp: h.muallimah?.whatsapp
         },
         program: {
           class_type: h.program?.class_type,
@@ -574,7 +576,7 @@ export default function AdminJadwalHarianTab() {
                   </th>
                   <th className="py-4 px-6">
                     <button type="button" onClick={() => toggleSort('muallimah')} className="inline-flex items-center gap-1.5 hover:text-gray-900">
-                      MU'ALLIMAH {sortIcon('muallimah')}
+                      MU'ALLIMAH / MUSYRIFAH {sortIcon('muallimah')}
                     </button>
                   </th>
                   <th className="py-4 px-6 text-center">
@@ -654,9 +656,46 @@ export default function AdminJadwalHarianTab() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium text-gray-900">{halaqah.muallimah?.full_name || '-'}</span>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4 text-gray-400 shrink-0" />
+                            <span className="font-medium text-gray-900 flex items-center gap-1.5">
+                              {halaqah.muallimah?.full_name || '-'}
+                              {halaqah.muallimah?.whatsapp ? (
+                                <a href={`https://wa.me/${halaqah.muallimah.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 transition-colors" title="Hubungi Mu'allimah via WhatsApp">
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-300 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          {halaqah.mentors?.filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name).length > 0 && (
+                            <div className="flex flex-col gap-1 mt-0.5">
+                              {halaqah.mentors
+                                .filter((m: any) => m.user?.full_name !== halaqah.muallimah?.full_name)
+                                .map((m: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-1.5">
+                                  <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                  <span className="font-semibold text-emerald-700 text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50 flex items-center gap-1">
+                                    {m.user?.full_name || '-'}
+                                    <span className="opacity-70 font-normal capitalize">({m.role})</span>
+                                    {m.user?.whatsapp ? (
+                                      <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 ml-0.5 transition-colors" title="Hubungi via WhatsApp">
+                                        <MessageCircle className="h-3.5 w-3.5" />
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-300 ml-0.5 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                                        <MessageCircle className="h-3.5 w-3.5" />
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-6 text-center">

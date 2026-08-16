@@ -30,6 +30,7 @@ export interface Batch {
   final_exam_end_date?: string | null;
   graduation_start_date?: string | null;
   graduation_end_date?: string | null;
+  transfer_schedule_end_date?: string | null;
   holiday_dates?: string[] | null;
   min_exam_score?: number | null;
   min_final_exam_score?: number | null;

@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Calendar, Video, BookOpen, ChevronDown, ChevronUp, Users, ArrowRightLeft } from 'lucide-react';
 import { formatTimeShort } from '@/lib/reminder-generator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TransferScheduleModal } from './TransferScheduleModal';
+import { SitInModal } from './SitInModal';
 
 const DAYS = [
   'Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'
@@ -17,6 +19,9 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
   const [loading, setLoading] = useState(true);
   const [expandedPraTikrar, setExpandedPraTikrar] = useState(false);
   const [expandedTikrar, setExpandedTikrar] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isSitInModalOpen, setIsSitInModalOpen] = useState(false);
+  const [transferStatus, setTransferStatus] = useState<any>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -27,18 +32,31 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
       }
       try {
         // Fetch ALL active halaqahs for this batch
-        const { data: allHalaqahsData } = await supabase.from('halaqah')
-          .select(`
-            id, name, day_of_week, start_time, end_time, zoom_link, location, max_students,
-            zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
-            muallimah:users!halaqah_muallimah_id_fkey(full_name),
-            program:programs!inner(batch_id, class_type),
-            students:halaqah_students(status)
-          `)
-          .eq('program.batch_id', activeBatch.id)
-          .eq('status', 'active');
+        const [halaqahsResponse, quotaResponse] = await Promise.all([
+          supabase.from('halaqah')
+            .select(`
+              id, name, day_of_week, start_time, end_time, zoom_link, location, max_students,
+              zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
+              muallimah:users!halaqah_muallimah_id_fkey(full_name),
+              program:programs!inner(batch_id, class_type),
+              students:halaqah_students(status),
+              mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name))
+            `)
+            .eq('program.batch_id', activeBatch.id)
+            .eq('status', 'active'),
+          fetch(`/api/shared/halaqah-quota?batch_id=${activeBatch.id}`)
+        ]);
           
-        const combined = allHalaqahsData || [];
+        const quotaData = quotaResponse.ok ? await quotaResponse.json() : null;
+        const quotaMap = new Map();
+        if (quotaData && quotaData.success && quotaData.data?.halaqah) {
+          quotaData.data.halaqah.forEach((q: any) => quotaMap.set(q.id, q.total_current_students));
+        }
+
+        const combined = (halaqahsResponse.data || []).map((h: any) => ({
+          ...h,
+          current_students: quotaMap.has(h.id) ? quotaMap.get(h.id) : (h.students?.filter((st: any) => st.status === 'active').length || 0)
+        }));
         
         // Sort by day (relative to today) and then time
         const todayDayOfWeek = new Date().getDay() === 0 ? 7 : new Date().getDay();
@@ -56,6 +74,20 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         });
 
         setSchedules(combined);
+
+        // Check if there's a pending transfer request
+        const { data: requestData } = await supabase
+          .from('transfer_schedule_requests')
+          .select('id, status, to_halaqah:halaqahs!transfer_schedule_requests_to_halaqah_id_fkey(name)')
+          .eq('user_id', user.id)
+          .eq('batch_id', activeBatch.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (requestData) {
+          setTransferStatus(requestData);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -104,14 +136,51 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
             </div>
             <h4 className="font-bold text-gray-900 text-base leading-tight">{schedule.name}</h4>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1.5">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>{schedule.muallimah?.full_name || 'Menunggu Muallimah'}</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 w-full">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1.5">
+                    {schedule.muallimah?.full_name || 'Menunggu Muallimah'}
+                    {schedule.muallimah?.whatsapp ? (
+                      <a href={`https://wa.me/${schedule.muallimah.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-600 transition-colors" title="Hubungi Mu'allimah via WhatsApp">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </a>
+                    ) : (
+                      <span className="text-gray-300 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {schedule.mentors?.filter((m: any) => m.user?.full_name !== schedule.muallimah?.full_name).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-0.5">
+                    {schedule.mentors
+                      .filter((m: any) => m.user?.full_name !== schedule.muallimah?.full_name)
+                      .map((m: any, idx: number) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <span className="font-semibold text-emerald-700 text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100/50 flex items-center gap-1">
+                          {m.user?.full_name || 'Menunggu'}
+                          <span className="opacity-70 font-normal capitalize">({m.role})</span>
+                          {m.user?.whatsapp ? (
+                            <a href={`https://wa.me/${m.user.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 ml-0.5 transition-colors" title="Hubungi via WhatsApp">
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </a>
+                          ) : (
+                            <span className="text-gray-300 ml-0.5 cursor-not-allowed" title="Nomor WhatsApp tidak terdaftar">
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
                 <Users className="w-3.5 h-3.5" />
                 <span>
-                  {schedule.students?.filter((st: any) => st.status === 'active').length || 0} / {schedule.max_students || '-'} Thalibah
+                  {schedule.current_students !== undefined ? schedule.current_students : (schedule.students?.filter((st: any) => st.status === 'active').length || 0)} / {schedule.max_students || '-'} Thalibah
                 </span>
               </div>
             </div>
@@ -146,15 +215,50 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
 
   return (
     <div className="mb-8 mt-2 max-w-6xl mx-auto w-full px-4 md:px-8">
-      <div className="flex items-center gap-3 mb-4 pl-1">
-        <div className="bg-emerald-100/80 p-2.5 rounded-xl border border-emerald-200/50">
-          <Calendar className="w-5 h-5 text-emerald-700" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3 pl-1">
+          <div className="bg-emerald-100/80 p-2.5 rounded-xl border border-emerald-200/50">
+            <Calendar className="w-5 h-5 text-emerald-700" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900 tracking-tight">Jadwal Kelas</h3>
+            <p className="text-xs text-gray-500 font-medium">Jadwal Tikrar dan Pra-Tikrar</p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-xl font-bold text-gray-900 tracking-tight">Jadwal Kelas</h3>
-          <p className="text-xs text-gray-500 font-medium">Jadwal Tikrar dan Pra-Tikrar</p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setIsSitInModalOpen(true)}
+            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-xl shadow-sm transition-all"
+            variant="outline"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Lihat Kuota Kelas Lain (Sit-In)
+          </Button>
+
+          {activeBatch?.transfer_schedule_end_date && new Date() <= new Date(activeBatch.transfer_schedule_end_date) && (
+            <Button 
+              onClick={() => setIsTransferModalOpen(true)}
+              className="bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 font-bold rounded-xl shadow-sm transition-all"
+              variant="outline"
+            >
+              <ArrowRightLeft className="w-4 h-4 mr-2" />
+              Ajukan Pindah Jadwal
+            </Button>
+          )}
         </div>
       </div>
+
+      {transferStatus && transferStatus.status === 'pending' && (
+        <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+            <p className="text-sm font-medium text-orange-800">
+              Pengajuan pindah jadwal ke <span className="font-bold">{transferStatus.to_halaqah?.name}</span> sedang diproses Admin.
+            </p>
+          </div>
+        </div>
+      )}
       
       <Tabs defaultValue={ownSchedules.length > 0 ? "tikrar" : "pra-tikrar"} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 bg-gray-100/80 p-1 rounded-xl h-auto">
@@ -228,6 +332,26 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
           </div>
         </TabsContent>
       </Tabs>
+      
+      <TransferScheduleModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        user={user}
+        activeBatch={activeBatch}
+        currentHalaqah={ownSchedules.find((s: any) => s.students?.some((st: any) => st.status === 'active')) || praTikrarSchedules.find((s: any) => s.students?.some((st: any) => st.status === 'active'))}
+        onSuccess={() => {
+          setIsTransferModalOpen(false);
+          // Just reload page to show pending status
+          window.location.reload();
+        }}
+      />
+      <SitInModal
+        isOpen={isSitInModalOpen}
+        onClose={() => setIsSitInModalOpen(false)}
+        user={user}
+        activeBatch={activeBatch}
+        currentHalaqah={ownSchedules.find((s: any) => s.students?.some((st: any) => st.status === 'active')) || praTikrarSchedules.find((s: any) => s.students?.some((st: any) => st.status === 'active'))}
+      />
     </div>
   );
 }

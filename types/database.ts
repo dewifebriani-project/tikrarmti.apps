@@ -88,6 +88,7 @@ export interface Batch {
   final_exam_end_date?: string;
   graduation_start_date?: string;
   graduation_end_date?: string;
+  transfer_schedule_end_date?: string;
   whatsapp_group_link?: string;
   group_reminder_link?: string;
   group_diskusi_link?: string;
@@ -243,6 +244,27 @@ export interface HalaqahStudent {
   assigned_at: string;
   assigned_by?: string;
   status: HalaqahStudentStatus;
+}
+
+export interface TransferScheduleRequest {
+  id: string;
+  user_id: string;
+  batch_id: string;
+  program_id: string;
+  from_halaqah_id?: string;
+  to_halaqah_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reason?: string;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Relations
+  user?: User;
+  batch?: Batch;
+  program?: Program;
+  from_halaqah?: Halaqah;
+  to_halaqah?: Halaqah;
 }
 
 export interface Presensi {

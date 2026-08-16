@@ -69,6 +69,7 @@ export function BatchFormModal({ batch, programs = [], isOpen, onClose, onSucces
     final_exam_end_date: extractDateTime(batch?.final_exam_end_date, '23:59'),
     graduation_start_date: extractDateTime(batch?.graduation_start_date, '00:01'),
     graduation_end_date: extractDateTime(batch?.graduation_end_date, '23:59'),
+    transfer_schedule_end_date: extractDateTime(batch?.transfer_schedule_end_date, '23:59'),
     holiday_dates: Array.isArray(batch?.holiday_dates) ? batch!.holiday_dates!.map(d => extractDateTime(d, '00:01').split('T')[0]) : [],
   });
 
@@ -595,6 +596,17 @@ export function BatchFormModal({ batch, programs = [], isOpen, onClose, onSucces
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Pekan 14 Selesai</label>
                         <input type="datetime-local" value={formData.graduation_end_date} onChange={(e) => setFormData({ ...formData, graduation_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transfer Schedule */}
+                  <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100">
+                    <h4 className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-3">Mutasi Halaqah</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Batas Akhir Pindah Jadwal</label>
+                        <input type="datetime-local" value={formData.transfer_schedule_end_date} onChange={(e) => setFormData({ ...formData, transfer_schedule_end_date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
                       </div>
                     </div>
                   </div>

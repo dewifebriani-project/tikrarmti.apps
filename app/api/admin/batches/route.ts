@@ -175,6 +175,7 @@ export async function POST(request: Request) {
       final_exam_end_date: toEndDate(body.final_exam_end_date),
       graduation_start_date: toStartDate(body.graduation_start_date),
       graduation_end_date: toEndDate(body.graduation_end_date),
+      transfer_schedule_end_date: toEndDate(body.transfer_schedule_end_date),
       holiday_dates: body.holiday_dates || [],
       whatsapp_group_link: body.whatsapp_group_link || null,
       group_reminder_link: body.group_reminder_link || null,
