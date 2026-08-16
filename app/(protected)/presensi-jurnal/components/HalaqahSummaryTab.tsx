@@ -7,6 +7,7 @@ interface ThalibahSummary {
   is_blacklisted: boolean;
   jurnal_count: number;
   tashih_count: number;
+  progress_percentage: number;
 }
 
 interface HalaqahSummary {
@@ -14,6 +15,7 @@ interface HalaqahSummary {
   name: string;
   muallimah_name: string;
   total_thalibah: number;
+  avg_progress: number;
   thalibah: ThalibahSummary[];
 }
 
@@ -39,7 +41,11 @@ export function HalaqahSummaryTab({ batchId }: HalaqahSummaryTabProps) {
       const data = await res.json();
 
       if (data.success) {
-        setHalaqahs(data.data.halaqahs);
+        // Hanya tampilkan halaqah Tikrar (exclude Pra-Tikrar)
+        const tikrarHalaqahs = data.data.halaqahs.filter((h: HalaqahSummary) => 
+          h.name.toLowerCase().includes('tikrar') && !h.name.toLowerCase().includes('pra')
+        );
+        setHalaqahs(tikrarHalaqahs);
       } else {
         setError(data.error?.message || data.message || 'Gagal memuat ringkasan halaqah');
       }
@@ -110,6 +116,14 @@ export function HalaqahSummaryTab({ batchId }: HalaqahSummaryTabProps) {
             <div className="flex items-center gap-6">
               <div className="flex flex-col items-end">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  Persentase Kelas
+                </span>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg">
+                  <span className="font-bold">{h.avg_progress}%</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
                   Total Santri
                 </span>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg">
@@ -138,9 +152,10 @@ export function HalaqahSummaryTab({ batchId }: HalaqahSummaryTabProps) {
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-12 gap-4 px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    <div className="col-span-6">Nama Thalibah</div>
-                    <div className="col-span-3 text-center">Total Jurnal</div>
-                    <div className="col-span-3 text-center">Total Tashih</div>
+                    <div className="col-span-5">Nama Thalibah</div>
+                    <div className="col-span-2 text-center">Total Jurnal</div>
+                    <div className="col-span-2 text-center">Total Tashih</div>
+                    <div className="col-span-3 text-center">Persentase</div>
                   </div>
                   
                   {h.thalibah.map((t, idx) => (
@@ -148,7 +163,7 @@ export function HalaqahSummaryTab({ batchId }: HalaqahSummaryTabProps) {
                       key={t.user_id} 
                       className={`grid grid-cols-12 gap-4 items-center bg-white p-3 px-4 rounded-xl border border-gray-100 shadow-sm ${t.is_blacklisted ? 'opacity-50 grayscale' : ''}`}
                     >
-                      <div className="col-span-6 flex items-center gap-3">
+                      <div className="col-span-5 flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs shrink-0">
                           {idx + 1}
                         </div>
@@ -164,17 +179,35 @@ export function HalaqahSummaryTab({ batchId }: HalaqahSummaryTabProps) {
                         </div>
                       </div>
                       
-                      <div className="col-span-3 flex justify-center">
+                      <div className="col-span-2 flex justify-center">
                         <div className="flex items-center gap-1.5 text-sm font-bold text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                           <BookOpen className="w-4 h-4 text-emerald-500" />
                           <span>{t.jurnal_count}</span>
                         </div>
                       </div>
                       
-                      <div className="col-span-3 flex justify-center">
+                      <div className="col-span-2 flex justify-center">
                         <div className="flex items-center gap-1.5 text-sm font-bold text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                           <CheckCircle className="w-4 h-4 text-blue-500" />
                           <span>{t.tashih_count}</span>
+                        </div>
+                      </div>
+
+                      <div className="col-span-3 flex justify-center">
+                        <div className="w-full max-w-[120px] flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${
+                                t.progress_percentage >= 80 ? 'bg-emerald-500' :
+                                t.progress_percentage >= 50 ? 'bg-amber-500' :
+                                'bg-rose-500'
+                              }`}
+                              style={{ width: `${Math.min(100, t.progress_percentage)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold text-gray-700 w-9 text-right">
+                            {t.progress_percentage}%
+                          </span>
                         </div>
                       </div>
                     </div>

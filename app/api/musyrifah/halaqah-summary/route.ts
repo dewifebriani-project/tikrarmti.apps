@@ -134,24 +134,40 @@ export async function GET(request: Request) {
       tashihCountMap.set(r.user_id, (tashihCountMap.get(r.user_id) || 0) + 1);
     });
 
+    const currentWeek = activeBatch.start_date
+      ? Math.ceil((Date.now() - new Date(activeBatch.start_date).getTime()) / (7 * 24 * 60 * 60 * 1000))
+      : 0;
+    const targetBlocks = Math.max(1, currentWeek * 4);
+
     const result = halaqahs?.map(h => {
       const activeStudents = h.students?.filter((s: any) => s.status === 'active') || [];
-      const halaqahStudents = activeStudents.map((s: any) => ({
-        user_id: s.thalibah_id,
-        full_name: s.thalibah?.full_name || 'Unknown',
-        is_blacklisted: s.thalibah?.is_blacklisted || false,
-        jurnal_count: jurnalCountMap.get(s.thalibah_id) || 0,
-        tashih_count: tashihCountMap.get(s.thalibah_id) || 0
-      }));
+      const halaqahStudents = activeStudents.map((s: any) => {
+        const jCount = jurnalCountMap.get(s.thalibah_id) || 0;
+        const progress_percentage = Math.min(100, Math.round((jCount / targetBlocks) * 100));
+        
+        return {
+          user_id: s.thalibah_id,
+          full_name: s.thalibah?.full_name || 'Unknown',
+          is_blacklisted: s.thalibah?.is_blacklisted || false,
+          jurnal_count: jCount,
+          tashih_count: tashihCountMap.get(s.thalibah_id) || 0,
+          progress_percentage
+        };
+      });
       
       // Sort students by name
       halaqahStudents.sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
+
+      const avg_progress = halaqahStudents.length > 0 
+        ? Math.round(halaqahStudents.reduce((acc: number, curr: any) => acc + curr.progress_percentage, 0) / halaqahStudents.length)
+        : 0;
 
       return {
         id: h.id,
         name: h.name,
         muallimah_name: (Array.isArray(h.muallimah) ? h.muallimah[0]?.full_name : (h.muallimah as any)?.full_name) || 'Tanpa Muallimah',
         total_thalibah: halaqahStudents.length,
+        avg_progress,
         thalibah: halaqahStudents
       };
     }) || [];

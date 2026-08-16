@@ -1,0 +1,371 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Loader2, Copy, CheckCircle2, Calendar, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { PosterPreview } from './PosterPreview';
+
+interface JuzOption {
+  id: string;
+  code: string;
+  name: string;
+  part: 'A' | 'B';
+  juz_number: number;
+  start_page: number;
+  end_page: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
+const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis'];
+
+const murajaahSchedule = [
+  { day: 'Senin', range: [1, 3], parts: ['A', 'B'], target: '4×', code: 'M1' },
+  { day: 'Selasa', range: [3, 5], parts: ['C', 'D'], target: '4×', code: 'M2' },
+  { day: 'Rabu', range: [1, 5], parts: ['A', 'D'], target: '2×', code: 'M3' },
+  { day: 'Kamis', range: [6, 8], parts: ['A', 'B'], target: '4×', code: 'M4' },
+  { day: 'Jumat', range: [8, 10], parts: ['C', 'D'], target: '4×', code: 'M5' },
+  { day: 'Sabtu', range: [6, 10], parts: ['A', 'D'], target: '2×', code: 'M6' },
+  { day: 'Ahad', range: [1, 10], parts: ['A', 'D'], target: '1×', code: 'M7' },
+];
+
+interface KurikulumTabProps {
+  currentWeek?: number;
+}
+
+export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
+  const [juzOptions, setJuzOptions] = useState<JuzOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+
+  const [generatedText, setGeneratedText] = useState<string>('');
+  const [isCopied, setIsCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  
+  const posterRef = useRef<HTMLDivElement>(null);
+
+  // Calculate pekan based on selected date and currentWeek baseline
+  const getCalculatedPekan = () => {
+    if (!currentWeek) return 1;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find Monday of the current week
+    const todayDay = today.getDay();
+    const daysSinceMonday = todayDay === 0 ? 6 : todayDay - 1;
+    const baselineMonday = new Date(today);
+    baselineMonday.setDate(today.getDate() - daysSinceMonday);
+    
+    // Find Monday of the selected date
+    const selectedDay = selectedDate.getDay();
+    const selectedDaysSinceMonday = selectedDay === 0 ? 6 : selectedDay - 1;
+    const selectedMonday = new Date(selectedDate);
+    selectedMonday.setDate(selectedDate.getDate() - selectedDaysSinceMonday);
+    
+    // Calculate difference in weeks
+    const diffTime = selectedMonday.getTime() - baselineMonday.getTime();
+    const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+    
+    const calculated = currentWeek + diffWeeks;
+    return Math.max(1, Math.min(11, calculated)); // clamp between 1 and 11
+  };
+
+  const selectedPekan = getCalculatedPekan();
+  const allDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const selectedHari = allDays[selectedDate.getDay()];
+
+  useEffect(() => {
+    fetchJuzOptions();
+  }, []);
+
+  const fetchJuzOptions = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/juz');
+      const data = await res.json();
+      
+      if (res.ok && data.data) {
+        const sortedJuz = (data.data as JuzOption[]).sort((a, b) => a.sort_order - b.sort_order);
+        setJuzOptions(sortedJuz);
+      } else {
+        setError(data.error || 'Gagal memuat opsi juz');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Terjadi kesalahan jaringan.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (juzOptions.length > 0) {
+      updateGeneratedText();
+    }
+  }, [selectedDate, currentWeek, juzOptions]);
+
+  const getDailyConfig = (pekan: number, hari: string, dateObj: Date) => {
+    const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+    const dateStr = dateObj.toLocaleDateString('id-ID', dateOptions).toUpperCase();
+    
+    // Fallback for Hijri date using built-in Intl API
+    const hijriOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+    const hijriDateStr = dateObj.toLocaleDateString('id-ID-u-ca-islamic-umalqura', hijriOptions).toUpperCase().replace(' AH', ' H');
+
+    const dateHeader = `${hari.toUpperCase()}, ${dateStr} / ${hijriDateStr}`;
+
+    let blockString = '';
+
+    if (pekan <= 10) {
+      const ziyadahParts: Record<string, string> = {
+        'Senin': 'a',
+        'Selasa': 'b',
+        'Rabu': 'c',
+        'Kamis': 'd'
+      };
+      
+      const part = ziyadahParts[hari];
+      if (part) {
+        blockString = `H${pekan}${part}/H${pekan+10}${part}`;
+      } else {
+        blockString = '[MURAJAAH/RABTH PEKANAN]';
+      }
+    } else {
+      const mSchedule = murajaahSchedule.find(m => m.day === hari);
+      if (mSchedule) {
+        blockString = `${mSchedule.code} target ${mSchedule.target}`;
+      }
+    }
+    
+    return { dateHeader, blockString };
+  };
+
+  const updateGeneratedText = () => {
+    const text = generateDailyText(selectedPekan, selectedHari, selectedDate);
+    setGeneratedText(text);
+  };
+
+  const generateDailyText = (pekan: number, hari: string, dateObj: Date) => {
+    const { dateHeader, blockString } = getDailyConfig(pekan, hari, dateObj);
+
+    let text = `*KURIKULUM ${hari.toUpperCase()}*\n*PROGRAM TIKRAR TAHFIDZ MTI*\n*${dateHeader}*\n\n`;
+
+    text += `1. Mendengarkan murottal ${blockString} 3x\n`;
+    text += `2. Membaca ${blockString} 40x\n`;
+    text += `3. Merekam *tanpa salah* ${blockString} 3x\n`;
+    text += `4. Mendengarkan rekaman tadi dengan melihat mushaf, jika ada yang salah maka poin 3 di ulang\n`;
+    text += `5. Rabth (belum ada) 1x. Setor ke pasangan\n`;
+    text += `6. Muroja'ah (belum ada) 5x. Setor ke pasangan\n`;
+    text += `7. Tikrar ke pasangan (tanpa melihat mushaf/bil ghaib) ${blockString} 40x\n\n`;
+
+    text += `Kurikulum tambahannya (optional)\n`;
+    text += `1. Baca/simak tafsir ${blockString}\n`;
+    text += `2. Menulis ayat ${blockString}\n\n`;
+
+    text += `Notes:\n`;
+    juzOptions.forEach(j => {
+      // j.name format in DB: "Juz 1A (Halaman 2-11)"
+      // Remove "Juz" to prevent duplicate, and replace "Halaman" with "Hal"
+      const cleanName = j.name.replace(/Juz/i, '').trim();
+      const formattedName = cleanName.replace(/Halaman/i, 'Hal');
+      
+      text += `Juz ${formattedName} mulai dari hal ${j.start_page}\n`;
+    });
+
+    text += `\nYassarallah \nBarakallahufiikunna..\n\n━━━━━━━━━━━━━━━━❁❁\n\n𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔\n\n📱 *MTI OFFICIAL : 081330000784*\n🪩  *Website MTI : markaztikrar.id*\n🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
+
+    return text.trim();
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedText);
+      setIsCopied(true);
+      toast.success('Kurikulum berhasil disalin!');
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      toast.error('Gagal menyalin text');
+    }
+  };
+
+  const handleDownloadPoster = async () => {
+    if (!posterRef.current) return;
+    try {
+      setIsDownloading(true);
+      // Dynamically load html2canvas to avoid SSR issues
+      const html2canvas = (await import('html2canvas')).default;
+      
+      // We need to briefly make it visible to screen to render properly, or html2canvas handles it?
+      // html2canvas can render off-screen elements if they are in the DOM, but using absolute -9999px is standard.
+      const canvas = await html2canvas(posterRef.current, {
+        scale: 2, 
+        useCORS: true,
+        backgroundColor: null
+      });
+      
+      const link = document.createElement('a');
+      link.download = `Kurikulum_${selectedHari}_Pekan${selectedPekan}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success('Poster berhasil diunduh!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal membuat poster. Pastikan koneksi stabil.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-green-600">
+        <Loader2 className="h-10 w-10 animate-spin mb-4" />
+        <p className="text-sm font-medium animate-pulse">Memuat kurikulum...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-rose-50 border border-rose-100 rounded-2xl text-center">
+        <p className="text-rose-600 font-medium">{error}</p>
+        <button 
+          onClick={fetchJuzOptions}
+          className="mt-4 px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm font-bold hover:bg-rose-200 transition-colors"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
+  const { dateHeader, blockString } = getDailyConfig(selectedPekan, selectedHari, selectedDate);
+
+  const isLibur = ['Jumat', 'Sabtu', 'Ahad'].includes(selectedHari) && selectedPekan <= 10;
+
+  const handlePrevDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const handleNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  // Format date for display in the navigator
+  const navDateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+  const navDateStr = selectedDate.toLocaleDateString('id-ID', navDateOptions).toUpperCase();
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="bg-white p-6 border border-gray-100 rounded-2xl shadow-sm relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-gray-900">Kurikulum Hari Ini</h2>
+              <p className="text-sm text-gray-500">Buat jurnal harian & poster untuk disalin ke grup kelas</p>
+            </div>
+          </div>
+          
+          {!isLibur && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDownloadPoster}
+                disabled={isDownloading}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-bold text-sm shadow-sm disabled:opacity-70"
+              >
+                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isDownloading ? 'Memproses...' : 'Download Poster'}
+              </button>
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors font-bold text-sm shadow-sm"
+              >
+                {isCopied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                Copy Text
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Date Navigator */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="flex items-center justify-between w-full max-w-sm bg-gray-50 rounded-2xl p-2 border border-gray-100 shadow-inner">
+            <button
+              onClick={handlePrevDay}
+              className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            <div className="text-center flex-1">
+              <div className="text-sm font-black text-gray-900 tracking-wide">
+                {navDateStr}
+              </div>
+            </div>
+            
+            <button
+              onClick={handleNextDay}
+              className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2 mt-3">
+            <span className="px-3 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100/50">
+              {selectedPekan === 11 ? 'Pekan 11 (Murajaah)' : `Pekan ${selectedPekan}`}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200/50">
+              {selectedHari}
+            </span>
+          </div>
+        </div>
+
+        {['Jumat', 'Sabtu', 'Ahad'].includes(selectedHari) && selectedPekan <= 10 ? (
+          <div className="flex flex-col items-center justify-center py-16 bg-gray-50 border border-dashed border-gray-200 rounded-2xl">
+            <div className="p-4 bg-gray-100 rounded-full mb-3">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Libur Ziyadah</h3>
+            <p className="text-sm text-gray-500">Tidak ada kurikulum hari ini.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="relative">
+              <textarea
+                value={generatedText}
+                onChange={(e) => setGeneratedText(e.target.value)}
+                className="w-full h-[500px] p-6 bg-[#fdfbf7] border border-[#e8e4d9] rounded-2xl text-sm text-gray-800 font-mono leading-relaxed focus:ring-2 focus:ring-amber-500/20 resize-y shadow-inner"
+                placeholder="Template kurikulum..."
+              />
+              <p className="text-xs text-gray-400 mt-2 text-right">
+                *Ukhti dapat mengedit teks di atas sebelum menyalinnya.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden Poster DOM element used for html2canvas */}
+        <PosterPreview 
+          ref={posterRef}
+          dateHeader={dateHeader} 
+          blockString={blockString} 
+          juzOptions={juzOptions} 
+        />
+      </div>
+    </div>
+  );
+}
+

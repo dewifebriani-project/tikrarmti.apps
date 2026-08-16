@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HalaqahSummaryTab } from './components/HalaqahSummaryTab';
+import { KurikulumTab } from './components/KurikulumTab';
 
 function Pagination({ 
   currentPage, 
@@ -295,7 +296,7 @@ function PresensiJurnalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah'>('jurnal');
+  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah' | 'kurikulum'>('jurnal');
   const [isMounted, setIsMounted] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
   const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
@@ -397,8 +398,8 @@ function PresensiJurnalContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'jurnal' || tab === 'presensi' || tab === 'blacklist' || tab === 'dropout' || tab === 'halaqah') {
-      setActiveTab(tab as 'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah');
+    if (tab === 'jurnal' || tab === 'presensi' || tab === 'blacklist' || tab === 'dropout' || tab === 'halaqah' || tab === 'kurikulum') {
+      setActiveTab(tab as 'presensi' | 'jurnal' | 'blacklist' | 'dropout' | 'halaqah' | 'kurikulum');
     }
   }, [searchParams]);
 
@@ -639,6 +640,23 @@ function PresensiJurnalContent() {
         <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-2xl mx-auto sm:mx-0 overflow-x-auto hide-scrollbar">
           <button
             onClick={() => {
+              setActiveTab('kurikulum');
+              setCurrentPage(1);
+              router.push('/presensi-jurnal?tab=kurikulum', { scroll: false });
+            }}
+            className={cn(
+              "flex-1 min-w-[140px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              activeTab === 'kurikulum'
+                ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20"
+                : "text-gray-500 hover:text-amber-600 hover:bg-amber-50"
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">Kurikulum</span>
+            <span className="sm:hidden">Kurikulum</span>
+          </button>
+          <button
+            onClick={() => {
               setActiveTab('halaqah');
               setCurrentPage(1);
               router.push('/presensi-jurnal?tab=halaqah', { scroll: false });
@@ -722,8 +740,8 @@ function PresensiJurnalContent() {
           </button>
         </div>
 
-        {/* Filter & Search Headers (Only for non-halaqah tabs) */}
-        {activeTab !== 'halaqah' && (
+        {/* Filter & Search Headers (Only for non-halaqah/kurikulum tabs) */}
+        {activeTab !== 'halaqah' && activeTab !== 'kurikulum' && (
           <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-end">
             <div className="flex flex-wrap gap-3 items-end w-full lg:w-auto">
               <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[300px]">
@@ -825,7 +843,9 @@ function PresensiJurnalContent() {
              </div>
           ) : (
             <div className="space-y-6">
-              {activeTab === 'halaqah' ? (
+              {activeTab === 'kurikulum' ? (
+                <KurikulumTab currentWeek={currentWeek} />
+              ) : activeTab === 'halaqah' ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                   <HalaqahSummaryTab batchId={selectedBatchId} />
                 </div>
