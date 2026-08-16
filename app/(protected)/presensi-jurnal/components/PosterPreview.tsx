@@ -14,10 +14,10 @@ const FONT_FACE_CSS = `
 export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps>(
   ({ dateHeader, blockString, juzOptions }, ref) => {
     
-    // Format notes: "Juz [Name] mulai dari hal [start_page]"
+    // Format notes: "Juz 1A mulai dari hal X" — strip "Juz" prefix and "(Hal X-Y)" range
     const notesItems = juzOptions.map(j => {
-      const cleanName = j.name.replace(/Juz/i, '').trim().split(' ')[0]; 
-      return `Juz ${cleanName} mulai dari hal ${j.start_page}`;
+      const codeOnly = j.name.replace(/Juz\s*/i, '').replace(/\s*\(.*?\)/, '').trim();
+      return `Juz ${codeOnly} mulai dari hal ${j.start_page}`;
     });
 
     // Split date into Masehi and Hijriah for two lines
@@ -44,58 +44,58 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
             fontFamily: "'Nunito', 'Comic Sans MS', 'Chalkboard SE', sans-serif"
           }}
         >
-          {/* Date Area - single line again */}
+          {/* Date Area */}
           <div 
-            className="absolute flex items-center justify-center text-[#5c4033] font-bold text-[14px] tracking-wide"
-            style={{ top: '190px', left: '190px', width: '440px', height: '45px' }}
+            className="absolute flex items-center justify-center text-[#5c4033] font-bold tracking-wide"
+            style={{ top: '188px', left: '185px', width: '445px', height: '48px', fontSize: '18px' }}
           >
             {dateHeader}
           </div>
 
-          {/* Notebook Lines - Moved further down (from 340px to 380px) */}
+          {/* Notebook Lines */}
           <div 
-            className="absolute flex flex-col gap-2 text-[#5c4033] font-semibold text-[17px] leading-snug" 
-            style={{ top: '380px', left: '110px', width: '410px' }}
+            className="absolute flex flex-col text-[#5c4033] font-semibold leading-snug" 
+            style={{ top: '370px', left: '108px', width: '415px', fontSize: '20px', gap: '9px' }}
           >
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">1.</span>
+              <span className="w-7 flex-shrink-0">1.</span>
               <span>Mendengarkan murottal {blockString} <span className="text-rose-600">3x</span></span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">2.</span>
+              <span className="w-7 flex-shrink-0">2.</span>
               <span>Membaca {blockString} <span className="text-rose-600">40x</span></span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">3.</span>
+              <span className="w-7 flex-shrink-0">3.</span>
               <span>Merekam *tanpa salah* {blockString} <span className="text-rose-600">3x</span></span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">4.</span>
+              <span className="w-7 flex-shrink-0">4.</span>
               <span>Mendengarkan rekaman tadi dengan melihat mushaf, <span className="text-rose-600">jika ada yang salah maka poin 3 di ulang</span></span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">5.</span>
+              <span className="w-7 flex-shrink-0">5.</span>
               <span>Rabth (<span className="text-rose-600">belum ada</span>) 1x. Setor ke pasangan</span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">6.</span>
+              <span className="w-7 flex-shrink-0">6.</span>
               <span>Muroja'ah (<span className="text-rose-600">belum ada</span>) 5x. Setor ke pasangan</span>
             </div>
             <div className="flex gap-1.5">
-              <span className="w-6 flex-shrink-0">7.</span>
+              <span className="w-7 flex-shrink-0">7.</span>
               <span>Tikrar ke pasangan (tanpa melihat mushaf/bil ghaib) {blockString} <span className="text-rose-600">40x</span></span>
             </div>
             
             {/* Additional List */}
-            <div className="mt-5">
-              <div className="mb-2 text-[#5c4033]">Kurikulum tambahannya (optional)</div>
-              <div className="flex flex-col gap-2">
+            <div style={{ marginTop: '14px' }}>
+              <div style={{ marginBottom: '6px' }} className="text-[#5c4033]">Kurikulum tambahannya (optional)</div>
+              <div className="flex flex-col" style={{ gap: '9px' }}>
                 <div className="flex gap-1.5">
-                  <span className="w-6 flex-shrink-0">1.</span>
+                  <span className="w-7 flex-shrink-0">1.</span>
                   <span>Baca/simak tafsir {blockString}</span>
                 </div>
                 <div className="flex gap-1.5">
-                  <span className="w-6 flex-shrink-0">2.</span>
+                  <span className="w-7 flex-shrink-0">2.</span>
                   <span>Menulis ayat {blockString}</span>
                 </div>
               </div>
@@ -104,16 +104,17 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
 
           {/* Notes Area - Sticky Note */}
           <div 
-            className="absolute text-[#2d4a22] font-semibold text-[11.5px] leading-[1.35]"
+            className="absolute text-[#2d4a22] font-semibold leading-snug"
             style={{ 
               top: '630px', 
-              left: '540px', 
-              width: '180px',
-              height: '240px',
+              left: '535px', 
+              width: '190px',
+              height: '250px',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1px'
+              gap: '3px',
+              fontSize: '13.5px'
             }}
           >
             {notesItems.map((note, idx) => (

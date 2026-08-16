@@ -205,12 +205,9 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
 
     text += `Notes:\n`;
     juzOptions.forEach(j => {
-      // j.name format in DB: "Juz 1A (Halaman 2-11)"
-      // Remove "Juz" to prevent duplicate, and replace "Halaman" with "Hal"
-      const cleanName = j.name.replace(/Juz/i, '').trim();
-      const formattedName = cleanName.replace(/Halaman/i, 'Hal');
-      
-      text += `Juz ${formattedName} mulai dari hal ${j.start_page}\n`;
+      // Strip "Juz " prefix and "(Hal X-Y)" range from name → keep only code like "1A"
+      const codeOnly = j.name.replace(/Juz\s*/i, '').replace(/\s*\(.*?\)/, '').trim();
+      text += `Juz ${codeOnly} mulai dari hal ${j.start_page}\n`;
     });
 
     text += `\nYassarallah \nBarakallahufiikunna..\n\n━━━━━━━━━━━━━━━━❁❁\n\n𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔\n\n📱 *MTI OFFICIAL : 081330000784*\n🪩  *Website MTI : markaztikrar.id*\n🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
@@ -335,38 +332,34 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
           )}
         </div>
 
-        {/* Date Navigator */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="flex items-center justify-between w-full max-w-sm bg-gray-50 rounded-2xl p-2 border border-gray-100 shadow-inner">
-            <button
-              onClick={handlePrevDay}
-              className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center flex-1">
-              <div className="text-sm font-black text-gray-900 tracking-wide">
-                {navDateStr}
-              </div>
-            </div>
-            
-            <button
-              onClick={handleNextDay}
-              className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2 mt-3">
-            <span className="px-3 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100/50">
+
+        {/* Date Navigator - inline: pekan + tanggal + hari sejajar */}
+        <div className="flex items-center gap-3 mb-6 bg-gray-50 rounded-2xl px-3 py-2 border border-gray-100 shadow-inner">
+          <button
+            onClick={handlePrevDay}
+            className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200 flex-shrink-0"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex-1 flex items-center justify-center gap-2 flex-wrap">
+            <span className="px-3 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100 flex-shrink-0">
               {selectedPekan === 11 ? 'Pekan 11 (Murajaah)' : `Pekan ${selectedPekan}`}
             </span>
-            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200/50">
+            <span className="text-sm font-black text-gray-900 tracking-wide text-center">
+              {navDateStr}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold border border-gray-200 flex-shrink-0">
               {selectedHari}
             </span>
           </div>
+
+          <button
+            onClick={handleNextDay}
+            className="p-2 rounded-xl text-gray-500 hover:text-amber-600 hover:bg-white transition-all shadow-sm border border-transparent hover:border-gray-200 flex-shrink-0"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
         {['Jumat', 'Sabtu', 'Ahad'].includes(selectedHari) && selectedPekan <= 10 ? (
@@ -378,18 +371,16 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
             <p className="text-sm text-gray-500">Tidak ada kurikulum hari ini.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="relative">
-              <textarea
-                value={generatedText}
-                onChange={(e) => setGeneratedText(e.target.value)}
-                className="w-full h-[500px] p-6 bg-[#fdfbf7] border border-[#e8e4d9] rounded-2xl text-sm text-gray-800 font-mono leading-relaxed focus:ring-2 focus:ring-amber-500/20 resize-y shadow-inner"
-                placeholder="Template kurikulum..."
-              />
-              <p className="text-xs text-gray-400 mt-2 text-right">
-                *Ukhti dapat mengedit teks di atas sebelum menyalinnya.
-              </p>
-            </div>
+          <div className="relative">
+            <textarea
+              value={generatedText}
+              onChange={(e) => setGeneratedText(e.target.value)}
+              className="w-full h-[500px] p-6 bg-[#fdfbf7] border border-[#e8e4d9] rounded-2xl text-sm text-gray-800 font-mono leading-relaxed focus:ring-2 focus:ring-amber-500/20 resize-y shadow-inner"
+              placeholder="Template kurikulum..."
+            />
+            <p className="text-xs text-gray-400 mt-2 text-right">
+              *Ukhti dapat mengedit teks di atas sebelum menyalinnya.
+            </p>
           </div>
         )}
 
