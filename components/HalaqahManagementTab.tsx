@@ -373,7 +373,7 @@ export function HalaqahManagementTab() {
       console.error('Error fetching students for reminder:', error);
     }
 
-    return {
+      return {
       name: halaqah.name,
       day_of_week: halaqah.day_of_week,
       start_time: halaqah.start_time,
@@ -386,6 +386,10 @@ export function HalaqahManagementTab() {
       zoom_passcode: zoom?.passcode,
       muallimah: halaqah.muallimah,
       program: halaqah.program,
+      mentors: halaqah.mentors?.map((m: any) => ({
+        role: m.role,
+        user: m.user || m.users // handle both /api/halaqah and client-side variations
+      })),
       students,
     };
   };

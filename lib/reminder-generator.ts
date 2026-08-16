@@ -155,6 +155,16 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
     }).join('\n');
   }
 
+  let mentorLine = '';
+  if (halaqah.mentors && halaqah.mentors.length > 0) {
+    const validMentors = halaqah.mentors.filter(m => m.role === 'raisah' || m.role === 'musyrifah');
+    mentorLine = validMentors.map(m => {
+      const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
+      const mentorName = m.user?.full_name || '...';
+      return `\n🎗️ ${roleLabel}: ${toTitleCase(mentorName)}`;
+    }).join('');
+  }
+
   return `╔❀◎🎓◎❀════════════════╗
  🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
 ╚════════════════❀◎🎓◎❀╝
@@ -166,7 +176,7 @@ ${title}
 
 In syaa Allaahu Ta'alaa bersama:
 
-👑  *Ustadzah :  ${muallimah_name} حفظها الله تعالى*
+👑  *Ustadzah :  ${muallimah_name} حفظها الله تعالى*${mentorLine}
 📆  *Hari/Tanggal : ${day_name}, ${tanggal_masehi}*
         *${tanggal_hijri}*
 ⏰  *Pukul : ${time} WIB - selesai*
@@ -236,6 +246,8 @@ ${h.zoom_link || ''}
 🔸🔸🔸🔸🔸🔸🔸`;
   }).join('\n\n');
 
+  const tanggal_hijri = getHijriDate(date);
+
   return `╔❀◎🎓◎❀════════════╗
 𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
 ╚════════════❀◎🎓◎❀╝
@@ -247,7 +259,7 @@ ${h.zoom_link || ''}
 📍  𝗥𝗘𝗠𝗜𝗡𝗗𝗘𝗥 𝗝𝗔𝗗𝗪𝗔𝗟 𝗛𝗔𝗟𝗔𝗤𝗔𝗛 𝗠𝗧𝗜 
 *${batchName.toUpperCase()}*
 
-🗓️  *${day_name}, ${date_masehi}*
+🗓️  *${day_name}, ${date_masehi} | ${tanggal_hijri}*
 
 ${scheduleStr}
 
@@ -282,13 +294,23 @@ export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = n
   const isPraTikrar = halaqah.class_type === 'pra_tahfidz';
   const classLabel = isPraTikrar ? 'PRA TIKRAR UMUM MTI' : `TIKRAR MTI Juz ${juz}`;
 
-  const coordinatorNameFormatted = coordinatorName ? coordinatorName : '........................';
+  let mentorLine = `🏅Raisah : ${coordinatorName ? coordinatorName : '........................'}`;
+  if (halaqah.mentors && halaqah.mentors.length > 0) {
+    const validMentors = halaqah.mentors.filter(m => m.role === 'raisah' || m.role === 'musyrifah');
+    if (validMentors.length > 0) {
+      mentorLine = validMentors.map(m => {
+        const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
+        const mentorName = m.user?.full_name || '...';
+        return `🏅${roleLabel} : ${toTitleCase(mentorName)}`;
+      }).join('\n');
+    }
+  }
 
   return `*BERITA ACARA KELAS ${classLabel}.*
 ${day}, Pukul ${time} WIB
 
 👑Ustadzah ${muallimah_name} حفظها الله تعالى
-🏅Raisah : ${coordinatorNameFormatted} 
+${mentorLine}
 🗓 ${day}, ${dateStr} | ${tanggal_hijri}
 
 Keterangan:
@@ -315,12 +337,23 @@ export function generateMuallimahReminder(halaqah: HalaqahForReminder, date: Dat
   const dayName = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   const tanggalMasehi = getMasehiDate(date);
   const time = formatTimeShort(halaqah.start_time);
+  const tanggalHijri = getHijriDate(date);
   
   const muallimah_name = halaqah.muallimah?.full_name ? toTitleCase(halaqah.muallimah.full_name) : '...';
   const zoom_url = halaqah.zoom_link || '';
   const meeting_id = halaqah.zoom_meeting_id || '';
   const passcode = halaqah.zoom_passcode || '';
   const zoom_emoji = getZoomEmoji(halaqah.zoom_name);
+
+  let mentorLine = '';
+  if (halaqah.mentors && halaqah.mentors.length > 0) {
+    const validMentors = halaqah.mentors.filter(m => m.role === 'raisah' || m.role === 'musyrifah');
+    mentorLine = validMentors.map(m => {
+      const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
+      const mentorName = m.user?.full_name || '...';
+      return `\n🎗️  *${roleLabel} : ${toTitleCase(mentorName)}*`;
+    }).join('');
+  }
 
   return `*REMINDER KELAS USTADZAH*
 
@@ -337,9 +370,9 @@ Semoga Ustadzah senantiasa dalam lindungan Allah Ta'ala. Aamiin....
 
 Mohon izin mengingatkan bahwa *pagi ini* ada kelas:
 
-📚  *${classLabel}*
+📚  *${classLabel}*${mentorLine}
 
-🗓️  *${dayName}, ${tanggalMasehi}*
+🗓️  *${dayName}, ${tanggalMasehi} | ${tanggalHijri}*
 🕰️  *Pukul : ${time} WIB - selesai*
 
 🪩  *LINK ZOOM${zoom_emoji ? ' ' + zoom_emoji : ''}*
