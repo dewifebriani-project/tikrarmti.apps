@@ -24,16 +24,19 @@ export default async function MutasiJadwalPage() {
   const { data: requests, error } = await supabase
     .from('transfer_schedule_requests')
     .select(`
-      id, status, created_at, reason, admin_notes,
-      user:auth.users(id, email),
-      profile:profiles(id, full_name, phone_number),
-      batch:batches(id, name),
-      program:programs(id, class_type),
-      from_halaqah:halaqahs!transfer_schedule_requests_from_halaqah_id_fkey(id, name, day_of_week, start_time),
-      to_halaqah:halaqahs!transfer_schedule_requests_to_halaqah_id_fkey(id, name, day_of_week, start_time, max_students)
+      id, status, created_at, notes,
+      user:users!transfer_schedule_requests_user_id_fkey(id, full_name, email, whatsapp),
+      batch:batches!transfer_schedule_requests_batch_id_fkey(id, name),
+      program:programs!transfer_schedule_requests_program_id_fkey(id, class_type),
+      from_halaqah:halaqah!transfer_schedule_requests_from_halaqah_id_fkey(id, name, day_of_week, start_time),
+      to_halaqah:halaqah!transfer_schedule_requests_to_halaqah_id_fkey(id, name, day_of_week, start_time, max_students)
     `)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[MutasiJadwal] Query error:', error);
+  }
 
   // Add current active count to target halaqah to prevent overfilling
   const enrichedRequests = await Promise.all((requests || []).map(async (req: any) => {

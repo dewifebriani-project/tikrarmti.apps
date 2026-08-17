@@ -81,8 +81,8 @@ export function MutasiJadwalClient({ initialRequests, batches }: MutasiJadwalCli
                         {format(new Date(req.created_at), 'dd MMM yyyy, HH:mm', { locale: id })}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900">{req.profile?.full_name}</h3>
-                    <p className="text-sm text-gray-500">{req.profile?.phone_number}</p>
+                    <h3 className="text-lg font-bold text-gray-900">{req.user?.full_name || req.user?.email}</h3>
+                    <p className="text-sm text-gray-500">{req.user?.whatsapp}</p>
                     <p className="text-xs text-gray-400 mt-1">Batch: {req.batch?.name}</p>
                   </div>
 
