@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         max_students,
         zoom_link,
         zoom_link_id,
+        libur_date,
         muallimah_id,
         zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
         muallimah:users!halaqah_muallimah_id_fkey(full_name, whatsapp),

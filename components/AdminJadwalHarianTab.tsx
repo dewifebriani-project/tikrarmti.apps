@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { isStaff } from '@/lib/roles';
 import { 
   Calendar, Clock, Users, BookOpen, Video, Copy, ChevronDown, CheckCircle2, Tag, FileText, Download, Image as ImageIcon, Pencil, X,
-  Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, MessageCircle
+  Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, MessageCircle, AlertCircle
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -613,8 +613,19 @@ export default function AdminJadwalHarianTab() {
                   const overallIndex = activeDay === 0 
                     ? index + 1 
                     : (currentPage - 1) * itemsPerPage + index + 1;
+                    
+                  // Calculate if it's libur this week
+                  const classDay = halaqah.day_of_week || 1;
+                  const todayDayOfWeek = new Date().getDay() === 0 ? 7 : new Date().getDay();
+                  let daysToAdd = classDay - todayDayOfWeek;
+                  if (daysToAdd < 0) daysToAdd += 7;
+                  const classDate = new Date();
+                  classDate.setDate(new Date().getDate() + daysToAdd);
+                  const classDateString = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, '0')}-${String(classDate.getDate()).padStart(2, '0')}`;
+                  const isLibur = (halaqah as any).libur_date === classDateString;
+
                   return (
-                    <tr key={halaqah.id} className="hover:bg-gray-50/30 transition-colors">
+                    <tr key={halaqah.id} className={`hover:bg-gray-50/30 transition-colors ${isLibur ? 'bg-red-50/50' : ''}`}>
                       <td className="py-4 px-6 text-center font-medium text-gray-500">
                         {overallIndex}
                       </td>
@@ -659,7 +670,7 @@ export default function AdminJadwalHarianTab() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <div className="font-semibold text-gray-900 mb-1 leading-tight">{halaqah.name}</div>
+                        <div className={`font-semibold mb-1 leading-tight ${isLibur ? 'text-gray-500 line-through decoration-red-400 decoration-2' : 'text-gray-900'}`}>{halaqah.name}</div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                             halaqah.class_type === 'pra_tahfidz' 
@@ -668,6 +679,11 @@ export default function AdminJadwalHarianTab() {
                           }`}>
                             {halaqah.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
                           </span>
+                          {isLibur && (
+                            <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-red-600 text-white shadow-sm flex items-center gap-1 animate-pulse">
+                              <AlertCircle className="w-3 h-3" /> LIBUR PEKAN INI
+                            </span>
+                          )}
                           {halaqah.preferred_juz && (
                             <span className="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-600 rounded-full border border-amber-100">
                               Juz {halaqah.preferred_juz}

@@ -35,7 +35,7 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         const [halaqahsResponse, quotaResponse] = await Promise.all([
           supabase.from('halaqah')
             .select(`
-              id, name, day_of_week, start_time, end_time, zoom_link, location, max_students,
+              id, name, day_of_week, start_time, end_time, zoom_link, location, max_students, libur_date,
               zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode),
               muallimah:users!halaqah_muallimah_id_fkey(full_name, nama_kunyah, whatsapp),
               program:programs!inner(batch_id, class_type),
@@ -106,17 +106,29 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
   const displayedPraTikrar = expandedPraTikrar ? praTikrarSchedules : praTikrarSchedules.slice(0, 3);
   const displayedTikrar = expandedTikrar ? ownSchedules : ownSchedules.slice(0, 3);
 
-  const renderScheduleCard = (schedule: any) => (
-    <Card key={schedule.id} className="border-none shadow-md shadow-gray-200/40 overflow-hidden rounded-[1.25rem] transition-shadow">
-      <div className={`h-1.5 w-full ${schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-500' : 'bg-emerald-500'}`}></div>
+  const renderScheduleCard = (schedule: any) => {
+    // Calculate if it's libur this week
+    const todayDayOfWeek = new Date().getDay() === 0 ? 7 : new Date().getDay();
+    const classDay = schedule.day_of_week || 1;
+    let daysToAdd = classDay - todayDayOfWeek;
+    if (daysToAdd < 0) daysToAdd += 7;
+    const classDate = new Date();
+    classDate.setDate(new Date().getDate() + daysToAdd);
+    const classDateString = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, '0')}-${String(classDate.getDate()).padStart(2, '0')}`;
+    const isLibur = schedule.libur_date === classDateString;
+
+    const topBarColor = isLibur ? 'bg-red-500' : (schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-500' : 'bg-emerald-500');
+    const boxBg = isLibur ? 'bg-red-50 border-red-100' : (schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-50 border-fuchsia-100' : 'bg-emerald-50 border-emerald-100');
+    const boxText = isLibur ? 'text-red-600' : (schedule.program?.class_type === 'pra_tahfidz' ? 'text-fuchsia-600' : 'text-emerald-600');
+    const badgeBg = isLibur ? 'bg-red-100 text-red-700 border-red-200' : (schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200/50' : 'bg-emerald-100 text-emerald-700 border-emerald-200/50');
+    
+    return (
+    <Card key={schedule.id} className={`border-none shadow-md shadow-gray-200/40 overflow-hidden rounded-[1.25rem] transition-shadow ${isLibur ? 'opacity-80 grayscale-[20%]' : ''}`}>
+      <div className={`h-1.5 w-full ${topBarColor}`}></div>
       <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:items-center justify-between bg-white">
         <div className="flex items-start gap-4">
-          <div className={`rounded-xl p-3 text-center min-w-[70px] border ${
-            schedule.program?.class_type === 'pra_tahfidz' ? 'bg-fuchsia-50 border-fuchsia-100' : 'bg-emerald-50 border-emerald-100'
-          }`}>
-            <div className={`text-[11px] font-bold uppercase mb-0.5 tracking-wider ${
-              schedule.program?.class_type === 'pra_tahfidz' ? 'text-fuchsia-600' : 'text-emerald-600'
-            }`}>
+          <div className={`rounded-xl p-3 text-center min-w-[70px] border ${boxBg}`}>
+            <div className={`text-[11px] font-bold uppercase mb-0.5 tracking-wider ${boxText}`}>
               {schedule.day_of_week ? DAYS[schedule.day_of_week] : '-'}
             </div>
             <div className="text-sm font-black text-gray-900">
@@ -125,16 +137,17 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
           </div>
           
           <div className="pt-0.5">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={`px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full ${
-                schedule.program?.class_type === 'pra_tahfidz' 
-                  ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200/50' 
-                  : 'bg-emerald-100 text-emerald-700 border border-emerald-200/50'
-              }`}>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className={`px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full border ${badgeBg}`}>
                 {schedule.program?.class_type === 'pra_tahfidz' ? 'PRA TIKRAR' : 'TIKRAR TAHFIDZ'}
               </span>
+              {isLibur && (
+                <span className="px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full bg-red-600 text-white shadow-sm flex items-center gap-1 animate-pulse">
+                  <AlertCircle className="w-3 h-3" /> LIBUR PEKAN INI
+                </span>
+              )}
             </div>
-            <h4 className="font-bold text-gray-900 text-base leading-tight">
+            <h4 className={`font-bold text-base leading-tight ${isLibur ? 'text-gray-500 line-through decoration-red-400 decoration-2' : 'text-gray-900'}`}>
               {(() => {
                 if (!schedule.name.includes(' | ')) return schedule.name;
                 const parts = schedule.name.split(' | ');
@@ -230,7 +243,8 @@ export function UserJadwalHarian({ user, activeBatch, daftarUlangData }: { user:
         </div>
       )}
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="mb-8 mt-2 max-w-6xl mx-auto w-full px-4 md:px-8">

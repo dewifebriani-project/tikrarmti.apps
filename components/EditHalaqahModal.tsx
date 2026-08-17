@@ -17,6 +17,7 @@ interface Halaqah {
   waitlist_max?: number;
   preferred_juz?: string;
   zoom_link?: string;
+  libur_date?: string | null;
   status: 'active' | 'inactive' | 'suspended';
   program_id: string | null;
   program?: {
@@ -71,9 +72,10 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
     end_time: halaqah.end_time || '',
     location: halaqah.location || '',
     max_students: halaqah.max_students || 5,
-    waitlist_max: halaqah.waitlist_max || 5,
+    waitlist_max: halaqah.waitlist_max || 0,
     preferred_juz: halaqah.preferred_juz || '',
     zoom_link: halaqah.zoom_link || '',
+    libur_date: halaqah.libur_date || '',
     status: halaqah.status,
   });
 
@@ -126,6 +128,7 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
         max_students: formData.max_students,
         waitlist_max: formData.waitlist_max,
         preferred_juz: formData.preferred_juz || undefined,
+        libur_date: formData.libur_date || null,
       });
 
       if (!result.success) {
@@ -234,6 +237,20 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                disabled={saving}
+              />
+            </div>
+
+            <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
+              <label className="block text-sm font-medium text-red-900 mb-1 flex items-center gap-2">
+                Tandai Libur (Pilih Tanggal)
+              </label>
+              <p className="text-xs text-red-700 mb-2">Jika diisi, jadwal halaqah pada tanggal ini akan tampil dengan warna merah (LIBUR) di layar santri. Kosongkan untuk mengaktifkan kembali.</p>
+              <input
+                type="date"
+                value={formData.libur_date}
+                onChange={(e) => setFormData({ ...formData, libur_date: e.target.value })}
+                className="w-full px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
                 disabled={saving}
               />
             </div>

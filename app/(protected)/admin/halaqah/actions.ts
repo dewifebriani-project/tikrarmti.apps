@@ -40,6 +40,7 @@ interface UpdateHalaqahData {
   preferred_juz?: string
   program_id?: string
   muallimah_id?: string
+  libur_date?: string | null
 }
 
 interface AssignThalibahParams {
