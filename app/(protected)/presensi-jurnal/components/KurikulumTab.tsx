@@ -160,26 +160,42 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
     let murojaahString = '(belum ada)';
 
     if (pekan <= 10) {
-      const ziyadahParts: Record<string, string> = {
-        'Senin': 'a',
-        'Selasa': 'b',
-        'Rabu': 'c',
-        'Kamis': 'd'
+      const daysMap: Record<string, number> = {
+        'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4
       };
       
-      const part = ziyadahParts[hari];
-      if (part) {
-        blockString = `H${pekan}${part}/H${pekan+10}${part}`;
+      const dayNum = daysMap[hari];
+      if (dayNum) {
+        const absoluteIndex = (pekan - 1) * 4 + dayNum;
         
-        if (hari === 'Selasa') {
-           murojaahString = `H${pekan}a/H${pekan+10}a`;
-           rabthString = `(belum ada)`;
-        } else if (hari === 'Rabu') {
-           murojaahString = `H${pekan}b/H${pekan+10}b`;
-           rabthString = `H${pekan}a/H${pekan+10}a`;
-        } else if (hari === 'Kamis') {
-           murojaahString = `H${pekan}c/H${pekan+10}c`;
-           rabthString = `H${pekan}a-b/H${pekan+10}a-b`;
+        const getFormat = (idx: number) => {
+           const p = Math.ceil(idx / 4);
+           const parts = ['a', 'b', 'c', 'd'];
+           const pt = parts[(idx - 1) % 4];
+           return `H${p}${pt}/H${p+10}${pt}`;
+        };
+
+        const getPartOnly = (idx: number, offset: number = 0) => {
+           const p = Math.ceil(idx / 4) + offset;
+           const parts = ['a', 'b', 'c', 'd'];
+           const pt = parts[(idx - 1) % 4];
+           return `H${p}${pt}`;
+        };
+
+        blockString = getFormat(absoluteIndex);
+
+        if (absoluteIndex === 1) {
+           murojaahString = '(belum ada)';
+           rabthString = '(belum ada)';
+        } else if (absoluteIndex === 2) {
+           murojaahString = getFormat(1);
+           rabthString = '(belum ada)';
+        } else if (absoluteIndex === 3) {
+           murojaahString = getFormat(2);
+           rabthString = getFormat(1);
+        } else {
+           murojaahString = getFormat(absoluteIndex - 1);
+           rabthString = `H1a-${getPartOnly(absoluteIndex - 2, 0)}/H11a-${getPartOnly(absoluteIndex - 2, 10)}`;
         }
       } else {
         blockString = '[MURAJAAH/RABTH PEKANAN]';
