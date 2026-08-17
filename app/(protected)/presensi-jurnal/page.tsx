@@ -1359,33 +1359,43 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                                 <span className="text-[10px] font-bold text-green-700">{week.completed_blocks}/4</span>
                              </div>
                              <div className="grid grid-cols-4 gap-2">
-                                {week.blocks.map((block: any) => (
-                                  <button 
-                                    key={block.block_code} 
-                                    onClick={() => {
-                                      const records = entry.tashih_records.filter((r: any) => {
-                                        const bloks = typeof r.blok === 'string' ? r.blok.split(',').map((b: string) => b.trim()) : (r.blok || []);
-                                        return bloks.includes(block.block_code);
-                                      });
-                                      if (block.is_completed) {
-                                        onShowRecords(entry.user, block.block_code, records);
-                                      } else {
-                                        window.dispatchEvent(new CustomEvent('open-input-modal', { detail: { user: entry.user, blockCode: block.block_code, type: 'presensi' } }));
-                                      }
-                                    }}
-                                    className={cn(
-                                      "p-2 rounded-xl border-2 text-center transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
-                                      block.is_completed 
-                                        ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
-                                        : block.tashih_count > 0
-                                          ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
-                                          : "bg-red-500 border-red-600 text-white hover:bg-red-600"
-                                    )}
-                                  >
-                                      <div className="text-xs">{block.block_code}</div>
-                                      <div className="text-[8px] uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
-                                  </button>
-                                ))}
+                                 {week.blocks.map((block: any, blockIdx: number) => {
+                                   const todayDay = new Date().getDay() || 7;
+                                   const currentWeekNum = entry.summary?.current_week || 1;
+                                   const isLocked = !block.is_completed && (week.week_number > currentWeekNum || (week.week_number === currentWeekNum && todayDay < (blockIdx + 1)));
+
+                                   return (
+                                   <button 
+                                     key={block.block_code} 
+                                     disabled={isLocked}
+                                     onClick={() => {
+                                       if (isLocked) return;
+                                       const records = entry.tashih_records.filter((r: any) => {
+                                         const bloks = typeof r.blok === 'string' ? r.blok.split(',').map((b: string) => b.trim()) : (r.blok || []);
+                                         return bloks.includes(block.block_code);
+                                       });
+                                       if (block.is_completed) {
+                                         onShowRecords(entry.user, block.block_code, records);
+                                       } else {
+                                         window.dispatchEvent(new CustomEvent('open-input-modal', { detail: { user: entry.user, blockCode: block.block_code, type: 'presensi' } }));
+                                       }
+                                     }}
+                                     className={cn(
+                                       "p-2 rounded-xl border-2 text-center transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
+                                       block.is_completed 
+                                         ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
+                                         : isLocked
+                                           ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                           : block.tashih_count > 0
+                                             ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
+                                             : "bg-red-500 border-red-600 text-white hover:bg-red-600"
+                                     )}
+                                   >
+                                       <div className="text-xs">{block.block_code.split('H')[1]}</div>
+                                       <div className="text-[8px] uppercase">{block.is_completed ? 'Sudah' : (isLocked ? 'Locked' : 'Input')}</div>
+                                   </button>
+                                   );
+                                 })}
                              </div>
                           </div>
                         ))}
@@ -1620,39 +1630,49 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                                      <span className="text-[10px] font-bold text-gray-400 uppercase">Pekan {week.week_number}</span>
                                   </div>
                                   <div className="grid grid-cols-4 gap-2">
-                                     {week.blocks.map((block: any) => (
-                                        <button 
-                                           key={block.block_code} 
-                                           onClick={() => {
-                                             const records = entry.jurnal_records.filter((r: any) => {
-                                               const normalizedRaw = r.blok || '';
-                                               if (normalizedRaw.startsWith('[')) {
-                                                 try {
-                                                   const parsed = JSON.parse(normalizedRaw);
-                                                   return Array.isArray(parsed) && parsed.includes(block.block_code);
-                                                 } catch { return false; }
-                                               }
-                                               return normalizedRaw === block.block_code;
-                                             });
-                                             if (block.is_completed) {
-                                               onShowRecords(entry.user, block.block_code, records);
-                                             } else {
+                                     {week.blocks.map((block: any, blockIdx: number) => {
+                                        const todayDay = new Date().getDay() || 7;
+                                        const currentWeekNum = entry.summary?.current_week || 1;
+                                        const isLocked = !block.is_completed && (week.week_number > currentWeekNum || (week.week_number === currentWeekNum && todayDay < (blockIdx + 1)));
+                                        
+                                        return (
+                                         <button 
+                                            key={block.block_code} 
+                                            disabled={isLocked}
+                                            onClick={() => {
+                                              if (isLocked) return;
+                                              const records = entry.jurnal_records.filter((r: any) => {
+                                                const normalizedRaw = r.blok || '';
+                                                if (normalizedRaw.startsWith('[')) {
+                                                  try {
+                                                    const parsed = JSON.parse(normalizedRaw);
+                                                    return Array.isArray(parsed) && parsed.includes(block.block_code);
+                                                  } catch { return false; }
+                                                }
+                                                return normalizedRaw === block.block_code;
+                                              });
+                                              if (block.is_completed) {
+                                                onShowRecords(entry.user, block.block_code, records);
+                                              } else {
                                                 window.dispatchEvent(new CustomEvent('open-input-modal', { detail: { user: entry.user, blockCode: block.block_code, type: 'jurnal' } }));
-                                             }
-                                           }}
-                                           className={cn(
-                                              "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
-                                              block.is_completed 
-                                                ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
-                                                : block.jurnal_count > 0
-                                                  ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
-                                                  : "bg-red-500 border-red-600 text-white hover:bg-red-600"
-                                           )}
-                                        >
-                                           <div className="text-[10px] font-bold">{block.block_code}</div>
-                                           <div className="text-[8px] font-bold uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
-                                        </button>
-                                     ))}
+                                              }
+                                            }}
+                                            className={cn(
+                                               "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
+                                               block.is_completed 
+                                                 ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
+                                                 : isLocked
+                                                   ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                                   : block.jurnal_count > 0
+                                                     ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
+                                                     : "bg-red-500 border-red-600 text-white hover:bg-red-600"
+                                            )}
+                                         >
+                                           <div className="text-[10px] mb-1 opacity-80">{block.block_code.split('H')[1]}</div>
+                                           <div className="text-[8px] font-bold uppercase">{block.is_completed ? 'Sudah' : (isLocked ? 'Locked' : 'Input')}</div>
+                                         </button>
+                                        );
+                                     })}
                                   </div>
                                </div>
                             ))}

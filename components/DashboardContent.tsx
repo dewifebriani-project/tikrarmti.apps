@@ -734,6 +734,12 @@ export default function DashboardContent() {
               <p className="text-gray-600 font-medium">
                 Bersama Ustadzah <span className="font-bold text-gray-900">{halaqahOfTheWeek.muallimah_name}</span>
               </p>
+              {halaqahOfTheWeek.evaluation_period && (
+                <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3 text-gray-400" />
+                  Periode Penilaian: <span className="font-semibold text-gray-700">{halaqahOfTheWeek.evaluation_period}</span> (Pekan {halaqahOfTheWeek.target_week})
+                </p>
+              )}
             </div>
             <div className="flex items-stretch shrink-0 gap-3">
               <div className="flex flex-col items-center justify-center bg-white/60 px-4 py-3 rounded-2xl border border-yellow-100 shadow-sm min-w-[120px]">

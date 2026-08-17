@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
+import { NextResponse } from 'next/server';
 
 // Helper to normalize block code (ensure it starts with H or M)
 function normalizeBlokCode(code: string): string {
@@ -817,6 +818,22 @@ export async function POST(request: Request) {
 
     if (!targetUser) {
       return ApiResponses.notFound('User not found');
+    }
+
+    // Check for duplicate record
+    if (validatedData.blok) {
+      const { data: existingRecords } = await supabase
+        .from('jurnal_records')
+        .select('id')
+        .eq('user_id', validatedData.user_id)
+        .eq('blok', validatedData.blok);
+        
+      if (existingRecords && existingRecords.length > 0) {
+        return NextResponse.json(
+          { success: false, error: 'Data jurnal untuk blok ini sudah ada. Silakan hapus atau gunakan fitur edit jika ingin mengubah.' },
+          { status: 400 }
+        );
+      }
     }
 
     const { data: newRecord, error } = await supabase

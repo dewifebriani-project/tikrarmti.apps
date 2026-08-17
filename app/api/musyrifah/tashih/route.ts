@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 // Helper function to parse blok field (can be string or array)
@@ -584,6 +585,22 @@ export async function POST(request: Request) {
 
     if (!targetUser) {
       return ApiResponses.notFound('Thalibah not found');
+    }
+
+    // Check for duplicate record
+    if (validatedData.blok) {
+      const { data: existingRecords } = await supabase
+        .from('tashih_records')
+        .select('id')
+        .eq('user_id', validatedData.user_id)
+        .eq('blok', validatedData.blok);
+        
+      if (existingRecords && existingRecords.length > 0) {
+        return NextResponse.json(
+          { success: false, error: 'Data tashih untuk blok ini sudah ada. Silakan hapus atau gunakan fitur edit jika ingin mengubah.' },
+          { status: 400 }
+        );
+      }
     }
 
     let finalUstadzahId = validatedData.ustadzah_id === 'manual' ? null : (validatedData.ustadzah_id || null);

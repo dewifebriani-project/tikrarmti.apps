@@ -694,15 +694,17 @@ export function useJurnalStatus(userId?: string, batchId?: string) {
 }
 
 export interface HalaqahOfTheWeekData {
-  id: string;
-  name: string;
-  muallimah_name: string;
-  score: number;
-  total_thalibah: number;
-  active_tashih?: number;
-  active_jurnal?: number;
-  avg_progress: number;
-  perfect_thalibah: number;
+  id: string
+  name: string
+  muallimah_name: string
+  total_thalibah: number
+  avg_progress: number
+  perfect_thalibah: number
+  active_tashih: number
+  active_jurnal: number
+  total_interactions: number
+  evaluation_period?: string
+  target_week?: number
 }
 
 /**
