@@ -71,34 +71,31 @@ export async function POST(
         return ApiResponses.badRequest('Halaqah tujuan sudah penuh.');
       }
 
-      // 2. Find registration ID
+      // 2. Find daftar ulang submission (no program_id column, use batch_id only)
       const { data: studentReg } = await supabaseAdmin
         .from('daftar_ulang_submissions')
         .select('id')
         .eq('user_id', transferReq.user_id)
         .eq('batch_id', transferReq.batch_id)
-        .eq('program_id', transferReq.program_id)
-        .single();
+        .maybeSingle();
 
       if (!studentReg) {
-        return ApiResponses.badRequest('Data daftar ulang (registration) tidak ditemukan.');
+        return ApiResponses.badRequest('Data daftar ulang tidak ditemukan.');
       }
 
-      // 3. Delete from old halaqah if any
+      // 3. Delete from old halaqah (uses thalibah_id, not user_id/student_id)
       if (transferReq.from_halaqah_id) {
         await supabaseAdmin
           .from('halaqah_students')
           .delete()
           .eq('halaqah_id', transferReq.from_halaqah_id)
-          .eq('student_id', studentReg.id)
-          .eq('user_id', transferReq.user_id);
+          .eq('thalibah_id', transferReq.user_id);
       } else {
-        // Just in case they are enrolled in any other active halaqah in this program
+        // Remove from any active halaqah enrolment for this user
         const { data: existingEnrolls } = await supabaseAdmin
           .from('halaqah_students')
           .select('id, halaqah_id')
-          .eq('student_id', studentReg.id)
-          .eq('user_id', transferReq.user_id)
+          .eq('thalibah_id', transferReq.user_id)
           .eq('status', 'active');
           
         if (existingEnrolls && existingEnrolls.length > 0) {
@@ -116,23 +113,32 @@ export async function POST(
         .from('halaqah_students')
         .insert({
           halaqah_id: transferReq.to_halaqah_id,
-          student_id: studentReg.id,
-          user_id: transferReq.user_id,
+          thalibah_id: transferReq.user_id,
+          assigned_by: context.userId,
           status: 'active'
         });
 
       if (insertError) throw insertError;
 
-      // 5. Update submission reference
+      // 5. Update ujian & tashih halaqah reference in submission
       await supabaseAdmin
         .from('daftar_ulang_submissions')
-        .update({ halaqah_id: transferReq.to_halaqah_id })
+        .update({
+          ujian_halaqah_id: transferReq.to_halaqah_id,
+          tashih_halaqah_id: transferReq.to_halaqah_id,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', studentReg.id);
 
       // 6. Mark request as approved
       await supabaseAdmin
         .from('transfer_schedule_requests')
-        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .update({
+          status: 'approved',
+          reviewed_by: context.userId,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
     }
 
