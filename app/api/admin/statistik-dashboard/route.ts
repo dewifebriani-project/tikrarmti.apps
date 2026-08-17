@@ -5,6 +5,8 @@ import { ApiResponses } from '@/lib/api-responses';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // 1. Authorization check

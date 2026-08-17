@@ -31,12 +31,24 @@ export default async function MutasiJadwalPage() {
       from_halaqah:halaqah!transfer_schedule_requests_from_halaqah_id_fkey(id, name, day_of_week, start_time),
       to_halaqah:halaqah!transfer_schedule_requests_to_halaqah_id_fkey(id, name, day_of_week, start_time, max_students)
     `)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'approved'])
     .order('created_at', { ascending: false });
 
   if (error) {
     console.error('[MutasiJadwal] Query error:', error);
   }
+
+  // Fetch Sit In requests
+  const { data: sitInLogs } = await supabase
+    .from('system_logs')
+    .select(`
+      id, created_at, details,
+      user:users!system_logs_user_id_fkey(id, full_name, email, whatsapp)
+    `)
+    .eq('resource', 'halaqah')
+    .contains('details', { action_type: 'SIT_IN' })
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   // Add current active count to target halaqah to prevent overfilling
   const enrichedRequests = await Promise.all((requests || []).map(async (req: any) => {
@@ -55,6 +67,7 @@ export default async function MutasiJadwalPage() {
     <div className="min-h-screen bg-gray-50/50 pb-20">
       <MutasiJadwalClient 
         initialRequests={enrichedRequests} 
+        initialSitIns={sitInLogs || []}
         batches={batches || []} 
       />
     </div>

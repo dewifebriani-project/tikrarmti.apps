@@ -42,7 +42,9 @@ import {
   Check,
   CheckCheck,
   ArrowLeft,
-  LayoutList
+  LayoutList,
+  Copy,
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HalaqahSummaryTab } from './components/HalaqahSummaryTab';
@@ -1437,8 +1439,50 @@ interface JurnalTabProps {
   emptyMessage?: string;
 }
 
+// --- Hijri date helpers for reminder template ---
+const HIJRI_MONTHS = [
+  'Muharram', 'Safar', 'Rabiulawal', 'Rabiulakhir',
+  'Jumadilawal', 'Jumadilakhir', 'Rajab', 'Syakban',
+  'Ramadan', 'Syawal', 'Zulkaidah', 'Zulhijah'
+];
+
+const HARI_NAMES = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const BULAN_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+function toHijriReminder(date: Date): { day: number; month: number; year: number } {
+  const Y = date.getFullYear();
+  const M = date.getMonth() + 1;
+  const D = date.getDate();
+  const JD = Math.floor((1461 * (Y + 4800 + Math.floor((M - 14) / 12))) / 4) +
+    Math.floor((367 * (M - 2 - 12 * Math.floor((M - 14) / 12))) / 12) -
+    Math.floor((3 * Math.floor((Y + 4900 + Math.floor((M - 14) / 12)) / 100)) / 4) +
+    D - 32075;
+  const l = JD - 1948440 + 10632;
+  const n = Math.floor((l - 1) / 10631);
+  const l2 = l - 10631 * n + 354;
+  const j = Math.floor((10985 - l2) / 5316) * Math.floor((50 * l2) / 17719) +
+    Math.floor(l2 / 5670) * Math.floor((43 * l2) / 15238);
+  const l3 = l2 - Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) -
+    Math.floor(j / 16) * Math.floor((15238 * j) / 43) + 29;
+  const hMonth = Math.floor((24 * l3) / 709);
+  const hDay = l3 - Math.floor((709 * hMonth) / 24);
+  const hYear = 30 * n + j - 30;
+  return { day: hDay, month: hMonth, year: hYear };
+}
+
+function formatReminderDate(date: Date): string {
+  const dayName = HARI_NAMES[date.getDay()];
+  const day = date.getDate();
+  const month = BULAN_NAMES[date.getMonth()];
+  const year = date.getFullYear();
+  const h = toHijriReminder(date);
+  const hijriMonth = HIJRI_MONTHS[h.month - 1] || '';
+  return `${dayName}, ${day} ${month} ${year} / ${h.day} ${hijriMonth} ${h.year} H`;
+}
+
 function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [reminderCopied, setReminderCopied] = useState(false);
 
   const toggleRow = (userId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1458,8 +1502,83 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
     </div>
   );
 
+  // Generate reminder chat template
+  const generateReminderChat = () => {
+    const today = new Date();
+    const dateStr = formatReminderDate(today);
+    
+    // Find thalibah who have NOT completed all blocks up to currentWeek
+    const incompleteThalibah = entries.filter(entry => {
+      if (!entry.user?.full_name) return false;
+      if (entry.user?.is_blacklisted) return false;
+      const targetCompletion = entry.summary?.completion_percentage_target || 0;
+      return targetCompletion < 100;
+    });
+
+    const namesList = incompleteThalibah.length > 0
+      ? incompleteThalibah.map(e => `@${e.user?.full_name}`).join('\n')
+      : '_(Semua thalibah sudah lengkap, Alhamdulillah!)_';
+
+    const template = `╔❀◎🎓◎❀════════════════╗
+ 🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
+╚════════════════❀◎🎓◎❀╝
+
+*REMINDER LAPORAN KURIKULUM HARIAN TIKRAR*
+${dateStr}
+
+السلام عليكم ورحمة الله وبركاته
+
+Thalibah yang sudah menyelesaikan kurikulum harian H1a-d/H11a-d harap segera mengisi laporan Jurnal di web pada link berikut
+➡️ https://markaztikrar.id/login  
+
+Pengisian laporan jurnal paling lambat hari Ahad pukul 00.00
+
+Bagi yang tidak menyelesaikan kurikulum atau laporan jurnal lengkap sampai H1d/H11d maka akan kami kenakan SP1 pada hari Senin melalui personal chat.
+
+Thalibah yang belum lengkap laporannya per hari ini
+${namesList}
+
+Semoga Allah mudahkan 
+Barakallahufiikunna..
+━━━━━━━━━━━━━━━━❁❁
+𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
+
+📱 *MTI OFFICIAL : 081330000784*
+🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
+
+    navigator.clipboard.writeText(template).then(() => {
+      setReminderCopied(true);
+      toast.success(`Template reminder berhasil disalin! (${incompleteThalibah.length} thalibah belum lengkap)`);
+      setTimeout(() => setReminderCopied(false), 3000);
+    }).catch(() => {
+      toast.error('Gagal menyalin. Coba lagi.');
+    });
+  };
+
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      {/* Reminder Chat Template Button */}
+      <div className="px-6 py-4 bg-emerald-50/50 border-b border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold text-emerald-800">📋 Template Reminder Chat</p>
+          <p className="text-[10px] text-emerald-600 mt-0.5">Salin template WA untuk mengingatkan thalibah yang belum lengkap laporan jurnalnya</p>
+        </div>
+        <button
+          onClick={generateReminderChat}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border whitespace-nowrap",
+            reminderCopied
+              ? "bg-emerald-600 text-white border-emerald-700"
+              : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-700"
+          )}
+        >
+          {reminderCopied ? (
+            <><ClipboardCheck className="w-4 h-4" /> Tersalin!</>
+          ) : (
+            <><Copy className="w-4 h-4" /> Copy Template Reminder</>
+          )}
+        </button>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-100">
           <thead>
