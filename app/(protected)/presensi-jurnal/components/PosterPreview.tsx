@@ -3,6 +3,8 @@ import React from 'react';
 interface PosterPreviewProps {
   dateHeader: string;
   blockString: string;
+  rabthString: string;
+  murojaahString: string;
   juzOptions: Array<{ name: string; start_page: number }>;
 }
 
@@ -12,7 +14,7 @@ const FONT_FACE_CSS = `
 `;
 
 export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps>(
-  ({ dateHeader, blockString, juzOptions }, ref) => {
+  ({ dateHeader, blockString, rabthString, murojaahString, juzOptions }, ref) => {
     
     // Format notes: "Juz 1A mulai dari hal X" — strip "Juz" prefix and "(Hal X-Y)" range
     const notesItems = juzOptions.map(j => {
@@ -75,11 +77,11 @@ export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps
             </div>
             <div className="flex gap-1.5">
               <span className="w-7 flex-shrink-0">5.</span>
-              <span>Rabth (<span className="text-rose-600">belum ada</span>) 1x. Setor ke pasangan</span>
+              <span>Rabth {rabthString === '(belum ada)' ? <span className="text-rose-600">belum ada</span> : rabthString} 1x. Setor ke pasangan</span>
             </div>
             <div className="flex gap-1.5">
               <span className="w-7 flex-shrink-0">6.</span>
-              <span>Muroja'ah (<span className="text-rose-600">belum ada</span>) 5x. Setor ke pasangan</span>
+              <span>Muroja'ah {murojaahString === '(belum ada)' ? <span className="text-rose-600">belum ada</span> : murojaahString} 5x. Setor ke pasangan</span>
             </div>
             <div className="flex gap-1.5">
               <span className="w-7 flex-shrink-0">7.</span>

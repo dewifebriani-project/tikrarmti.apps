@@ -156,6 +156,8 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
     const dateHeader = `${hari.toUpperCase()}, ${dateStr} / ${hijriDateStr}`;
 
     let blockString = '';
+    let rabthString = '(belum ada)';
+    let murojaahString = '(belum ada)';
 
     if (pekan <= 10) {
       const ziyadahParts: Record<string, string> = {
@@ -168,17 +170,32 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
       const part = ziyadahParts[hari];
       if (part) {
         blockString = `H${pekan}${part}/H${pekan+10}${part}`;
+        
+        if (hari === 'Selasa') {
+           murojaahString = `H${pekan}a/H${pekan+10}a`;
+           rabthString = `(belum ada)`;
+        } else if (hari === 'Rabu') {
+           murojaahString = `H${pekan}b/H${pekan+10}b`;
+           rabthString = `H${pekan}a/H${pekan+10}a`;
+        } else if (hari === 'Kamis') {
+           murojaahString = `H${pekan}c/H${pekan+10}c`;
+           rabthString = `H${pekan}a-b/H${pekan+10}a-b`;
+        }
       } else {
         blockString = '[MURAJAAH/RABTH PEKANAN]';
+        murojaahString = '[MURAJAAH/RABTH PEKANAN]';
+        rabthString = '[MURAJAAH/RABTH PEKANAN]';
       }
     } else {
       const mSchedule = murajaahSchedule.find(m => m.day === hari);
       if (mSchedule) {
         blockString = `${mSchedule.code} target ${mSchedule.target}`;
+        murojaahString = blockString;
+        rabthString = blockString;
       }
     }
     
-    return { dateHeader, blockString };
+    return { dateHeader, blockString, rabthString, murojaahString };
   };
 
   const updateGeneratedText = () => {
@@ -187,7 +204,7 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
   };
 
   const generateDailyText = (pekan: number, hari: string, dateObj: Date) => {
-    const { dateHeader, blockString } = getDailyConfig(pekan, hari, dateObj);
+    const { dateHeader, blockString, rabthString, murojaahString } = getDailyConfig(pekan, hari, dateObj);
 
     let text = `*KURIKULUM HARI INI*\n*PROGRAM TIKRAR TAHFIDZ MTI*\n*${dateHeader}*\n\n`;
 
@@ -195,8 +212,8 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
     text += `2. Membaca ${blockString} 40x\n`;
     text += `3. Merekam *tanpa salah* ${blockString} 3x\n`;
     text += `4. Mendengarkan rekaman tadi dengan melihat mushaf, jika ada yang salah maka poin 3 di ulang\n`;
-    text += `5. Rabth (belum ada) 1x. Setor ke pasangan\n`;
-    text += `6. Muroja'ah (belum ada) 5x. Setor ke pasangan\n`;
+    text += `5. Rabth ${rabthString === '(belum ada)' ? '(belum ada)' : rabthString} 1x. Setor ke pasangan\n`;
+    text += `6. Muroja'ah ${murojaahString === '(belum ada)' ? '(belum ada)' : murojaahString} 5x. Setor ke pasangan\n`;
     text += `7. Tikrar ke pasangan (tanpa melihat mushaf/bil ghaib) ${blockString} 40x\n\n`;
 
     text += `Kurikulum tambahannya (optional)\n`;
@@ -277,7 +294,7 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
     );
   }
 
-  const { dateHeader, blockString } = getDailyConfig(selectedPekan, selectedHari, selectedDate);
+  const { dateHeader, blockString, rabthString, murojaahString } = getDailyConfig(selectedPekan, selectedHari, selectedDate);
 
   const isLibur = ['Jumat', 'Sabtu', 'Ahad'].includes(selectedHari) && selectedPekan <= 10;
 
@@ -389,6 +406,8 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
           ref={posterRef}
           dateHeader={dateHeader} 
           blockString={blockString} 
+          rabthString={rabthString}
+          murojaahString={murojaahString}
           juzOptions={juzOptions} 
         />
       </div>

@@ -134,20 +134,6 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <BookOpen className="h-5 w-5" />,
       });
       
-      baseItems.push({
-        href: '/panel-muallimah',
-        label: 'Panel Muallimah',
-        icon: <FileText className="h-5 w-5" />,
-      });
-
-      if (isMusyrifahAndUp) {
-        baseItems.push({
-          href: '/panel-musyrifah',
-          label: 'Panel Musyrifah',
-          icon: <Shield className="h-5 w-5" />,
-        });
-      }
-      
       if (isAdmin) {
         baseItems.push({
           href: '/admin/exams',
