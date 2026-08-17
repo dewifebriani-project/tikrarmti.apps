@@ -57,6 +57,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   // Role-based navigation items
   const getNavItems = () => {
     const isAdmin = hasRequiredRank(userRoles, ROLE_RANKS.admin);
+    const isMusyrifahAndUp = hasRequiredRank(userRoles, ROLE_RANKS.musyrifah);
     const isStaffGroup = isStaff(userRoles);
     
     // Base items for the sidebar
@@ -132,6 +133,20 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Presensi & Jurnal',
         icon: <BookOpen className="h-5 w-5" />,
       });
+      
+      baseItems.push({
+        href: '/panel-muallimah',
+        label: 'Panel Muallimah',
+        icon: <FileText className="h-5 w-5" />,
+      });
+
+      if (isMusyrifahAndUp) {
+        baseItems.push({
+          href: '/panel-musyrifah',
+          label: 'Panel Musyrifah',
+          icon: <Shield className="h-5 w-5" />,
+        });
+      }
       
       if (isAdmin) {
         baseItems.push({

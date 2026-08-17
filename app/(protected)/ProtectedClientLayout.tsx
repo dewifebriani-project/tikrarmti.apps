@@ -56,29 +56,6 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   // Close sidebar on mobile when route changes
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
-  const isStaffMember = isStaff(user.primaryRole)
-  const [shouldShowSidebar, setShouldShowSidebar] = useState(true)
-
-  // Reactive visibility based on role and viewport
-  useEffect(() => {
-    const checkVisibility = () => {
-      const isLargeScreen = window.innerWidth >= 1280
-      
-      if (isStaffMember) {
-        // Admins/Staff always have sidebar (drawer on mobile/tablet)
-        setShouldShowSidebar(true)
-      } else {
-        // Thalibah: Only show sidebar on true Desktop (XL screens)
-        // Tablet (up to LG/MD) will use bottom navbar only
-        setShouldShowSidebar(isLargeScreen)
-      }
-    }
-    
-    checkVisibility()
-    window.addEventListener('resize', checkVisibility)
-    return () => window.removeEventListener('resize', checkVisibility)
-  }, [isStaffMember])
-
   return (
     <AuthProvider serverUserData={{
       ...user,
@@ -87,13 +64,11 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
       updated_at: ''
     } as any}>
       <div className="flex h-screen bg-gray-50 overflow-hidden relative">
-        {/* Sidebar - Only for Staff/Admin roles */}
-        {shouldShowSidebar ? (
-          <DashboardSidebar
-            isOpen={isSidebarOpen}
-            onClose={handleCloseSidebar}
-          />
-        ) : null}
+        {/* Sidebar - Available for all roles */}
+        <DashboardSidebar
+          isOpen={isSidebarOpen}
+          onClose={handleCloseSidebar}
+        />
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -104,7 +79,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
                 onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 isSidebarOpen={isSidebarOpen}
                 isMounted={isMounted}
-                showSidebarToggle={shouldShowSidebar}
+                showSidebarToggle={true}
               />
             </div>
           )}
