@@ -409,6 +409,46 @@ export function HalaqahManagementTab() {
     }
   };
 
+  const getLiburStatus = (halaqah: any) => {
+    if (!halaqah.day_of_week) return { isLibur: false, classDateString: null };
+    const classDay = halaqah.day_of_week;
+    const todayDayOfWeek = new Date().getDay() === 0 ? 7 : new Date().getDay();
+    let daysToAdd = classDay - todayDayOfWeek;
+    if (daysToAdd < 0) daysToAdd += 7;
+    const classDate = new Date();
+    classDate.setDate(new Date().getDate() + daysToAdd);
+    const classDateString = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, '0')}-${String(classDate.getDate()).padStart(2, '0')}`;
+    return {
+      isLibur: halaqah.libur_date === classDateString,
+      classDateString
+    };
+  };
+
+  const handleToggleLibur = async (halaqah: any) => {
+    const { isLibur, classDateString } = getLiburStatus(halaqah);
+    if (!classDateString) return;
+    
+    const newLiburDate = isLibur ? null : classDateString;
+    const toastId = toast.loading(isLibur ? 'Membatalkan libur...' : 'Menandai libur...');
+    
+    // Optimistic UI update so it feels instant (1-click)
+    setHalaqahs(prev => prev.map(h => h.id === halaqah.id ? { ...h, libur_date: newLiburDate } : h));
+
+    try {
+      const result = await updateHalaqah({ id: halaqah.id, libur_date: newLiburDate } as any);
+      if (result.success) {
+        toast.success(isLibur ? 'Status libur dibatalkan' : 'Berhasil menandai libur pekan ini', { id: toastId });
+        // We already optimistically updated, but we can fetch in background to ensure sync
+        loadHalaqahs();
+      } else {
+        // Revert on failure
+        setHalaqahs(prev => prev.map(h => h.id === halaqah.id ? { ...h, libur_date: isLibur ? classDateString : null } : h));
+        throw new Error(result.error);
+      }
+    } catch (e: any) {
+      toast.error(`Gagal: ${e.message}`, { id: toastId });
+    }
+  };
 
   const handleCopyLaporan = async (halaqah: Halaqah) => {
     setCopyingId(`laporan-${halaqah.id}`);
@@ -1074,7 +1114,8 @@ export function HalaqahManagementTab() {
 
   // Filter and sort halaqahs
   const filteredAndSortedHalaqahs = useMemo(() => {
-    let filtered = [...tabHalaqahs];
+    // If there's a search query, search across ALL halaqahs (lintas tab)
+    let filtered = searchQuery ? [...halaqahs] : [...tabHalaqahs];
 
     // Search filter
     if (searchQuery) {
@@ -1615,15 +1656,34 @@ export function HalaqahManagementTab() {
                         </td>
                         <td className="px-6 py-4">
                           {halaqah.day_of_week ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-900">
-                              <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                              <span className="whitespace-nowrap">{getDayName(halaqah.day_of_week)}</span>
-                              {halaqah.start_time && (
-                                <>
-                                  <Clock className="w-4 h-4 text-gray-400 ml-2 shrink-0" />
-                                  <span className="whitespace-nowrap">{halaqah.start_time} - {halaqah.end_time} WIB</span>
-                                </>
-                              )}
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2 text-sm text-gray-900">
+                                <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                                <span className="whitespace-nowrap">{getDayName(halaqah.day_of_week)}</span>
+                                {halaqah.start_time && (
+                                  <>
+                                    <Clock className="w-4 h-4 text-gray-400 ml-2 shrink-0" />
+                                    <span className="whitespace-nowrap">{halaqah.start_time} - {halaqah.end_time} WIB</span>
+                                  </>
+                                )}
+                              </div>
+                              <div className="flex items-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { 
+                                    e.preventDefault();
+                                    e.stopPropagation(); 
+                                    handleToggleLibur(halaqah); 
+                                  }}
+                                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors ${getLiburStatus(halaqah).isLibur ? 'bg-red-500' : 'bg-gray-200'}`}
+                                  title={getLiburStatus(halaqah).isLibur ? 'Batalkan libur' : 'Tandai libur pekan ini'}
+                                >
+                                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${getLiburStatus(halaqah).isLibur ? 'translate-x-2' : '-translate-x-2'}`} />
+                                </button>
+                                <span className={`ml-2 text-[10px] font-bold tracking-wide ${getLiburStatus(halaqah).isLibur ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                                  {getLiburStatus(halaqah).isLibur ? 'LIBUR PEKAN INI' : 'TANDAI LIBUR'}
+                                </span>
+                              </div>
                             </div>
                           ) : (
                             <div
