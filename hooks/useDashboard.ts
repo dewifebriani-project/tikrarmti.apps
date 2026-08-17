@@ -530,6 +530,7 @@ export interface TashihStatusData {
     total_blocks: number
     completed_blocks: number
     pending_blocks: number
+    streak_count?: number
   }
 }
 

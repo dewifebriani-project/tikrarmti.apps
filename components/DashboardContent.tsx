@@ -618,10 +618,18 @@ export default function DashboardContent() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg sm:text-xl font-black text-emerald-700">
+                      <p className="text-lg sm:text-xl font-black text-emerald-700 leading-none">
                         {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
                       </p>
-                      <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                      <div className="flex items-center justify-end gap-1.5 mt-1.5 mb-1">
+                        <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih Streak">
+                          {tashihStatus.summary.streak_count || 0} 💎
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih XP">
+                          {(tashihStatus.summary.completed_blocks * 10) + ((tashihStatus.summary.streak_count || 0) * 5)} ⭐
+                        </span>
+                      </div>
+                      <p className="text-[9px] uppercase font-bold text-emerald-600/70 tracking-wider">
                         {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
                       </p>
                     </div>
@@ -670,10 +678,18 @@ export default function DashboardContent() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg sm:text-xl font-black text-purple-700">
+                      <p className="text-lg sm:text-xl font-black text-purple-700 leading-none">
                         {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
                       </p>
-                      <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                      <div className="flex items-center justify-end gap-1.5 mt-1.5 mb-1">
+                        <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal Streak">
+                          {jurnalStatus.summary.streak_count || 0} 💎
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal XP">
+                          {(jurnalStatus.summary.completed_blocks * 40) + ((jurnalStatus.summary.streak_count || 0) * 5)} ⭐
+                        </span>
+                      </div>
+                      <p className="text-[9px] uppercase font-bold text-purple-600/70 tracking-wider">
                         {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
                       </p>
                     </div>

@@ -13,7 +13,63 @@ export interface TashihBlockStatus {
   tashih_count: number
 }
 
+function calculateTashihStreak(tanggalTashihList: string[]): number {
+  if (tanggalTashihList.length === 0) return 0;
+  
+  const submittedDates = new Set(tanggalTashihList);
+  
+  const getJakartaDateStr = (date: Date) => {
+    return new Date(date.getTime() + (7 * 3600000) + (date.getTimezoneOffset() * 60000))
+      .toISOString().split('T')[0];
+  };
+
+  const today = new Date();
+  let streak = 0;
+  let checkDate = new Date(today);
+
+  for (let i = 0; i < 365; i++) {
+    const dateStr = getJakartaDateStr(checkDate);
+    const dayOfWeek = checkDate.getDay();
+
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6; // Sun (0), Fri (5), Sat (6)
+
+    if (isWeekend) {
+      checkDate.setDate(checkDate.getDate() - 1);
+      continue;
+    }
+
+    const hasReport = submittedDates.has(dateStr);
+
+    if (hasReport) {
+      streak++;
+    } else {
+      const getMonday = (d: Date) => {
+        const date = new Date(d);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(date.setDate(diff));
+      };
+      
+      const todayMondayStr = getJakartaDateStr(getMonday(today));
+      const checkMondayStr = getJakartaDateStr(getMonday(checkDate));
+      const isCurrentWeek = todayMondayStr === checkMondayStr;
+
+      if (isCurrentWeek) {
+        checkDate.setDate(checkDate.getDate() - 1);
+        continue;
+      } else {
+        break;
+      }
+    }
+
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  return streak;
+}
+
 async function processJuzStatus(supabase: any, user: any, activeRegistration: any) {
+  let streakCount = 0;
   // Get juz from confirmed_chosen_juz from daftar_ulang, or chosen_juz from registration
   const juzCode = activeRegistration.daftar_ulang?.confirmed_chosen_juz ||
                   activeRegistration.chosen_juz
@@ -110,6 +166,10 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
           block.tashih_date = status.tashih_date
         }
       })
+      
+      // Calculate streak dynamically
+      const uniqueDates: string[] = Array.from(new Set<string>(tashihRecords.map((r: any) => String(r.waktu_tashih).split('T')[0])));
+      streakCount = calculateTashihStreak(uniqueDates);
     }
   }
 
@@ -122,7 +182,8 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
       summary: {
         total_blocks: allBlocks.length,
         completed_blocks: allBlocks.filter(b => b.is_completed).length,
-        pending_blocks: allBlocks.filter(b => !b.is_completed).length
+        pending_blocks: allBlocks.filter(b => !b.is_completed).length,
+        streak_count: streakCount
       }
     }
   })
