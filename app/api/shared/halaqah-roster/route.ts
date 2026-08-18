@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         libur_date,
         muallimah_id,
         zoom:batch_zoom_links!halaqah_zoom_link_id_fkey(name, url, meeting_id, passcode, claim_host),
-        muallimah:users!halaqah_muallimah_id_fkey(full_name, whatsapp),
+        muallimah:users!halaqah_muallimah_id_fkey(full_name, nama_kunyah, whatsapp),
         program:programs!inner(class_type, batch_id, batch:batches(name)),
         students:halaqah_students(status, thalibah_id, thalibah:users!halaqah_students_thalibah_id_fkey(full_name, whatsapp)),
         mentors:halaqah_mentors(role, user:users!halaqah_mentors_mentor_id_fkey(full_name, whatsapp))

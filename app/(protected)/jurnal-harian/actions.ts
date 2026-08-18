@@ -194,15 +194,15 @@ export async function uploadJurnalScreenshot(formData: FormData) {
   }
 
   // Validate file type (only images)
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
-  if (!allowedTypes.includes(file.type)) {
-    return { success: false, error: 'Format file harus gambar (JPG, PNG).' }
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+  if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+    return { success: false, error: 'Format file harus gambar (JPG, PNG, WEBP, HEIC).' }
   }
 
-  // Validate file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024 // 5MB
+  // Validate file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024 // 10MB
   if (file.size > maxSize) {
-    return { success: false, error: 'Ukuran file maksimal 5MB.' }
+    return { success: false, error: 'Ukuran file maksimal 10MB.' }
   }
 
   try {

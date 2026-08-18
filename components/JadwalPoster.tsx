@@ -93,7 +93,7 @@ export const JadwalPoster = forwardRef<HTMLDivElement, JadwalPosterProps>(
                 <div style={{ textAlign: 'center', fontWeight: 900 }}>{index + 1}</div>
                 <div style={{ padding: '0 16px', textAlign: 'center', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 800 }}>{formatTimeShort(halaqah.start_time)}</div>
                 <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 650 }}>{classLabel(halaqah, variant)}</div>
-                <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 650 }}>{halaqah.muallimah?.full_name || '-'}</div>
+                <div style={{ padding: '0 20px', borderLeft: `2px dotted ${theme.accent}`, fontWeight: 650 }}>{halaqah.muallimah?.nama_kunyah || halaqah.muallimah?.full_name || '-'}</div>
               </div>
             ))}
 

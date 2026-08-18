@@ -13,6 +13,7 @@ export interface HalaqahForReminder {
   zoom_claim_host?: string;
   muallimah?: {
     full_name?: string;
+    nama_kunyah?: string;
     whatsapp?: string;
   };
   mentors?: Array<{
@@ -116,7 +117,7 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
   const isPraTahfidz = halaqah.class_type === 'pra_tahfidz';
   const title = isPraTahfidz ? `🌟  𝐏𝐑𝐀 𝐓𝐈𝐊𝐑𝐀𝐑  🌟` : `🌟  𝐓𝐈𝐊𝐑𝐀𝐑  *JUZ ${juz}* 🌟`;
   
-  const muallimah_name = halaqah.muallimah?.full_name || '';
+  const muallimah_name = halaqah.muallimah?.nama_kunyah || halaqah.muallimah?.full_name || '';
   const day_name = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   
   const tanggal_masehi = getMasehiDate(date);
@@ -235,7 +236,7 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
     const maxStudents = h.max_students || '-';
     return `🛡️  ${classLabel}
 ⏰  *${formatTimeShort(h.start_time)} WIB*
-👑  Ustadzah ${h.muallimah?.full_name || ''}
+👑  Ustadzah ${h.muallimah?.nama_kunyah || h.muallimah?.full_name || ''}
 🎗️  ${coordinatorLabel} : ${coordinatorNameFormatted}
 👥  Kuota : ${activeStudents}/${maxStudents} Thalibah
 🌐  Link Zoom${getZoomEmoji(h.zoom_name) ? ' ' + getZoomEmoji(h.zoom_name) : ''}
@@ -279,7 +280,7 @@ ${scheduleStr}
 
 export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = new Date(), coordinatorName: string = ''): string {
   const juz = halaqah.preferred_juz || '';
-  const muallimah_name = toTitleCase(halaqah.muallimah?.full_name || '');
+  const muallimah_name = toTitleCase(halaqah.muallimah?.nama_kunyah || halaqah.muallimah?.full_name || '');
   const time = formatTimeShort(halaqah.start_time);
   const day = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   const dateStr = getMasehiDate(date);
@@ -340,7 +341,7 @@ export function generateMuallimahReminder(halaqah: HalaqahForReminder, date: Dat
   const time = formatTimeShort(halaqah.start_time);
   const tanggalHijri = getHijriDate(date);
   
-  const muallimah_name = halaqah.muallimah?.full_name ? toTitleCase(halaqah.muallimah.full_name) : '...';
+  const muallimah_name = halaqah.muallimah?.nama_kunyah ? toTitleCase(halaqah.muallimah.nama_kunyah) : (halaqah.muallimah?.full_name ? toTitleCase(halaqah.muallimah.full_name) : '...');
   const zoom_url = halaqah.zoom_link || '';
   const meeting_id = halaqah.zoom_meeting_id || '';
   const passcode = halaqah.zoom_passcode || '';

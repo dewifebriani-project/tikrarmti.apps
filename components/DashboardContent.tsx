@@ -34,7 +34,7 @@ import {
   Trophy
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -595,56 +595,117 @@ export default function DashboardContent() {
       })() && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {tashihStatus && (
-            <Link href="/tashih" className="block group">
-              <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-emerald-500/20">
-                <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
-                        <BookOpen className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors">
-                            Progress Tashih
-                          </CardTitle>
-                          <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[9px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded flex items-center font-bold">
-                            Isi <ChevronRight className="h-3 w-3" />
-                          </span>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="block group cursor-pointer">
+                  <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-emerald-500/20">
+                    <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0 group-hover:scale-110 transition-transform">
+                            <BookOpen className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-emerald-700 transition-colors truncate">
+                                Progress Tashih
+                              </CardTitle>
+                            </div>
+                            <CardDescription className="text-[10px] sm:text-xs font-medium text-emerald-700 flex flex-col mt-0.5 truncate">
+                              <span className="truncate">Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part}</span>
+                              <span className="opacity-80 text-[9px] sm:text-[10px] truncate">({tashihStatus.juz_info.name})</span>
+                            </CardDescription>
+                          </div>
                         </div>
-                        <CardDescription className="text-[10px] sm:text-xs font-medium text-emerald-700">
-                          Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
-                        </CardDescription>
+
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                          <div className="text-center flex flex-col justify-center px-1 sm:px-2">
+                            <p className="text-lg sm:text-xl font-black text-emerald-700 leading-none">
+                              {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
+                            </p>
+                            <p className="text-[8px] sm:text-[9px] uppercase font-bold text-emerald-600/70 tracking-wider mt-1 whitespace-nowrap">
+                              {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end justify-center gap-1.5 pl-2 sm:pl-3 border-l border-emerald-500/10">
+                            <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih Streak">
+                              {tashihStatus.summary.streak_count || 0} 💎
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih XP">
+                              {(tashihStatus.summary.completed_blocks * 10) + ((tashihStatus.summary.streak_count || 0) * 5)} ⭐
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                    </CardHeader>
+                    <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
+                        ></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border-0 shadow-2xl">
+                <DialogHeader className="mb-2">
+                  <DialogTitle className="flex items-center gap-3 text-2xl font-black text-gray-900">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <BookOpen className="h-6 w-6" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg sm:text-xl font-black text-emerald-700 leading-none">
-                        {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
-                      </p>
-                      <div className="flex items-center justify-end gap-1.5 mt-1.5 mb-1">
-                        <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih Streak">
-                          {tashihStatus.summary.streak_count || 0} 💎
-                        </span>
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Tashih XP">
-                          {(tashihStatus.summary.completed_blocks * 10) + ((tashihStatus.summary.streak_count || 0) * 5)} ⭐
-                        </span>
-                      </div>
-                      <p className="text-[9px] uppercase font-bold text-emerald-600/70 tracking-wider">
-                        {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
-                      </p>
+                    Pencapaian Tashih
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-500 font-medium">
+                    Detail pencapaian hafalan Tashih Ukhti pada batch ini.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-2">
+                  <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-emerald-900">Progress Blok</p>
+                      <p className="text-xs text-emerald-700/80 font-medium mt-0.5">Telah disetorkan {tashihStatus.summary.completed_blocks} dari total {tashihStatus.summary.total_blocks} blok.</p>
+                    </div>
+                    <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-emerald-200 flex items-center justify-center shrink-0">
+                      <p className="text-sm font-black text-emerald-600">{Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 pt-1">
-                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
-                    ></div>
+
+                  <div className="flex gap-3">
+                    <div className="flex-1 bg-amber-50 p-4 rounded-2xl border border-amber-100 flex flex-col items-center text-center justify-center shadow-sm">
+                      <Star className="w-8 h-8 text-amber-500 mb-2 fill-amber-500 animate-pulse" />
+                      <p className="font-black text-2xl text-amber-600 leading-none">{(tashihStatus.summary.completed_blocks * 10) + ((tashihStatus.summary.streak_count || 0) * 5)}</p>
+                      <p className="text-xs font-bold text-amber-700 mt-1">Total XP</p>
+                      <p className="text-[9px] font-medium text-amber-600/70 mt-1">10 XP per blok disetor</p>
+                    </div>
+                    <div className="flex-1 bg-sky-50 p-4 rounded-2xl border border-sky-100 flex flex-col items-center text-center justify-center shadow-sm">
+                      <span className="text-3xl mb-1 filter drop-shadow-sm animate-bounce-slow">💎</span>
+                      <p className="font-black text-2xl text-sky-600 leading-none">{tashihStatus.summary.streak_count || 0}</p>
+                      <p className="text-xs font-bold text-sky-700 mt-1">Streak</p>
+                      <p className="text-[9px] font-medium text-sky-600/70 mt-1">Bonus 5 XP per hari konsisten</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+
+                <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50 mt-1 italic text-xs text-emerald-800 text-center font-medium shadow-sm">
+                  "Masya Allah! Setiap ayat yang Ukhti setorkan adalah langkah nyata menuju gelar Ahlul Qur'an. Tetap semangat dan istiqomah menjaga hafalan ya!"
+                </div>
+                
+                <DialogFooter className="flex-col sm:flex-row gap-2 mt-4 sm:space-x-0">
+                  <DialogClose asChild>
+                    <Button variant="outline" className="w-full sm:w-1/3 rounded-xl border-gray-200 text-gray-600 font-bold hover:bg-gray-50">Tutup</Button>
+                  </DialogClose>
+                  <Link href="/tashih" className="w-full sm:w-2/3">
+                    <Button className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20">
+                      Lanjut Isi Tashih <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
 
         {hasRegistered && jurnalStatus && (() => {
@@ -655,71 +716,132 @@ export default function DashboardContent() {
           })();
           return hasWeek2Started;
         })() && (
-            <Link href="/jurnal-harian" className="block group">
-              <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-purple-500/20">
-                <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 sm:px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
-                            Progress Jurnal
-                          </CardTitle>
-                          <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[9px] uppercase tracking-wider bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded flex items-center font-bold">
-                            Isi <ChevronRight className="h-3 w-3" />
-                          </span>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="block group cursor-pointer">
+                  <Card className="overflow-hidden border-none shadow-xl glass-premium transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:shadow-purple-500/20">
+                    <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 sm:px-6 py-4">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                          <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20 shrink-0 group-hover:scale-110 transition-transform">
+                            <FileText className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-purple-700 transition-colors truncate">
+                                Progress Jurnal
+                              </CardTitle>
+                            </div>
+                            <CardDescription className="text-[10px] sm:text-xs font-medium text-purple-700 flex flex-col mt-0.5 truncate">
+                              <span className="truncate">Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part}</span>
+                              <span className="opacity-80 text-[9px] sm:text-[10px] truncate">({jurnalStatus.juz_info.name})</span>
+                            </CardDescription>
+                          </div>
                         </div>
-                        <CardDescription className="text-[10px] sm:text-xs font-medium text-purple-700">
-                          Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
-                        </CardDescription>
+
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                          <div className="text-center flex flex-col justify-center px-1 sm:px-2">
+                            <p className="text-lg sm:text-xl font-black text-purple-700 leading-none">
+                              {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
+                            </p>
+                            <p className="text-[8px] sm:text-[9px] uppercase font-bold text-purple-600/70 tracking-wider mt-1 whitespace-nowrap">
+                              {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
+                            </p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end justify-center gap-1.5 pl-2 sm:pl-3 border-l border-purple-500/10">
+                            <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal Streak">
+                              {jurnalStatus.summary.streak_count || 0} 💎
+                            </span>
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal XP">
+                              {(jurnalStatus.summary.completed_blocks * 40) + ((jurnalStatus.summary.streak_count || 0) * 5)} ⭐
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                    </CardHeader>
+                    <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
+                        ></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border-0 shadow-2xl">
+                <DialogHeader className="mb-2">
+                  <DialogTitle className="flex items-center gap-3 text-2xl font-black text-gray-900">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                      <FileText className="h-6 w-6" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg sm:text-xl font-black text-purple-700 leading-none">
-                        {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
-                      </p>
-                      <div className="flex items-center justify-end gap-1.5 mt-1.5 mb-1">
-                        <span className="text-[10px] font-bold text-sky-600 bg-sky-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal Streak">
-                          {jurnalStatus.summary.streak_count || 0} 💎
-                        </span>
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm" title="Jurnal XP">
-                          {(jurnalStatus.summary.completed_blocks * 40) + ((jurnalStatus.summary.streak_count || 0) * 5)} ⭐
-                        </span>
-                      </div>
-                      <p className="text-[9px] uppercase font-bold text-purple-600/70 tracking-wider">
-                        {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
-                      </p>
+                    Pencapaian Jurnal
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-500 font-medium">
+                    Detail pencapaian muraja'ah harian Ukhti pada batch ini.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-2">
+                  <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-purple-900">Progress Blok</p>
+                      <p className="text-xs text-purple-700/80 font-medium mt-0.5">Telah diselesaikan {jurnalStatus.summary.completed_blocks} dari total {jurnalStatus.summary.total_blocks} blok.</p>
+                    </div>
+                    <div className="w-14 h-14 rounded-full bg-purple-100 border-2 border-purple-200 flex items-center justify-center shrink-0">
+                      <p className="text-sm font-black text-purple-600">{Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%</p>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="px-4 sm:px-6 pb-4 pt-1">
-                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
-                    ></div>
+
+                  <div className="flex gap-3">
+                    <div className="flex-1 bg-amber-50 p-4 rounded-2xl border border-amber-100 flex flex-col items-center text-center justify-center shadow-sm">
+                      <Star className="w-8 h-8 text-amber-500 mb-2 fill-amber-500 animate-pulse" />
+                      <p className="font-black text-2xl text-amber-600 leading-none">{(jurnalStatus.summary.completed_blocks * 40) + ((jurnalStatus.summary.streak_count || 0) * 5)}</p>
+                      <p className="text-xs font-bold text-amber-700 mt-1">Total XP</p>
+                      <p className="text-[9px] font-medium text-amber-600/70 mt-1">40 XP per blok jurnal</p>
+                    </div>
+                    <div className="flex-1 bg-sky-50 p-4 rounded-2xl border border-sky-100 flex flex-col items-center text-center justify-center shadow-sm">
+                      <span className="text-3xl mb-1 filter drop-shadow-sm animate-bounce-slow">💎</span>
+                      <p className="font-black text-2xl text-sky-600 leading-none">{jurnalStatus.summary.streak_count || 0}</p>
+                      <p className="text-xs font-bold text-sky-700 mt-1">Streak</p>
+                      <p className="text-[9px] font-medium text-sky-600/70 mt-1">Bonus 5 XP per hari konsisten</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+
+                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50 mt-1 italic text-xs text-purple-800 text-center font-medium shadow-sm">
+                  "Tabaarakallah! Muraja'ah adalah sebaik-baik cara untuk mengikat hafalan di dalam hati. Semoga Allah mudahkan setiap pengulangan Ukhti."
+                </div>
+                
+                <DialogFooter className="flex-col sm:flex-row gap-2 mt-4 sm:space-x-0">
+                  <DialogClose asChild>
+                    <Button variant="outline" className="w-full sm:w-1/3 rounded-xl border-gray-200 text-gray-600 font-bold hover:bg-gray-50">Tutup</Button>
+                  </DialogClose>
+                  <Link href="/jurnal-harian" className="w-full sm:w-2/3">
+                    <Button className="w-full rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20">
+                      Lanjut Isi Jurnal <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       )}
 
       {/* Halaqah of the Week Banner */}
       {!halaqahLoading && halaqahOfTheWeek && (
-        <div className="relative overflow-hidden rounded-[2rem] p-6 shadow-xl border-l-8 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 animate-fadeInUp mt-4" style={{ animationDelay: '150ms' }}>
+        <div className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 shadow-xl border-l-8 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 animate-fadeInUp mt-4 w-full" style={{ animationDelay: '150ms' }}>
           <div className="absolute top-0 right-0 -mt-8 -mr-8 text-yellow-500 opacity-20">
             <Trophy className="w-40 h-40" />
           </div>
-          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg bg-yellow-400 text-yellow-900">
-              <Trophy className="w-8 h-8" />
+          <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6 relative z-10 w-full">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg bg-yellow-400 text-yellow-900">
+              <Trophy className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
-            <div className="flex-1 text-center md:text-left">
+            <div className="flex-1 text-center md:text-left w-full">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
                 <span className="text-xs font-black uppercase tracking-widest text-yellow-700 bg-yellow-200/50 px-3 py-1 rounded-full">
                   Halaqah of the Week
@@ -728,7 +850,7 @@ export default function DashboardContent() {
                   Angkatan {activeBatch?.id?.split('-')[0] || 'Aktif'}
                 </span>
               </div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-1">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-1 break-words">
                 {(() => {
                   if (!halaqahOfTheWeek.name.includes(' | ')) return halaqahOfTheWeek.name;
                   const parts = halaqahOfTheWeek.name.split(' | ');
@@ -757,24 +879,24 @@ export default function DashboardContent() {
                 </p>
               )}
             </div>
-            <div className="flex items-stretch shrink-0 gap-3">
-              <div className="flex flex-col items-center justify-center bg-white/60 px-4 py-3 rounded-2xl border border-yellow-100 shadow-sm min-w-[120px]">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Disiplin Tashih</span>
-                <div className="flex items-end gap-1.5 text-green-600 mt-1">
-                  <span className="text-2xl font-black leading-none">{halaqahOfTheWeek.active_tashih || 0}</span>
-                  <span className="text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
+            <div className="grid grid-cols-2 md:flex items-stretch shrink-0 gap-2 sm:gap-3 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex flex-col items-center justify-center bg-white/60 p-3 sm:px-4 sm:py-3 rounded-2xl border border-yellow-100 shadow-sm md:min-w-[120px]">
+                <span className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Disiplin Tashih</span>
+                <div className="flex items-end gap-1 sm:gap-1.5 text-green-600 mt-1">
+                  <span className="text-xl sm:text-2xl font-black leading-none">{halaqahOfTheWeek.active_tashih || 0}</span>
+                  <span className="text-xs sm:text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
                 </div>
-                <span className="text-[9px] font-bold text-gray-400 mt-1">Santri Aktif Setor</span>
+                <span className="text-[8px] sm:text-[9px] font-bold text-gray-400 mt-1 text-center">Santri Aktif</span>
               </div>
               
               {currentWeek >= 2 && (
-                <div className="flex flex-col items-center justify-center bg-white/60 px-4 py-3 rounded-2xl border border-yellow-100 shadow-sm min-w-[120px]">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Disiplin Jurnal</span>
-                  <div className="flex items-end gap-1.5 text-blue-600 mt-1">
-                    <span className="text-2xl font-black leading-none">{halaqahOfTheWeek.active_jurnal || 0}</span>
-                    <span className="text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
+                <div className="flex flex-col items-center justify-center bg-white/60 p-3 sm:px-4 sm:py-3 rounded-2xl border border-yellow-100 shadow-sm md:min-w-[120px]">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-widest text-center">Disiplin Jurnal</span>
+                  <div className="flex items-end gap-1 sm:gap-1.5 text-blue-600 mt-1">
+                    <span className="text-xl sm:text-2xl font-black leading-none">{halaqahOfTheWeek.active_jurnal || 0}</span>
+                    <span className="text-xs sm:text-sm font-bold leading-none mb-0.5 text-gray-400">/ {halaqahOfTheWeek.total_thalibah}</span>
                   </div>
-                  <span className="text-[9px] font-bold text-gray-400 mt-1">Santri Aktif Setor</span>
+                  <span className="text-[8px] sm:text-[9px] font-bold text-gray-400 mt-1 text-center">Santri Aktif</span>
                 </div>
               )}
             </div>
