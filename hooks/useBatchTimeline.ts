@@ -125,7 +125,7 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
             : status === 'completed'
             ? 'Periode pendaftaran telah berakhir'
             : options?.registrationStatus
-            ? 'Anda sudah mendaftar'
+            ? 'Ukhti sudah mendaftar'
             : undefined
         }
       });
@@ -152,7 +152,7 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
           isAvailable: isAvailable && hasRegistered,
           isEnabled: isAvailable && hasRegistered,
           disabledReason: !hasRegistered
-            ? 'Anda harus terdaftar terlebih dahulu'
+            ? 'Ukhti harus terdaftar terlebih dahulu'
             : status === 'locked'
             ? 'Seleksi belum dimulai'
             : status === 'completed'

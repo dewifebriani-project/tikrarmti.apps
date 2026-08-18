@@ -129,7 +129,7 @@ export function TransferScheduleModal({ isOpen, onClose, user, activeBatch, curr
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-gray-900 tracking-tight">Pindah Jadwal Halaqah</DialogTitle>
             <DialogDescription className="text-sm font-medium text-gray-600 mt-2">
-              Pilih jadwal baru yang tersedia. Pengajuan Anda akan direview oleh Admin. Pasangan tidak akan berubah.
+              Pilih jadwal baru yang tersedia. Pengajuan Ukhti akan direview oleh Admin. Pasangan tidak akan berubah.
             </DialogDescription>
           </DialogHeader>
         </div>

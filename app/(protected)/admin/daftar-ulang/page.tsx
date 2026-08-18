@@ -20,7 +20,7 @@ export default function AdminDaftarUlangPage() {
   }
 
   const handleFinalizeExams = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin memfinalisasi ujian untuk batch aktif? Aksi ini akan menurukan target hafalan thalibah yang belum lulus ke Juz 30A secara massal. Lanjutkan?")) {
+    if (!window.confirm("Apakah Ukhti yakin ingin memfinalisasi ujian untuk batch aktif? Aksi ini akan menurukan target hafalan thalibah yang belum lulus ke Juz 30A secara massal. Lanjutkan?")) {
       return;
     }
     

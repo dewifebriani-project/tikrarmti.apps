@@ -1203,7 +1203,7 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
         <UserCheck className="w-10 h-10 text-gray-300" />
       </div>
       <h3 className="text-xl font-bold text-gray-900 mb-2">{emptyMessage?.title || 'Belum Ada Data Tashih'}</h3>
-      <p className="text-gray-500 max-w-sm mx-auto">{emptyMessage?.description || 'Thalibah Anda belum memiliki catatan tashih.'}</p>
+      <p className="text-gray-500 max-w-sm mx-auto">{emptyMessage?.description || 'Thalibah Ukhti belum memiliki catatan tashih.'}</p>
     </div>
   );
 

@@ -1137,7 +1137,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   };
 
   const handleResetHalaqah = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
+    if (!confirm('Apakah Ukhti yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
       return;
     }
 

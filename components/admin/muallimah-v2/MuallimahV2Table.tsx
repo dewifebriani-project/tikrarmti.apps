@@ -40,7 +40,7 @@ export function MuallimahV2Table({
 
     const userName = t.full_name || t.user?.full_name || 'Ukhti';
     const batchName = t.batch?.name || '';
-    const message = `Assalamu'alaikum warahmatullahi wabarakatuh, Ustadzah ${userName}\n\nBarakallahu fiik atas kesediaan Anda untuk mengajar di *Markaz Tikrar Indonesia*${batchName ? ` (${batchName})` : ''} 🌙\n\nKami ingin menginformasikan mengenai status Anda...`;
+    const message = `Assalamu'alaikum warahmatullahi wabarakatuh, Ustadzah ${userName}\n\nBarakallahu fiik atas kesediaan Ukhti untuk mengajar di *Markaz Tikrar Indonesia*${batchName ? ` (${batchName})` : ''} 🌙\n\nKami ingin menginformasikan mengenai status Ukhti...`;
     
     return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
   };

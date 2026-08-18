@@ -1122,7 +1122,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
   
   const handleResetAkad = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus file akad dan menolak pendaftaran ini? Thalibah harus mengupload ulang akadnya.')) {
+    if (!confirm('Apakah Ukhti yakin ingin menghapus file akad dan menolak pendaftaran ini? Thalibah harus mengupload ulang akadnya.')) {
       return;
     }
 
@@ -1149,7 +1149,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
 
   const handleResetHalaqah = async (submissionId: string) => {
-    if (!confirm('Apakah Anda yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
+    if (!confirm('Apakah Ukhti yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
       return;
     }
 
@@ -1199,7 +1199,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
   };
 
   const handleDelete = async (submissionId: string) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data daftar ulang ini secara permanen?')) return;
+    if (!window.confirm('Apakah Ukhti yakin ingin menghapus data daftar ulang ini secara permanen?')) return;
     
     try {
       const { error } = await createClient()

@@ -65,7 +65,7 @@ export async function saveDaftarUlangDraft(
   }
 
   if (registration.selection_status !== 'selected') {
-    return { success: false, error: 'Anda belum lolos seleksi.' }
+    return { success: false, error: 'Ukhti belum lolos seleksi.' }
   }
 
   try {
@@ -218,7 +218,7 @@ export async function submitDaftarUlang(
   }
 
   if (registration.selection_status !== 'selected') {
-    return { success: false, error: 'Anda belum lolos seleksi.' }
+    return { success: false, error: 'Ukhti belum lolos seleksi.' }
   }
 
   // 3. Validate required fields
@@ -346,7 +346,7 @@ export async function submitDaftarUlang(
         .select()
         .single()
     } else {
-      return { success: false, error: 'Anda sudah submit daftar ulang dan tidak bisa diubah.' }
+      return { success: false, error: 'Ukhti sudah submit daftar ulang dan tidak bisa diubah.' }
     }
 
     if (result.error) {
@@ -362,7 +362,7 @@ export async function submitDaftarUlang(
       if (result.error.code === '23505') {
         return {
           success: false,
-          error: 'Anda sudah memiliki pendaftaran daftar ulang. Silakan cek kembali atau hubungi admin.'
+          error: 'Ukhti sudah memiliki pendaftaran daftar ulang. Silakan cek kembali atau hubungi admin.'
         }
       }
 
@@ -636,7 +636,7 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
       .single()
 
     if (userError || !currentUser?.roles?.includes('admin')) {
-      return { success: false, error: 'Anda tidak memiliki akses untuk menyetujui pendaftaran.' }
+      return { success: false, error: 'Ukhti tidak memiliki akses untuk menyetujui pendaftaran.' }
     }
 
     // 2. Get the submission with registration data

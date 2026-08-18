@@ -433,7 +433,7 @@ export default function AdminJadwalHarianTab() {
           <p className="text-sm text-gray-500 mt-1">
             {isUserStaff 
               ? `Menampilkan kelas ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} untuk batch ${activeBatchName || '...'}`
-              : `Menampilkan jadwal ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} Anda untuk batch ${activeBatchName || '...'}`
+              : `Menampilkan jadwal ${programTab === 'tikrar' ? 'Tikrar Tahfidz' : 'Pra Tikrar Tahfidz'} Ukhti untuk batch ${activeBatchName || '...'}`
             }
           </p>
         </div>

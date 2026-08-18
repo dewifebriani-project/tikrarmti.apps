@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         authenticatedUserId: context.userId,
         requestedUserId: requestedUserId
       });
-      return ApiResponses.forbidden('Anda hanya diperbolehkan mengakses profil Anda sendiri.');
+      return ApiResponses.forbidden('Ukhti hanya diperbolehkan mengakses profil Ukhti sendiri.');
     }
 
     const userId = context.userId;

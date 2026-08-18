@@ -87,7 +87,7 @@ export default function LupaPasswordPage() {
                 Cek inbox atau folder spam.
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                Anda akan dialihkan ke halaman verifikasi...
+                Ukhti akan dialihkan ke halaman verifikasi...
               </p>
               <Button
                 onClick={() => router.push(`/verifikasi-otp?email=${encodeURIComponent(email)}`)}

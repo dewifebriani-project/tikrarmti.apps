@@ -367,7 +367,7 @@ export function MuallimahTab({
               <h3 className="text-2xl font-bold">Konfirmasi Penolakan</h3>
             </div>
             <p className="text-slate-600 text-sm mb-6">
-              Apakah Anda yakin ingin menolak pendaftaran <strong>{selectedRegistration?.full_name}</strong>? Silakan berikan alasan penolakan.
+              Apakah Ukhti yakin ingin menolak pendaftaran <strong>{selectedRegistration?.full_name}</strong>? Silakan berikan alasan penolakan.
             </p>
             <textarea
               value={rejectReason}

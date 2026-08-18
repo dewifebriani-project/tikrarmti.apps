@@ -119,7 +119,7 @@ export default function KuisAkadPage() {
         setHasPassed(true);
         localStorage.removeItem('akadQuizAutosave');
         setWrongQuestionIds(new Set());
-        toast.success('Selamat! Anda lulus Kuis Pemahaman Akad!');
+        toast.success('Selamat! Ukhti lulus Kuis Pemahaman Akad!');
       } else {
         setShowResults(true);
         // Track which questions were answered incorrectly
@@ -128,7 +128,7 @@ export default function KuisAkadPage() {
           if (!ans.isCorrect) wrongIds.add(ans.questionId);
         });
         setWrongQuestionIds(wrongIds);
-        toast.error('Nilai Anda belum mencapai 100. Silakan cek bagian yang salah dan ulangi.');
+        toast.error('Nilai Ukhti belum mencapai 100. Silakan cek bagian yang salah dan ulangi.');
       }
       
     } catch (error: any) {
@@ -343,7 +343,7 @@ export default function KuisAkadPage() {
                   
                   <div className="pl-0 md:pl-12 space-y-3">
                     <div className="bg-white p-3.5 rounded-xl border border-gray-200">
-                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Jawaban Anda</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Jawaban Ukhti</div>
                       <div className={cn(
                         "font-medium",
                         ans.isCorrect ? "text-green-700" : "text-red-600 line-through opacity-80"

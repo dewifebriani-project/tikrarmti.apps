@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     
     // Jika user belum lulus seleksi tapi sudah memiliki submission Akad, izinkan lanjut pilih halaqah
     if (!isPassed && !existingSubmission) {
-      return ApiResponses.error('FORBIDDEN', 'Pendaftaran Anda belum lulus seleksi', undefined, 403)
+      return ApiResponses.error('FORBIDDEN', 'Pendaftaran Ukhti belum lulus seleksi', undefined, 403)
     }
 
     batchId = registration.batch_id

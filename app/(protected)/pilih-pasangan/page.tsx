@@ -227,17 +227,17 @@ export default function PilihPasanganPage() {
         <Card className="shadow-lg border-0 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white text-center">
             <Clock className="w-16 h-16 mx-auto mb-4 text-blue-100" />
-            <h2 className="text-2xl font-bold mb-2">Pilihan Anda Telah Terkunci</h2>
+            <h2 className="text-2xl font-bold mb-2">Pilihan Ukhti Telah Terkunci</h2>
             <p className="text-blue-100 opacity-90">
               {lockStatus.reason === 'submitted' 
-                ? 'Data pilihan Halaqah dan Pasangan Anda telah tersimpan (submitted). Jika ada perubahan, silakan hubungi admin untuk mereset status Anda.'
-                : 'Masa belajar telah dimulai. Anda tidak dapat mengubah pilihan halaqah dan pasangan lagi.'}
+                ? 'Data pilihan Halaqah dan Pasangan Ukhti telah tersimpan (submitted). Jika ada perubahan, silakan hubungi admin untuk mereset status Ukhti.'
+                : 'Masa belajar telah dimulai. Ukhti tidak dapat mengubah pilihan halaqah dan pasangan lagi.'}
             </p>
           </div>
           <CardContent className="p-6 md:p-8">
             <div className="space-y-6">
               <div className="bg-gray-50 border rounded-lg p-5">
-                <h3 className="font-semibold text-gray-900 mb-4 border-b pb-2">Detail Pilihan Anda</h3>
+                <h3 className="font-semibold text-gray-900 mb-4 border-b pb-2">Detail Pilihan Ukhti</h3>
                 
                 <div className="space-y-4">
                   <div>
@@ -296,8 +296,8 @@ export default function PilihPasanganPage() {
           <h2 className="text-2xl font-bold mb-2">Masa Pemilihan Telah Berakhir</h2>
           <p className="text-gray-600 mb-8">
             {lockStatus.reason === 'submitted'
-              ? 'Anda telah melakukan submit pilihan Anda.'
-              : 'Masa belajar telah dimulai. Anda terlambat memilih halaqah dan pasangan. Silakan hubungi admin.'}
+              ? 'Ukhti telah melakukan submit pilihan Ukhti.'
+              : 'Masa belajar telah dimulai. Ukhti terlambat memilih halaqah dan pasangan. Silakan hubungi admin.'}
           </p>
         </div>
         <Button onClick={() => router.push('/perjalanan-saya')} className="bg-emerald-600 hover:bg-emerald-700">
@@ -362,7 +362,7 @@ export default function PilihPasanganPage() {
       partner_user_id: pendingPartner.userId,
       partner_name: pendingPartner.name
     }))
-    toast.success(`Anda dan ${pendingPartner.name} sudah sepakat. Silakan lanjutkan dan simpan pilihan.`)
+    toast.success(`Ukhti dan ${pendingPartner.name} sudah sepakat. Silakan lanjutkan dan simpan pilihan.`)
     setPendingPartner(null)
   }
 
@@ -377,15 +377,15 @@ export default function PilihPasanganPage() {
     const mainTimeCompatible = Boolean(partnerRegistration?.main_time_slot && ownSlots.includes(partnerRegistration.main_time_slot))
     const backupTimeCompatible = Boolean(partnerRegistration?.backup_time_slot && ownSlots.includes(partnerRegistration.backup_time_slot))
     const mainMatchLabel = partnerRegistration?.main_time_slot === registrationData?.main_time_slot
-      ? 'Cocok dengan Waktu Utama Anda'
+      ? 'Cocok dengan Waktu Utama Ukhti'
       : partnerRegistration?.main_time_slot === registrationData?.backup_time_slot
-        ? 'Cocok dengan Waktu Cadangan Anda'
-        : 'Berbeda dengan jadwal Anda'
+        ? 'Cocok dengan Waktu Cadangan Ukhti'
+        : 'Berbeda dengan jadwal Ukhti'
     const backupMatchLabel = partnerRegistration?.backup_time_slot === registrationData?.main_time_slot
-      ? 'Cocok dengan Waktu Utama Anda'
+      ? 'Cocok dengan Waktu Utama Ukhti'
       : partnerRegistration?.backup_time_slot === registrationData?.backup_time_slot
-        ? 'Cocok dengan Waktu Cadangan Anda'
-        : 'Berbeda dengan jadwal Anda'
+        ? 'Cocok dengan Waktu Cadangan Ukhti'
+        : 'Berbeda dengan jadwal Ukhti'
 
     return `Assalamu'alaikum Ukhti ${partner.name}, perkenalkan saya ${registrationData?.full_name || 'peserta Tikrar'}, Thalibah Markaz Tikrar Indonesia, Juz ${registrationData?.chosen_juz || '-'}, Zona Waktu ${registrationData?.timezone || 'WIB'}.
 
@@ -393,19 +393,19 @@ Saya melihat data Ukhti di halaman Pilih Pasangan:
 
 Juz Pilihan
 *${partnerRegistration?.chosen_juz || '-'}*
-${partner.juzCompatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+${partner.juzCompatible ? 'Sama dengan Ukhti' : 'Berbeda dengan Ukhti'}
 
 Zona Waktu
 *${partnerRegistration?.timezone || 'WIB'}*
-${partner.timezoneCompatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+${partner.timezoneCompatible ? 'Sama dengan Ukhti' : 'Berbeda dengan Ukhti'}
 
 Waktu Utama
 *${displayPartnerTime(partnerRegistration?.main_time_slot, partnerRegistration?.timezone)}*
-${mainTimeCompatible ? mainMatchLabel : 'Berbeda dengan jadwal Anda'}
+${mainTimeCompatible ? mainMatchLabel : 'Berbeda dengan jadwal Ukhti'}
 
 Waktu Cadangan
 *${displayPartnerTime(partnerRegistration?.backup_time_slot, partnerRegistration?.timezone)}*
-${backupTimeCompatible ? backupMatchLabel : 'Berbeda dengan jadwal Anda'}
+${backupTimeCompatible ? backupMatchLabel : 'Berbeda dengan jadwal Ukhti'}
 
 Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika sepakat, mohon pilih nama saya juga di halaman Pilih Pasangan ya.`
   }
@@ -658,7 +658,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                     </div>
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">Dipasangkan oleh Sistem</h3>
-                      <p className="text-sm text-gray-500 mt-1">Anda akan dipasangkan secara otomatis dengan peserta lain berdasarkan jadwal utama, zona waktu, dan juz.</p>
+                      <p className="text-sm text-gray-500 mt-1">Ukhti akan dipasangkan secara otomatis dengan peserta lain berdasarkan jadwal utama, zona waktu, dan juz.</p>
                     </div>
                     <input
                       type="radio"
@@ -686,7 +686,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                     <Users className="w-6 h-6 text-purple-600 mt-1" />
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">Memilih Sendiri</h3>
-                      <p className="text-sm text-gray-500 mt-1">Cari dan pilih pasangan dari daftar peserta yang tersedia dan cocok dengan Anda.</p>
+                      <p className="text-sm text-gray-500 mt-1">Cari dan pilih pasangan dari daftar peserta yang tersedia dan cocok dengan Ukhti.</p>
                     </div>
                     <input
                       type="radio"
@@ -701,7 +701,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                   <div className="mb-4 rounded-xl border border-purple-200 bg-white p-4 shadow-sm">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-purple-900">Data Anda</p>
+                        <p className="font-semibold text-purple-900">Data Ukhti</p>
                         <p className="text-xs text-gray-500">Data ini menjadi pembanding kecocokan pasangan.</p>
                       </div>
                       <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
@@ -761,15 +761,15 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                           const mainTimeCompatible = Boolean(reg?.main_time_slot && ownSlots.includes(reg.main_time_slot))
                           const backupTimeCompatible = Boolean(reg?.backup_time_slot && ownSlots.includes(reg.backup_time_slot))
                           const mainMatchLabel = reg?.main_time_slot === registrationData?.main_time_slot
-                            ? 'Cocok dengan Waktu Utama Anda'
+                            ? 'Cocok dengan Waktu Utama Ukhti'
                             : reg?.main_time_slot === registrationData?.backup_time_slot
-                              ? 'Cocok dengan Waktu Cadangan Anda'
-                              : 'Tidak sama dengan jadwal Anda'
+                              ? 'Cocok dengan Waktu Cadangan Ukhti'
+                              : 'Tidak sama dengan jadwal Ukhti'
                           const backupMatchLabel = reg?.backup_time_slot === registrationData?.main_time_slot
-                            ? 'Cocok dengan Waktu Utama Anda'
+                            ? 'Cocok dengan Waktu Utama Ukhti'
                             : reg?.backup_time_slot === registrationData?.backup_time_slot
-                              ? 'Cocok dengan Waktu Cadangan Anda'
-                              : 'Tidak sama dengan jadwal Anda'
+                              ? 'Cocok dengan Waktu Cadangan Ukhti'
+                              : 'Tidak sama dengan jadwal Ukhti'
 
                           const matchCount = Number(p.juz_compatible)
                             + Number(p.timezone_compatible)
@@ -805,7 +805,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                                 )}
                                 {p.has_user_selected_them && (
                                   <div className="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-                                    Memilih Anda
+                                    Memilih Ukhti
                                   </div>
                                 )}
                               </div>
@@ -837,14 +837,14 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                                     <span className="block text-gray-500 mb-1">Juz Pilihan</span>
                                     <span className={`font-medium ${p.juz_compatible ? 'text-green-700' : 'text-amber-800'}`}>{reg?.chosen_juz || '-'}</span>
                                     <span className={`block mt-0.5 text-[10px] ${p.juz_compatible ? 'text-green-600' : 'text-amber-700'}`}>
-                                      {p.juz_compatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+                                      {p.juz_compatible ? 'Sama dengan Ukhti' : 'Berbeda dengan Ukhti'}
                                     </span>
                                   </div>
                                   <div className={`rounded p-2 border ${p.timezone_compatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                                     <span className="block text-gray-500 mb-1">Zona Waktu</span>
                                     <span className={`font-medium ${p.timezone_compatible ? 'text-green-700' : 'text-amber-800'}`}>{reg?.timezone || 'WIB'}</span>
                                     <span className={`block mt-0.5 text-[10px] ${p.timezone_compatible ? 'text-green-600' : 'text-amber-700'}`}>
-                                      {p.timezone_compatible ? 'Sama dengan Anda' : 'Berbeda dengan Anda'}
+                                      {p.timezone_compatible ? 'Sama dengan Ukhti' : 'Berbeda dengan Ukhti'}
                                     </span>
                                   </div>
                                   <div className={`rounded p-2 border ${mainTimeCompatible ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
@@ -867,7 +867,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                                   </div>
                                   {p.schedule_compatible && (
                                     <span className="col-span-2 text-[10px] text-emerald-600 -mt-1">
-                                      Jadwal cocok dengan Anda
+                                      Jadwal cocok dengan Ukhti
                                     </span>
                                   )}
                                 </div>
@@ -950,7 +950,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                         <div className="flex">
                           <Info className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
                           <p className="text-sm text-amber-800">
-                            <strong>Penting:</strong> Nama yang diinput di sini <strong>BUKAN</strong> nama Thalibah yang terdaftar di angkatan ini. Jika keluarga Anda juga peserta MTI di angkatan ini, silakan gunakan opsi <strong>Memilih Sendiri</strong> di atas.
+                            <strong>Penting:</strong> Nama yang diinput di sini <strong>BUKAN</strong> nama Thalibah yang terdaftar di angkatan ini. Jika keluarga Ukhti juga peserta MTI di angkatan ini, silakan gunakan opsi <strong>Memilih Sendiri</strong> di atas.
                           </p>
                         </div>
                       </div>
@@ -1026,7 +1026,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
                       <p className="text-sm text-gray-600 mt-1">Setoran mandiri menggunakan aplikasi Tarteel dengan lampiran screenshot penggunaan.</p>
                       {!((registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0) >= 90) && (
                         <p className="text-xs text-red-600 mt-2 font-semibold">
-                          *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0})
+                          *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Ukhti: {registrationData?.oral_total_score ?? (registrationData as any)?.oral_score ?? 0})
                         </p>
                       )}
                     </div>
@@ -1086,7 +1086,7 @@ Saya ingin memastikan apakah Ukhti berkenan menjadi pasangan belajar saya. Jika 
             </div>
             <h3 className="text-center text-xl font-bold text-gray-900">Sudah Menghubungi dan Sepakat?</h3>
             <p className="mt-3 text-center text-sm leading-6 text-gray-600">
-              Pastikan Anda sudah menghubungi <strong>{pendingPartner.name}</strong> dan beliau setuju menjadi pasangan belajar Anda. Self match baru lengkap setelah beliau memilih Anda kembali.
+              Pastikan Ukhti sudah menghubungi <strong>{pendingPartner.name}</strong> dan beliau setuju menjadi pasangan belajar Ukhti. Self match baru lengkap setelah beliau memilih Ukhti kembali.
             </p>
             <div className="mt-6 space-y-3">
               <button

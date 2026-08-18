@@ -348,7 +348,7 @@ export function MuallimahBulkConfirmModal({
           </div>
           <h3 className="text-xl font-black text-gray-900">Konfirmasi Aksi Massal</h3>
           <p className="text-gray-500 text-sm">
-            Anda akan me-{action === 'approve' ? 'nyetujui' : 'nolak'} <strong className="text-gray-900">{count}</strong> pendaftaran Mu'allimah sekaligus.
+            Ukhti akan me-{action === 'approve' ? 'nyetujui' : 'nolak'} <strong className="text-gray-900">{count}</strong> pendaftaran Mu'allimah sekaligus.
           </p>
         </div>
         <div className="p-4 bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
@@ -370,7 +370,7 @@ export function MuallimahUnapproveModal({ isOpen, onClose, onConfirm, data, isPr
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         <div className="p-6 space-y-4">
           <h3 className="text-lg font-black text-gray-900">Batalkan Persetujuan</h3>
-          <p className="text-sm text-gray-500">Anda akan membatalkan persetujuan untuk <strong>{data.full_name}</strong> dan mengembalikannya ke status Pending.</p>
+          <p className="text-sm text-gray-500">Ukhti akan membatalkan persetujuan untuk <strong>{data.full_name}</strong> dan mengembalikannya ke status Pending.</p>
           <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Alasan (opsional)" className="w-full border rounded-xl p-3 text-sm" rows={3} />
         </div>
         <div className="p-4 bg-gray-50 flex justify-end gap-3">

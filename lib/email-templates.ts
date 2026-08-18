@@ -1,6 +1,6 @@
 export const emailTemplates = {
   confirmation: {
-    subject: 'Konfirmasi Email Anda - Tikrar MTI',
+    subject: 'Konfirmasi Email Ukhti - Tikrar MTI',
     html: `
       <!DOCTYPE html>
       <html>
@@ -35,7 +35,7 @@ export const emailTemplates = {
 
           <p>Terima kasih telah mendaftar di aplikasi Tikrar MTI.</p>
 
-          <p>Silakan klik tombol di bawah ini untuk mengkonfirmasi email Anda:</p>
+          <p>Silakan klik tombol di bawah ini untuk mengkonfirmasi email Ukhti:</p>
 
           <div style="text-align: center;">
             <a href="{{ .ConfirmationURL }}" class="button">Konfirmasi Email</a>
@@ -47,7 +47,7 @@ export const emailTemplates = {
           <p><strong>Catatan:</strong> Link ini akan aktif selama 1 jam.</p>
 
           <div class="footer">
-            <p>Jika Anda tidak mendaftar di Tikrar MTI, abaikan email ini.</p>
+            <p>Jika Ukhti tidak mendaftar di Tikrar MTI, abaikan email ini.</p>
             <p>&copy; 2024 Tikrar MTI - Markaz Tikrar Indonesia</p>
           </div>
         </div>
@@ -95,9 +95,9 @@ export const emailTemplates = {
             <div class="logo">Tikrar MTI</div>
           </div>
 
-          <h2>Reset Password Anda</h2>
+          <h2>Reset Password Ukhti</h2>
 
-          <p>Kami menerima permintaan untuk reset password akun Anda.</p>
+          <p>Kami menerima permintaan untuk reset password akun Ukhti.</p>
 
           <p>Klik tombol di bawah ini untuk membuat password baru:</p>
 
@@ -112,7 +112,7 @@ export const emailTemplates = {
             <p><strong>Penting:</strong> Link ini akan aktif selama 1 jam.</p>
           </div>
 
-          <p>Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini.</p>
+          <p>Jika Ukhti tidak merasa melakukan permintaan ini, abaikan email ini.</p>
 
           <div class="footer">
             <p>&copy; 2024 Tikrar MTI - Markaz Tikrar Indonesia</p>
@@ -167,7 +167,7 @@ export const emailTemplates = {
 
           <p>Link ini akan aktif selama 1 jam.</p>
 
-          <p>Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini.</p>
+          <p>Jika Ukhti tidak merasa melakukan permintaan ini, abaikan email ini.</p>
 
           <div class="footer">
             <p>&copy; 2024 Tikrar MTI - Markaz Tikrar Indonesia</p>
@@ -212,7 +212,7 @@ export const emailTemplates = {
 
           <h2>Undangan Bergabung dengan Tikrar MTI</h2>
 
-          <p>Anda telah diundang untuk bergabung dengan aplikasi Tikrar MTI.</p>
+          <p>Ukhti telah diundang untuk bergabung dengan aplikasi Tikrar MTI.</p>
 
           <p>Klik tombol di bawah untuk menerima undangan:</p>
 

@@ -214,7 +214,7 @@ function DaftarUlangContent() {
         const isJuz30 = (selectedRegistration.chosen_juz || '').toUpperCase().startsWith('30');
 
         if (!hasWritten && !isAlumnus && !isJuz30) {
-          toast.error('Anda harus menyelesaikan Test Tertulis terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
+          toast.error('Ukhti harus menyelesaikan Test Tertulis terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
           // Redirect them to the test or user journey
           const batchParam = selectedRegistration.batch_id ? `?batchId=${selectedRegistration.batch_id}` : '';
           router.push(`/seleksi/pilihan-ganda${batchParam}`);
@@ -235,7 +235,7 @@ function DaftarUlangContent() {
         }
 
         if (!hasPassedAkadQuiz) {
-          toast.error('Anda harus lulus Kuis Pemahaman Akad (nilai 100) terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
+          toast.error('Ukhti harus lulus Kuis Pemahaman Akad (nilai 100) terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
           router.push('/seleksi/kuis-akad');
           return
         }
@@ -333,7 +333,7 @@ function DaftarUlangContent() {
           } else {
             // Submitted but not approved, and halaqah & partner already selected
             setCurrentStep('success')
-            toast.success('Anda sudah melakukan daftar ulang! Menunggu persetujuan admin.')
+            toast.success('Ukhti sudah melakukan daftar ulang! Menunggu persetujuan admin.')
           }
         }
       } catch (error) {
@@ -546,7 +546,7 @@ function DaftarUlangContent() {
     }
 
     if (formData.pengabdian_choice === 'donasi' && !formData.donasi_amount) {
-      toast.error('Masukkan nominal infaq bulanan Anda.')
+      toast.error('Masukkan nominal infaq bulanan Ukhti.')
       setCurrentStep('pengabdian')
       return
     }
@@ -697,8 +697,8 @@ function DaftarUlangContent() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Daftar Ulang</h1>
                 <p className="text-gray-600">
                   {existingSubmission?.status === 'approved'
-                    ? 'Alhamdulillah! Daftar ulang Anda telah disetujui.'
-                    : 'Daftar ulang Anda telah berhasil dikirim.'}
+                    ? 'Alhamdulillah! Daftar ulang Ukhti telah disetujui.'
+                    : 'Daftar ulang Ukhti telah berhasil dikirim.'}
                 </p>
               </div>
               <Button
@@ -729,8 +729,8 @@ function DaftarUlangContent() {
                   </h3>
                   <p className={`text-sm mb-4 ${existingSubmission?.status === 'approved' ? 'text-emerald-800' : 'text-blue-800'}`}>
                     {existingSubmission?.status === 'approved'
-                      ? 'Anda telah resmi terdaftar dalam program Tikrar Tahfidz. Silakan cek jadwal halaqah dan mulai persiapan.'
-                      : 'Daftar ulang Anda sedang diproses oleh admin. Anda akan menerima notifikasi setelah ada konfirmasi.'}
+                      ? 'Ukhti telah resmi terdaftar dalam program Tikrar Tahfidz. Silakan cek jadwal halaqah dan mulai persiapan.'
+                      : 'Daftar ulang Ukhti sedang diproses oleh admin. Ukhti akan menerima notifikasi setelah ada konfirmasi.'}
                   </p>
 
                   {/* Submission Details */}
@@ -1576,7 +1576,7 @@ function HalaqahSelectionStep({
           <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
-          Pilihan Anda:
+          Pilihan Ukhti:
         </h4>
         <div className="grid grid-cols-1 gap-3">
           <div className={`p-3 rounded-lg ${formData.ujian_halaqah_id ? 'bg-green-100 border border-green-300' : 'bg-gray-100'}`}>
@@ -1779,7 +1779,7 @@ function PartnerSelectionStep({
                             )}
                             {partner.has_user_selected_them && (
                               <div className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-                                Memilih Anda
+                                Memilih Ukhti
                               </div>
                             )}
                             {partner.status_label && (
@@ -1894,7 +1894,7 @@ function PartnerSelectionStep({
                   {systemMatchQuestion?.label || 'Dipasangkan oleh Sistem'}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {systemMatchQuestion?.description || 'Sistem akan memasangkan Anda berdasarkan jadwal utama, zona waktu, dan juz.'}
+                  {systemMatchQuestion?.description || 'Sistem akan memasangkan Ukhti berdasarkan jadwal utama, zona waktu, dan juz.'}
                 </p>
               </div>
               <input
@@ -1941,7 +1941,7 @@ function PartnerSelectionStep({
                   <div className="flex">
                     <Info className="h-5 w-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-amber-800">
-                      <strong>Penting:</strong> Nama yang diinput di sini <strong>BUKAN</strong> nama Thalibah yang terdaftar di angkatan ini. Jika keluarga Anda juga peserta MTI di angkatan ini, silakan gunakan opsi <strong>Memilih Sendiri</strong>.
+                      <strong>Penting:</strong> Nama yang diinput di sini <strong>BUKAN</strong> nama Thalibah yang terdaftar di angkatan ini. Jika keluarga Ukhti juga peserta MTI di angkatan ini, silakan gunakan opsi <strong>Memilih Sendiri</strong>.
                     </p>
                   </div>
                 </div>
@@ -2018,7 +2018,7 @@ function PartnerSelectionStep({
                 </p>
                 {!isTarteelEligible && (
                   <p className="text-xs text-red-600 mt-2 font-semibold">
-                    *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {oralScore})
+                    *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Ukhti: {oralScore})
                   </p>
                 )}
               </div>
@@ -2118,7 +2118,7 @@ function ReviewStep({
           <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
           <div>
             <p className="text-sm text-yellow-800">
-              Pastikan semua data sudah benar. Setelah dikirim, Anda tidak dapat mengubah data daftar ulang.
+              Pastikan semua data sudah benar. Setelah dikirim, Ukhti tidak dapat mengubah data daftar ulang.
             </p>
           </div>
         </div>
@@ -2207,7 +2207,7 @@ function AkadUploadStep({
           Salin & Upload Akad
         </h2>
         <p className="text-gray-600 mb-6">
-          Silakan salin teks akad di bawah ini dengan tulisan tangan Anda, tandatangani, lalu foto dan upload.
+          Silakan salin teks akad di bawah ini dengan tulisan tangan Ukhti, tandatangani, lalu foto dan upload.
         </p>
       </div>
 
@@ -2219,7 +2219,7 @@ function AkadUploadStep({
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
               <p className="text-sm text-amber-800 mb-4">
-                Berikut adalah teks akad yang harus Anda tulis tangan (salin). Seluruh bagian identitas dan tanggal sudah diisi otomatis sesuai data Anda.
+                Berikut adalah teks akad yang harus Ukhti tulis tangan (salin). Seluruh bagian identitas dan tanggal sudah diisi otomatis sesuai data Ukhti.
               </p>
             </div>
           </div>
@@ -2236,8 +2236,8 @@ function AkadUploadStep({
                 <p className="font-semibold mb-2">Instruksi:</p>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Siapkan kertas kosong dan pulpen.</li>
-                  <li>Salin (tulis ulang dengan tulisan tangan Anda sendiri) seluruh teks akad di atas pada kertas tersebut.</li>
-                  <li>Tandatangani kertas akad yang sudah Anda tulis tangan.</li>
+                  <li>Salin (tulis ulang dengan tulisan tangan Ukhti sendiri) seluruh teks akad di atas pada kertas tersebut.</li>
+                  <li>Tandatangani kertas akad yang sudah Ukhti tulis tangan.</li>
                   <li>Foto kertas akad tersebut dengan jelas.</li>
                   <li>Upload foto akad di bawah ini.</li>
                 </ol>
@@ -2280,8 +2280,8 @@ function AkadUploadStep({
             <div className="text-sm text-blue-800">
               <p className="font-semibold mb-1">Akad Sebelumnya Telah Tersimpan</p>
               <p className="text-blue-700">
-                Anda sudah mengupload {existingSubmission.akad_files.length} file akad sebelumnya.
-                File-file tersebut masih tersimpan dan Anda tidak perlu mengupload ulang kecuali ingin menggantinya.
+                Ukhti sudah mengupload {existingSubmission.akad_files.length} file akad sebelumnya.
+                File-file tersebut masih tersimpan dan Ukhti tidak perlu mengupload ulang kecuali ingin menggantinya.
               </p>
             </div>
           </div>
@@ -2365,7 +2365,7 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const [isResetting, setIsResetting] = useState(false);
   const handleResetAkad = async () => {
     if (!existingSubmission?.id) return;
-    if (!confirm('Apakah Anda yakin ingin menghapus file akad dan mengulang pengiriman?')) return;
+    if (!confirm('Apakah Ukhti yakin ingin menghapus file akad dan mengulang pengiriman?')) return;
     
     setIsResetting(true);
     const result = await resetAkadThalibah(existingSubmission.id);
@@ -2397,17 +2397,17 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
       <CheckCircle className={`w-16 h-16 mx-auto mb-4 ${isApproved ? 'text-emerald-600' : 'text-green-600'}`} />
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
         {isApproved
-          ? 'Alhamdulillah! Daftar Ulang Anda Disetujui'
+          ? 'Alhamdulillah! Daftar Ulang Ukhti Disetujui'
           : isSubmitted
-          ? 'Anda Sudah Daftar Ulang'
+          ? 'Ukhti Sudah Daftar Ulang'
           : 'Alhamdulillah! Daftar Ulang Berhasil'}
       </h2>
       <p className="text-gray-600 mb-8">
         {isApproved
-          ? 'Selamat! Daftar ulang Anda telah disetujui. Berikut adalah informasi kelas yang akan Anda ikuti:'
+          ? 'Selamat! Daftar ulang Ukhti telah disetujui. Berikut adalah informasi kelas yang akan Ukhti ikuti:'
           : isSubmitted
-          ? 'Data daftar ulang Anda sudah kami terima. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'
-          : 'Data daftar ulang Anda berhasil dikirim. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'}
+          ? 'Data daftar ulang Ukhti sudah kami terima. Admin akan memverifikasi data Ukhti dalam 1-2 hari kerja.'
+          : 'Data daftar ulang Ukhti berhasil dikirim. Admin akan memverifikasi data Ukhti dalam 1-2 hari kerja.'}
       </p>
 
       {/* Show class info and partner details for approved and submitted status */}
@@ -2525,13 +2525,13 @@ function PengabdianStep({
           Pilihan Pengabdian / Donasi
         </h2>
         <p className="text-gray-600 mb-6">
-          Berikut adalah pilihan komitmen pengabdian atau donasi bulanan Anda.
+          Berikut adalah pilihan komitmen pengabdian atau donasi bulanan Ukhti.
         </p>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-800">Komitmen Anda</h3>
+            <h3 className="font-semibold text-gray-800">Komitmen Ukhti</h3>
             {!isEditing && (
               <Button variant="outline" size="sm" onClick={handleEditClick}>
                 Edit Pilihan

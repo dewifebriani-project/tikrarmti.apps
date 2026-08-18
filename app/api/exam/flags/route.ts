@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     if (existingFlag) {
       return NextResponse.json({
-        error: 'Anda sudah memberikan flag untuk soal ini'
+        error: 'Ukhti sudah memberikan flag untuk soal ini'
       }, { status: 400 });
     }
 

@@ -42,7 +42,7 @@ export async function submitPilihPasangan(
   }
 
   if (registration.selection_status !== 'selected') {
-    return { success: false, error: 'Anda belum lolos seleksi.' }
+    return { success: false, error: 'Ukhti belum lolos seleksi.' }
   }
 
   // 3. Validate required fields
@@ -103,11 +103,11 @@ export async function submitPilihPasangan(
 
     if (!reservation?.success) {
       const errorMessages: Record<string, string> = {
-        UNAUTHORIZED: 'Sesi Anda berakhir. Silakan login kembali.',
+        UNAUTHORIZED: 'Sesi Ukhti berakhir. Silakan login kembali.',
         HALAQAH_REQUIRED: 'Pilih paket kelas halaqah.',
         HALAQAH_INVALID: 'Halaqah tidak valid, tidak aktif, atau bukan bagian dari batch ini.',
         REGISTRATION_INVALID: 'Pendaftaran tidak valid.',
-        NOT_SELECTED: 'Anda belum lolos seleksi.',
+        NOT_SELECTED: 'Ukhti belum lolos seleksi.',
         SUBMISSION_NOT_FOUND: 'Data daftar ulang tidak ditemukan. Silakan selesaikan Review Akad terlebih dahulu.',
         PARTNER_TYPE_INVALID: 'Jenis pasangan belajar tidak valid.',
         PARTNER_INVALID: 'Data pasangan belajar tidak valid.'
@@ -151,8 +151,8 @@ export async function submitPilihPasangan(
       isMutualMatch,
       message: data.partner_type === 'self_match'
         ? isMutualMatch
-          ? `❤️ Kalian sudah saling memilih. Pasangan belajar dengan ${data.partner_name || 'thalibah pilihan Anda'} berhasil terbentuk!`
-          : `Pilihan pasangan berhasil dikirim. Menunggu ${data.partner_name || 'thalibah pilihan Anda'} memilih Anda kembali.`
+          ? `❤️ Kalian sudah saling memilih. Pasangan belajar dengan ${data.partner_name || 'thalibah pilihan Ukhti'} berhasil terbentuk!`
+          : `Pilihan pasangan berhasil dikirim. Menunggu ${data.partner_name || 'thalibah pilihan Ukhti'} memilih Ukhti kembali.`
         : 'Halaqah dan pasangan berhasil disimpan.'
     }
   } catch (error: any) {

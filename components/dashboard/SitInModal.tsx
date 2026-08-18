@@ -134,7 +134,7 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-gray-900 tracking-tight">Kuota & Sit-In Kelas Lain</DialogTitle>
             <DialogDescription className="text-sm font-medium text-gray-600 mt-2">
-              Daftar Sit-In jika Anda berhalangan hadir di kelas utama dan ingin menumpang kelas di jadwal lain minggu ini.
+              Daftar Sit-In jika Ukhti berhalangan hadir di kelas utama dan ingin menumpang kelas di jadwal lain minggu ini.
             </DialogDescription>
           </DialogHeader>
         </div>

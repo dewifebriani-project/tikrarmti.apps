@@ -88,7 +88,7 @@ export function BlacklistTable({
                     <div className="flex items-center justify-end gap-2">
                       {user.whatsapp && (
                         <a 
-                          href={getWhatsAppUrl(user.whatsapp, user.full_name, `Assalamu'alaikum ${user.full_name || 'Thalibah'},\n\nIni adalah pesan dari admin Markaz Tikrar Indonesia terkait status akun Anda.\n\nJazakillahu khairan`)}
+                          href={getWhatsAppUrl(user.whatsapp, user.full_name, `Assalamu'alaikum ${user.full_name || 'Thalibah'},\n\nIni adalah pesan dari admin Markaz Tikrar Indonesia terkait status akun Ukhti.\n\nJazakillahu khairan`)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors"

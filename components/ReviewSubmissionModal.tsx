@@ -174,7 +174,7 @@ export function ReviewSubmissionModal({
   };
 
   const handleRetract = async () => {
-    if (!window.confirm('Apakah Anda yakin ingin menarik rekaman ini dan merekam ulang? Rekaman saat ini akan dihapus.')) {
+    if (!window.confirm('Apakah Ukhti yakin ingin menarik rekaman ini dan merekam ulang? Rekaman saat ini akan dihapus.')) {
       return;
     }
 
@@ -696,23 +696,23 @@ export function ReviewSubmissionModal({
             <h4 className="font-bold text-gray-900 text-lg">Proses Pengecekan</h4>
             {pairingData?.partner_details?.partner_type === 'self_match' && (!pairingData?.partner_details?.is_mutual_match) ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                Anda memilih <b>{pairingData?.partner_details?.partner_name}</b> sebagai partner. Kami sedang menunggu yang bersangkutan untuk memilih Anda juga (mutual match).
+                Ukhti memilih <b>{pairingData?.partner_details?.partner_name}</b> sebagai partner. Kami sedang menunggu yang bersangkutan untuk memilih Ukhti juga (mutual match).
               </p>
             ) : pairingData?.partner_details?.partner_type === 'system_match' ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                Sistem kami sedang mencari thalibah dengan kecocokan jadwal dan juz terbaik untuk Anda. Silakan cek kembali nanti.
+                Sistem kami sedang mencari thalibah dengan kecocokan jadwal dan juz terbaik untuk Ukhti. Silakan cek kembali nanti.
               </p>
             ) : pairingData?.partner_details?.partner_type === 'family' && pairingData?.status !== 'approved' && pairingData?.partner_details?.status !== 'approved' ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                Anda memilih belajar bersama keluarga ({pairingData?.partner_details?.partner_name}). Menunggu verifikasi dari admin.
+                Ukhti memilih belajar bersama keluarga ({pairingData?.partner_details?.partner_name}). Menunggu verifikasi dari admin.
               </p>
             ) : pairingData?.partner_details?.partner_type === 'tarteel' && pairingData?.status !== 'approved' && pairingData?.partner_details?.status !== 'approved' ? (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                Anda memilih ujian mandiri via Tarteel. Menunggu verifikasi dari admin.
+                Ukhti memilih ujian mandiri via Tarteel. Menunggu verifikasi dari admin.
               </p>
             ) : (
               <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-                Status pasangan Anda sedang diproses. Mohon bersabar menunggu pembaruan selanjutnya.
+                Status pasangan Ukhti sedang diproses. Mohon bersabar menunggu pembaruan selanjutnya.
               </p>
             )}
           </div>

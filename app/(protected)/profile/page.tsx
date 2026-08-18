@@ -1021,7 +1021,7 @@ function MuallimahProfileFields({
             id="teaching_experience"
             value={data.teaching_experience || ''}
             onChange={(e) => handleChange('teaching_experience', e.target.value)}
-            placeholder="Ceritakan pengalaman mengajar Anda"
+            placeholder="Ceritakan pengalaman mengajar Ukhti"
             rows={3}
           />
         </div>
@@ -1052,7 +1052,7 @@ function MuallimahProfileFields({
             id="motivation"
             value={data.motivation || ''}
             onChange={(e) => handleChange('motivation', e.target.value)}
-            placeholder="Ceritakan motivasi Anda"
+            placeholder="Ceritakan motivasi Ukhti"
             rows={3}
           />
         </div>
@@ -1155,7 +1155,7 @@ function MusyrifahProfileFields({
             id="leadership_experience"
             value={data.leadership_experience || ''}
             onChange={(e) => handleChange('leadership_experience', e.target.value)}
-            placeholder="Ceritakan pengalaman kepemimpinan Anda"
+            placeholder="Ceritakan pengalaman kepemimpinan Ukhti"
             rows={3}
           />
         </div>
@@ -1187,7 +1187,7 @@ function MusyrifahProfileFields({
             id="motivation"
             value={data.motivation || ''}
             onChange={(e) => handleChange('motivation', e.target.value)}
-            placeholder="Ceritakan motivasi Anda"
+            placeholder="Ceritakan motivasi Ukhti"
             rows={3}
           />
         </div>
@@ -1198,7 +1198,7 @@ function MusyrifahProfileFields({
             id="leadership_philosophy"
             value={data.leadership_philosophy || ''}
             onChange={(e) => handleChange('leadership_philosophy', e.target.value)}
-            placeholder="Bagaimana pendekatan Anda dalam memimpin?"
+            placeholder="Bagaimana pendekatan Ukhti dalam memimpin?"
             rows={2}
           />
         </div>

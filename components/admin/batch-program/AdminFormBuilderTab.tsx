@@ -948,7 +948,7 @@ function MockInputField({ q }: { q: any }) {
         <input
           type="text"
           className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 text-gray-400 font-medium"
-          placeholder={q.description || 'Ketik jawaban Anda di sini...'}
+          placeholder={q.description || 'Ketik jawaban Ukhti di sini...'}
           disabled
         />
       )}
@@ -956,7 +956,7 @@ function MockInputField({ q }: { q: any }) {
         <textarea
           className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 text-gray-400 font-medium"
           rows={3}
-          placeholder={q.description || 'Tuliskan jawaban Anda di sini...'}
+          placeholder={q.description || 'Tuliskan jawaban Ukhti di sini...'}
           disabled
         />
       )}

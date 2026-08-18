@@ -10,7 +10,7 @@ export default function JurnalPraTikrarPage() {
         <BookOpen className="w-8 h-8 text-blue-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Jurnal Pra-Tikrar</h1>
-          <p className="text-gray-600">Catatan perkembangan halaqah Pra-Tikrar Anda</p>
+          <p className="text-gray-600">Catatan perkembangan halaqah Pra-Tikrar Ukhti</p>
         </div>
       </div>
 
@@ -18,13 +18,13 @@ export default function JurnalPraTikrarPage() {
         <CardHeader>
           <CardTitle>Segera Hadir</CardTitle>
           <CardDescription>
-            Halaman Jurnal Pra-Tikrar sedang dalam tahap pengembangan dan akan segera bisa Anda gunakan untuk mencatat setoran/simakan setiap pekannya.
+            Halaman Jurnal Pra-Tikrar sedang dalam tahap pengembangan dan akan segera bisa Ukhti gunakan untuk mencatat setoran/simakan setiap pekannya.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-6 text-center">
             <p className="text-blue-800">
-              Format spesifik untuk pengisian jurnal Pra-Tikrar akan segera diinformasikan oleh Muallimah/Admin Anda.
+              Format spesifik untuk pengisian jurnal Pra-Tikrar akan segera diinformasikan oleh Muallimah/Admin Ukhti.
             </p>
           </div>
         </CardContent>

@@ -282,7 +282,7 @@ export function BulkConfirmModal({
           Konfirmasi {action === 'approve' ? 'Approve' : 'Reject'}
         </h3>
         <p className="text-sm text-center text-gray-500 mb-6 font-medium">
-          Apakah Anda yakin ingin {action === 'approve' ? 'menyetujui' : 'menolak'} <span className="font-bold text-gray-900">{count}</span> data daftar ulang yang dipilih?
+          Apakah Ukhti yakin ingin {action === 'approve' ? 'menyetujui' : 'menolak'} <span className="font-bold text-gray-900">{count}</span> data daftar ulang yang dipilih?
         </p>
         <div className="flex gap-3">
           <button

@@ -57,7 +57,7 @@ export async function saveTashihRecord(data: TashihFormData) {
   if (reg.status !== 'approved' && !isDaftarUlangApproved) {
     return { 
       success: false, 
-      error: 'Afwan Ukhti, Daftar Ulang Anda belum disetujui. Catatan Tashih baru dapat diakses setelah pendaftaran ulang disetujui oleh admin.' 
+      error: 'Afwan Ukhti, Daftar Ulang Ukhti belum disetujui. Catatan Tashih baru dapat diakses setelah pendaftaran ulang disetujui oleh admin.' 
     }
   }
 

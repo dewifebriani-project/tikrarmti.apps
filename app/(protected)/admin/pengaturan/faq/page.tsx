@@ -227,7 +227,7 @@ export default function AdminFaqPage() {
   };
 
   const deleteCategory = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kategori ini dan semua pertanyaannya?')) return;
+    if (!confirm('Apakah Ukhti yakin ingin menghapus kategori ini dan semua pertanyaannya?')) return;
     
     // If it's a temp ID, just remove from state
     if (id.startsWith('temp-')) {
@@ -416,7 +416,7 @@ export default function AdminFaqPage() {
       <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-8 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-yellow-800">
-          <strong>Perhatian:</strong> Perubahan akan langsung terlihat di halaman utama (Landing Page) setelah Anda menekan tombol "Simpan Semua". 
+          <strong>Perhatian:</strong> Perubahan akan langsung terlihat di halaman utama (Landing Page) setelah Ukhti menekan tombol "Simpan Semua". 
           Harap pastikan semua pertanyaan dan jawaban sudah benar.
         </div>
       </div>
@@ -601,7 +601,7 @@ export default function AdminFaqPage() {
                                   className="bg-white"
                                 />
                               </div>
-                              <p className="text-[11px] text-gray-400 mt-1">Anda dapat menggunakan tools di atas untuk mewarnai teks, menebalkan, dll.</p>
+                              <p className="text-[11px] text-gray-400 mt-1">Ukhti dapat menggunakan tools di atas untuk mewarnai teks, menebalkan, dll.</p>
                             </div>
                           </div>
                         </div>
@@ -687,7 +687,7 @@ export default function AdminFaqPage() {
                     />
                   </div>
                 )}
-                <p className="text-[11px] text-gray-400 mt-1.5">Anda dapat menggunakan tools editor untuk format teks (tebal, miring, warna, dll).</p>
+                <p className="text-[11px] text-gray-400 mt-1.5">Ukhti dapat menggunakan tools editor untuk format teks (tebal, miring, warna, dll).</p>
               </div>
             </div>
 

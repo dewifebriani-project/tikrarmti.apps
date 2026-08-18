@@ -180,7 +180,7 @@ export function OralAssessment({
   };
 
   const handleResetSubmission = async () => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus rekaman ini dan meminta thalibah merekam ulang? Rekaman saat ini di cloud storage akan dihapus permanen.")) {
+    if (!window.confirm("Apakah Ukhti yakin ingin menghapus rekaman ini dan meminta thalibah merekam ulang? Rekaman saat ini di cloud storage akan dihapus permanen.")) {
       return;
     }
 

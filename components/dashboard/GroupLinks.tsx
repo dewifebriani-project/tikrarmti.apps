@@ -25,7 +25,7 @@ export const GroupLinks = ({
               Informasi Halaqah & Grup
             </h3>
             <p className="text-emerald-50 mt-1 opacity-90">
-              Silakan bergabung ke dalam grup dan kelas Anda
+              Silakan bergabung ke dalam grup dan kelas Ukhti
             </p>
           </div>
         </div>
@@ -73,7 +73,7 @@ export const GroupLinks = ({
                 )}
               </div>
             ) : (
-              <p className="text-gray-500 italic p-4 bg-gray-50 rounded-xl">Anda belum memilih halaqah</p>
+              <p className="text-gray-500 italic p-4 bg-gray-50 rounded-xl">Ukhti belum memilih halaqah</p>
             )}
           </div>
 

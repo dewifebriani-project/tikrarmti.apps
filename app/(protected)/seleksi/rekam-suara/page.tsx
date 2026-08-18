@@ -267,7 +267,7 @@ export default function RekamSuaraPage() {
     if (!audioBlob || !user?.id) return;
 
     if (existingSubmission) {
-      setError('Anda sudah mengirimkan rekaman sebelumnya.');
+      setError('Ukhti sudah mengirimkan rekaman sebelumnya.');
       return;
     }
 
@@ -367,7 +367,7 @@ export default function RekamSuaraPage() {
   const deleteRecording = async () => {
     if (!existingSubmission?.registrationId) return;
 
-    if (!window.confirm('Apakah Anda yakin ingin menghapus rekaman ini?')) {
+    if (!window.confirm('Apakah Ukhti yakin ingin menghapus rekaman ini?')) {
       return;
     }
 
@@ -467,8 +467,8 @@ export default function RekamSuaraPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-3">
-                  <p><strong>Anda belum terdaftar</strong></p>
-                  <p className="text-sm">Anda harus mengisi formulir pendaftaran Tikrar Tahfidz terlebih dahulu.</p>
+                  <p><strong>Ukhti belum terdaftar</strong></p>
+                  <p className="text-sm">Ukhti harus mengisi formulir pendaftaran Tikrar Tahfidz terlebih dahulu.</p>
                   <Button onClick={() => router.push('/pendaftaran/tikrar-tahfidz')} className="w-full bg-red-700">
                     Isi Formulir Pendaftaran
                   </Button>
@@ -488,7 +488,7 @@ export default function RekamSuaraPage() {
 
                   {/* Audio Player */}
                   <div className="bg-white p-3 rounded border border-green-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Ukhti:</p>
                     <div className="flex justify-center mb-3">
                       <Button onClick={() => {
                         const audio = document.getElementById('existing-audio') as HTMLAudioElement;
@@ -508,7 +508,7 @@ export default function RekamSuaraPage() {
                       <Alert className="bg-blue-50 border-blue-200">
                         <AlertCircle className="h-4 w-4 text-blue-600" />
                         <AlertDescription>
-                          <p className="text-sm text-blue-800">Anda bisa menghapus rekaman ini dan merekam ulang.</p>
+                          <p className="text-sm text-blue-800">Ukhti bisa menghapus rekaman ini dan merekam ulang.</p>
                         </AlertDescription>
                       </Alert>
                       <div className="flex gap-2">
@@ -555,7 +555,7 @@ export default function RekamSuaraPage() {
                 <div className="space-y-4">
                   <p><strong className="text-green-800">Rekaman berhasil dikirim!</strong></p>
                   <div className="bg-white p-3 rounded border border-green-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Ukhti:</p>
                     <div className="flex justify-center mb-3">
                       <Button onClick={togglePlayPause} size="lg" variant="outline" className="h-16 w-16 rounded-full p-0">
                         {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}

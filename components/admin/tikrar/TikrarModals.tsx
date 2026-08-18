@@ -386,7 +386,7 @@ export function TikrarBulkConfirmModal({
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-sm text-gray-600 font-medium leading-relaxed">
-              Anda akan melakukan <strong>{action === 'approve' ? 'Persetujuan' : 'Penolakan'}</strong> secara massal. Tindakan ini tidak dapat dibatalkan. Pastikan data sudah sesuai.
+              Ukhti akan melakukan <strong>{action === 'approve' ? 'Persetujuan' : 'Penolakan'}</strong> secara massal. Tindakan ini tidak dapat dibatalkan. Pastikan data sudah sesuai.
             </div>
 
             {action === 'reject' && (

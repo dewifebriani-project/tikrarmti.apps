@@ -57,7 +57,7 @@ export function AdminVoiceRecorder({ onAudioReady, existingAudioUrl }: AdminVoic
       
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      alert('Tidak dapat mengakses mikrofon. Pastikan Anda telah memberikan izin.');
+      alert('Tidak dapat mengakses mikrofon. Pastikan Ukhti telah memberikan izin.');
     }
   };
 

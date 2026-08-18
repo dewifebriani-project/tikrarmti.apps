@@ -220,10 +220,10 @@ export default function AlumniPage() {
             <Card className="border-0 shadow-lg rounded-2xl overflow-hidden bg-white">
               <CardHeader className="border-b border-gray-50 pb-6 p-6 sm:p-8">
                 <CardTitle className="text-xl font-bold text-gray-900">
-                  {testimonial && !isEditingTestimonial ? 'Testimoni Anda' : 'Tulis Testimoni'}
+                  {testimonial && !isEditingTestimonial ? 'Testimoni Ukhti' : 'Tulis Testimoni'}
                 </CardTitle>
                 <CardDescription>
-                  Berikan umpan balik jujur mengenai pengalaman belajar Anda di MTI untuk memotivasi calon hafidzah lainnya.
+                  Berikan umpan balik jujur mengenai pengalaman belajar Ukhti di MTI untuk memotivasi calon hafidzah lainnya.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 sm:p-8">

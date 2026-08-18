@@ -220,7 +220,7 @@ function VerifikasiOTPContent() {
               Password Baru
             </h1>
             <p className="text-gray-600">
-              Buat password baru untuk akun Anda
+              Buat password baru untuk akun Ukhti
             </p>
           </div>
 

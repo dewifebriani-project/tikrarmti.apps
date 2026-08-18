@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingRequest) {
-      return ApiResponses.badRequest('Anda sudah memiliki pengajuan pindah jadwal yang sedang diproses.');
+      return ApiResponses.badRequest('Ukhti sudah memiliki pengajuan pindah jadwal yang sedang diproses.');
     }
 
     // 4. Verify batch timeline

@@ -368,7 +368,7 @@ export function TikrarTab({ user }: { user: any }) {
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
         title="Hapus Pendaftaran Tikrar"
-        message={`Apakah Anda yakin ingin menghapus pendaftaran "${selectedRegistration?.full_name}"? Tindakan ini tidak dapat dibatalkan.`}
+        message={`Apakah Ukhti yakin ingin menghapus pendaftaran "${selectedRegistration?.full_name}"? Tindakan ini tidak dapat dibatalkan.`}
       />
 
       <AdminCrudModal 

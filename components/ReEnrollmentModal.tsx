@@ -81,9 +81,9 @@ export function ReEnrollmentModal({
           <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-green-900">Selamat! Anda Lulus Seleksi</h3>
+              <h3 className="font-semibold text-green-900">Selamat! Ukhti Lulus Seleksi</h3>
               <p className="text-sm text-green-700 mt-1">
-                Alhamdulillah, Anda telah dinyatakan lulus seleksi Program Tikrar Tahfidz {batchName}.
+                Alhamdulillah, Ukhti telah dinyatakan lulus seleksi Program Tikrar Tahfidz {batchName}.
               </p>
             </div>
           </div>
@@ -94,7 +94,7 @@ export function ReEnrollmentModal({
             <div>
               <h3 className="font-semibold text-blue-900">Langkah Selanjutnya</h3>
               <p className="text-sm text-blue-700 mt-1">
-                Silakan konfirmasi daftar ulang untuk mengunci posisi Anda dan memulai perjalanan menghafal Al-Qur'an.
+                Silakan konfirmasi daftar ulang untuk mengunci posisi Ukhti dan memulai perjalanan menghafal Al-Qur'an.
               </p>
             </div>
           </div>

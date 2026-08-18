@@ -125,7 +125,7 @@ export function useAdminBlacklist() {
   };
 
   const handleRemoveFromBlacklist = async (userId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus user ini dari blacklist?')) {
+    if (!confirm('Apakah Ukhti yakin ingin menghapus user ini dari blacklist?')) {
       return;
     }
 

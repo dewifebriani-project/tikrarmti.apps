@@ -238,7 +238,7 @@ export default function InfaqDonasiPage() {
                 <HeartHandshake className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <p className="text-xs text-emerald-250 font-bold uppercase tracking-wider">Total Donasi Anda</p>
+                <p className="text-xs text-emerald-250 font-bold uppercase tracking-wider">Total Donasi Ukhti</p>
                 <p className="text-lg font-black mt-0.5">
                   {formatIDR(donations.filter(d => d.status === 'approved').reduce((sum, d) => sum + d.amount, 0))}
                 </p>

@@ -639,7 +639,7 @@ export function useAdminPairing() {
     
     if (totalCount === 0) return toast.error('Tidak ada request yang perlu di-revert')
     if (!window.confirm(
-      `Anda yakin ingin me-revert SEMUA thalibah di tab Sistem Match (${totalCount} orang)?\n\n- ${pairedCount} orang yang SUDAH dipasangkan akan dihapus pasangannya.\n- ${unpairedCount} orang yang BELUM dipasangkan akan dibatalkan requestnya.`
+      `Ukhti yakin ingin me-revert SEMUA thalibah di tab Sistem Match (${totalCount} orang)?\n\n- ${pairedCount} orang yang SUDAH dipasangkan akan dihapus pasangannya.\n- ${unpairedCount} orang yang BELUM dipasangkan akan dibatalkan requestnya.`
     )) return
     
     const toastId = toast.loading(`Me-revert ${totalCount} thalibah...`)

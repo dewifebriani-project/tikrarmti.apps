@@ -32,7 +32,7 @@ export async function POST(
     .single()
 
   if (userError || !currentUser || !currentUser.roles?.includes('admin')) {
-    return NextResponse.json({ success: false, error: 'Anda tidak memiliki akses untuk menyetujui daftar ulang.' }, { status: 403 })
+    return NextResponse.json({ success: false, error: 'Ukhti tidak memiliki akses untuk menyetujui daftar ulang.' }, { status: 403 })
   }
 
   try {
