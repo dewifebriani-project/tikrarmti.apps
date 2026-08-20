@@ -1491,6 +1491,8 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [reminderCopied, setReminderCopied] = useState(false);
   const [isGeneratingReminder, setIsGeneratingReminder] = useState(false);
+  const [appreciationCopied, setAppreciationCopied] = useState(false);
+  const [isGeneratingAppreciation, setIsGeneratingAppreciation] = useState(false);
 
   const toggleRow = (userId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1546,27 +1548,45 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
       }, {} as Record<string, typeof incompleteThalibah>);
 
       const namesList = incompleteThalibah.length > 0
-        ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
-            // calculate halaqah percentage
-            const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
-            
-            let halaqahTitle = halaqah;
-            if (halaqah !== 'Tanpa Halaqah') {
-              halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
-              halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
-            }
+        ? Object.entries(grouped)
+            .map(([halaqah, thalibahs]) => {
+              const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
+              return { halaqah, thalibahs, halaqahAvg };
+            })
+            .sort((a, b) => a.halaqahAvg - b.halaqahAvg)
+            .map(({ halaqah, thalibahs, halaqahAvg }) => {
+              let halaqahTitle = halaqah;
+              if (halaqah !== 'Tanpa Halaqah') {
+                if (halaqahTitle.includes('|')) {
+                  const parts = halaqahTitle.split('|').map(p => p.trim());
+                  let left = parts[0];
+                  let right = parts.slice(1).join(' | ');
+                  right = right.replace(/ustadzah\s+/i, '').trim();
+                  halaqahTitle = `${left} | Ustadzah ${right}`;
+                } else {
+                  halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
+                  halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+                }
+              }
 
-            let str = `*${halaqahTitle}* (Rata-rata: ${halaqahAvg}%)\n`;
-            str += thalibahs.map(e => {
-              const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
-              const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
-              const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
-              const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
-              const progress = e.summary?.completion_percentage_target || 0;
-              return `- ${name} | ${juz} | ${progress}% | ${phone}`;
-            }).join('\n');
-            return str;
-          }).join('\n\n')
+              let str = `*${halaqahTitle}* (Rata-rata: ${halaqahAvg}%)\n`;
+              str += thalibahs.map(e => {
+                const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
+                const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
+                const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
+                const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+                const progress = e.summary?.completion_percentage_target || 0;
+                
+                let emoji = '🚨';
+                if (progress >= 75) emoji = '🔋';
+                else if (progress >= 50) emoji = '⏳';
+                else if (progress >= 25) emoji = '⚠️';
+                else if (progress > 0) emoji = '⚠️';
+
+                return `- ${name} | ${juz} | ${progress}% ${emoji} | ${phone}`;
+              }).join('\n');
+              return str;
+            }).join('\n\n')
         : '_(Semua thalibah sudah lengkap, Alhamdulillah!)_';
 
       const template = `╔❀◎🎓◎❀════════════════╗
@@ -1581,13 +1601,20 @@ ${dateStr}
 Thalibah yang sudah menyelesaikan kurikulum harian H1a-d/H11a-d harap segera mengisi laporan Jurnal di web pada link berikut
 ➡️ https://markaztikrar.id/login  
 
-Pengisian laporan jurnal paling lambat hari Ahad pukul 00.00
+Pengisian laporan jurnal paling lambat hari Ahad pukul 00.00. Bagi yang tidak menyelesaikan kurikulum atau laporan jurnal lengkap sampai H1d/H11d maka akan kami kenakan SP1 pada hari Senin melalui personal chat.
 
-Bagi yang tidak menyelesaikan kurikulum atau laporan jurnal lengkap sampai H1d/H11d maka akan kami kenakan SP1 pada hari Senin melalui personal chat.
-
-Thalibah yang belum lengkap laporannya per hari ini:
+*Thalibah yang belum lengkap laporannya per hari ini:*
 
 ${namesList}
+
+Keterangan:
+🚨 0% (Belum lapor sama sekali)
+⚠️ 25% (Baru sedikit, ayo semangat!)
+⏳ 50% (Sedang proses)
+🔋 75% (Hampir penuh)
+
+✨ _"Sesungguhnya amalan yang paling dicintai oleh Allah adalah amalan yang terus-menerus (istiqamah) walaupun sedikit." (HR. Muslim)_
+Mari Ukhti, kita perbarui semangat dan niat kita. Sedikit demi sedikit, insya Allah target pekan ini bisa diselesaikan dengan baik! 🔥
 
 Semoga Allah mudahkan 
 Barakallahufiikunna..
@@ -1612,40 +1639,170 @@ Barakallahufiikunna..
     }
   };
 
+  // Generate appreciation chat template
+  const generateAppreciationChat = async () => {
+    setIsGeneratingAppreciation(true);
+    try {
+      const batchParam = selectedBatchId ? `&batch_id=${selectedBatchId}` : '';
+      const blokParam = selectedBlok ? `&blok=${selectedBlok}` : '';
+      const response = await fetch(`/api/musyrifah/jurnal?limit=1000${blokParam}${batchParam}`);
+      let fullEntries: typeof entries = entries;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.entries) {
+          fullEntries = result.data.entries;
+        }
+      }
+
+      const today = new Date();
+      const dateStr = formatReminderDate(today);
+      
+      const completeThalibah = fullEntries.filter(entry => {
+        if (!entry.user?.full_name) return false;
+        if (entry.user?.is_blacklisted) return false;
+        const targetCompletion = entry.summary?.completion_percentage_target || 0;
+        return targetCompletion >= 100;
+      });
+
+      const grouped = completeThalibah.reduce((acc, entry) => {
+        const halaqah = entry.halaqah_name || 'Tanpa Halaqah';
+        if (!acc[halaqah]) acc[halaqah] = [];
+        acc[halaqah].push(entry);
+        return acc;
+      }, {} as Record<string, typeof completeThalibah>);
+
+      const namesList = completeThalibah.length > 0
+        ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
+            let halaqahTitle = halaqah;
+            if (halaqah !== 'Tanpa Halaqah') {
+              if (halaqahTitle.includes('|')) {
+                const parts = halaqahTitle.split('|').map(p => p.trim());
+                let left = parts[0];
+                let right = parts.slice(1).join(' | ');
+                right = right.replace(/ustadzah\s+/i, '').trim();
+                halaqahTitle = `${left} | Ustadzah ${right}`;
+              } else {
+                halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
+                halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+              }
+            }
+
+            let str = `*${halaqahTitle}*\n`;
+            str += thalibahs.map(e => {
+              const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
+              const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
+              const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
+              const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+              return `- ${name} | ${juz} | 100% ✅ | ${phone}`;
+            }).join('\n');
+            return str;
+          }).join('\n\n')
+        : '_(Belum ada thalibah yang lengkap 100% pekan ini)_';
+
+      const template = `╔❀◎🎓◎❀════════════════╗
+ 🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
+╚════════════════❀◎🎓◎❀╝
+
+*APRESIASI LAPORAN JURNAL MINGGUAN TIKRAR*
+${dateStr}
+
+السلام عليكم ورحمة الله وبركاته
+
+Masya Allah, berikut adalah daftar Thalibah yang *telah menyetorkan laporan jurnal 100% dengan tuntas* pada pekan ini:
+
+${namesList}
+
+Keterangan:
+✅ 100% (Tuntas)
+
+✨ _Maa syaa Allah_, _barakallahu fiikunna_ kepada seluruh Ukhti yang telah menjaga istiqamahnya pekan ini. Semoga Allah senantiasa menjaga semangat kita dan menjadikan hafalan Al-Qur'an sebagai penolong di hari kiamat kelak. Aamiin. 🏆
+
+Tetap semangat untuk pekan-pekan berikutnya!
+
+━━━━━━━━━━━━━━━━❁❁
+𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔
+
+📱 *MTI OFFICIAL : 081330000784*
+🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
+
+      navigator.clipboard.writeText(template).then(() => {
+        setAppreciationCopied(true);
+        toast.success(`Template apresiasi berhasil disalin! (${completeThalibah.length} thalibah tuntas 100%)`);
+        setTimeout(() => setAppreciationCopied(false), 3000);
+      }).catch(() => {
+        toast.error('Gagal menyalin. Coba lagi.');
+      });
+    } catch (error) {
+      console.error('Failed to generate appreciation chat:', error);
+      toast.error('Gagal membuat template apresiasi');
+    } finally {
+      setIsGeneratingAppreciation(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
       {/* Reminder Chat Template Button */}
       <div className="px-6 py-4 bg-emerald-50/50 border-b border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold text-emerald-800">📋 Template Reminder Chat</p>
-          <p className="text-[10px] text-emerald-600 mt-0.5">Salin template WA untuk mengingatkan thalibah yang belum lengkap laporan jurnalnya</p>
+          <p className="text-xs font-bold text-emerald-800">📋 Template Chat Mingguan</p>
+          <p className="text-[10px] text-emerald-600 mt-0.5">Salin template WA untuk reminder yang belum tuntas, dan apresiasi untuk yang sudah 100%.</p>
         </div>
-        <button
-          onClick={generateReminderChat}
-          disabled={isGeneratingReminder}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border whitespace-nowrap",
-            isGeneratingReminder ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200" :
-            reminderCopied
-              ? "bg-emerald-600 text-white border-emerald-700"
-              : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-700"
-          )}
-        >
-          {isGeneratingReminder ? (
-            <>
-              <div className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
-              Memuat Data...
-            </>
-          ) : reminderCopied ? (
-            <>
-              <Check className="w-4 h-4" /> Tersalin!
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" /> Copy Reminder
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={generateReminderChat}
+            disabled={isGeneratingReminder}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border whitespace-nowrap",
+              isGeneratingReminder ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200" :
+              reminderCopied
+                ? "bg-amber-600 text-white border-amber-700"
+                : "bg-white text-amber-700 border-amber-200 hover:bg-amber-600 hover:text-white hover:border-amber-700"
+            )}
+          >
+            {isGeneratingReminder ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-amber-600 border-t-transparent animate-spin"></div>
+                Memuat Data...
+              </>
+            ) : reminderCopied ? (
+              <>
+                <Check className="w-4 h-4" /> Tersalin!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" /> Copy Reminder (&lt; 100%)
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={generateAppreciationChat}
+            disabled={isGeneratingAppreciation}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border whitespace-nowrap",
+              isGeneratingAppreciation ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200" :
+              appreciationCopied
+                ? "bg-emerald-600 text-white border-emerald-700"
+                : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-700"
+            )}
+          >
+            {isGeneratingAppreciation ? (
+              <>
+                <div className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
+                Memuat Data...
+              </>
+            ) : appreciationCopied ? (
+              <>
+                <Check className="w-4 h-4" /> Tersalin!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" /> Copy Apresiasi (100%)
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-100">
