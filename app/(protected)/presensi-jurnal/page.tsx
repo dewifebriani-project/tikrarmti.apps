@@ -1547,6 +1547,11 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
         return acc;
       }, {} as Record<string, typeof incompleteThalibah>);
 
+      const toProperCase = (str: string) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+
       const namesList = incompleteThalibah.length > 0
         ? Object.entries(grouped)
             .map(([halaqah, thalibahs]) => {
@@ -1562,10 +1567,10 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                   let left = parts[0];
                   let right = parts.slice(1).join(' | ');
                   right = right.replace(/ustadzah\s+/i, '').trim();
-                  halaqahTitle = `${left} | Ustadzah ${right}`;
+                  halaqahTitle = `${left} | Ustadzah ${toProperCase(right)}`;
                 } else {
                   halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
-                  halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+                  halaqahTitle = `Halaqah Ustadzah ${toProperCase(halaqahTitle)}`;
                 }
               }
 
@@ -1574,7 +1579,7 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                 const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
                 const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
                 const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
-                const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+                const name = toProperCase(e.user?.full_name || 'Thalibah');
                 const progress = e.summary?.completion_percentage_target || 0;
                 
                 let emoji = '🚨';
@@ -1671,6 +1676,11 @@ Barakallahufiikunna..
         return acc;
       }, {} as Record<string, typeof completeThalibah>);
 
+      const toProperCase = (str: string) => {
+        if (!str) return '';
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      };
+
       const namesList = completeThalibah.length > 0
         ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
             let halaqahTitle = halaqah;
@@ -1680,10 +1690,10 @@ Barakallahufiikunna..
                 let left = parts[0];
                 let right = parts.slice(1).join(' | ');
                 right = right.replace(/ustadzah\s+/i, '').trim();
-                halaqahTitle = `${left} | Ustadzah ${right}`;
+                halaqahTitle = `${left} | Ustadzah ${toProperCase(right)}`;
               } else {
                 halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
-                halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+                halaqahTitle = `Halaqah Ustadzah ${toProperCase(halaqahTitle)}`;
               }
             }
 
@@ -1692,7 +1702,7 @@ Barakallahufiikunna..
               const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
               const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
               const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
-              const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+              const name = toProperCase(e.user?.full_name || 'Thalibah');
               return `- ${name} | ${juz} | 100% ✅ | ${phone}`;
             }).join('\n');
             return str;
