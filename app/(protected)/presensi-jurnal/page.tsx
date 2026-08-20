@@ -1588,7 +1588,7 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                 else if (progress >= 25) emoji = '⚠️';
                 else if (progress > 0) emoji = '⚠️';
 
-                return `- ${name} | ${juz} | ${progress}% ${emoji} | ${phone}`;
+                return `${emoji} ${name} | ${juz} | ${progress}% | ${phone}`;
               }).join('\n');
               return str;
             }).join('\n\n')
