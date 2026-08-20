@@ -461,7 +461,7 @@ export async function GET(request: Request) {
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, email, is_blacklisted)')
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, email, is_blacklisted), tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(name)')
       .in('status', targetStatuses)
       .order('confirmed_full_name', { ascending: true })
       .range(offset, offset + limit - 1);
@@ -724,6 +724,7 @@ export async function GET(request: Request) {
         confirmed_chosen_juz: juzCode || null,
         juz_info: juzInfo || null,
         daftar_ulang_status: daftarUlang?.status,
+        halaqah_name: daftarUlang?.tashih_halaqah?.name || null,
         submitted_at: daftarUlang?.submitted_at,
         reviewed_at: daftarUlang?.reviewed_at,
         user: userMap.get(userId) || null,

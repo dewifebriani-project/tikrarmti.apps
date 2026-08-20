@@ -175,6 +175,7 @@ interface JurnalEntry {
 interface JurnalUserEntry {
   user_id: string;
   daftar_ulang_status?: string;
+  halaqah_name?: string | null;
   submitted_at?: string;
   reviewed_at?: string;
   confirmed_chosen_juz?: string | null;
@@ -1515,8 +1516,30 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
       return targetCompletion < 100;
     });
 
+    // Group thalibah by halaqah
+    const grouped = incompleteThalibah.reduce((acc, entry) => {
+      const halaqah = entry.halaqah_name || 'Tanpa Halaqah';
+      if (!acc[halaqah]) acc[halaqah] = [];
+      acc[halaqah].push(entry);
+      return acc;
+    }, {} as Record<string, typeof incompleteThalibah>);
+
     const namesList = incompleteThalibah.length > 0
-      ? incompleteThalibah.map(e => `@${e.user?.full_name}`).join('\n')
+      ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
+          // calculate halaqah percentage
+          const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
+          
+          let str = `*${halaqah}* (Rata-rata: ${halaqahAvg}%)\n`;
+          str += thalibahs.map(e => {
+            const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
+            const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
+            const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
+            const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+            const progress = e.summary?.completion_percentage_target || 0;
+            return `- ${name} | ${juz} | ${progress}% | ${phone}`;
+          }).join('\n');
+          return str;
+        }).join('\n\n')
       : '_(Semua thalibah sudah lengkap, Alhamdulillah!)_';
 
     const template = `╔❀◎🎓◎❀════════════════╗
