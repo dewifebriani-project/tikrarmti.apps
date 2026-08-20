@@ -1705,7 +1705,7 @@ Barakallahufiikunna..
               const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
               const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
               const name = toProperCase(e.user?.full_name || 'Thalibah');
-              return `- ${name} | ${juz} | 100% ✅ | ${phone}`;
+              return `✅ ${name} | ${juz} | 100% | ${phone}`;
             }).join('\n');
             return str;
           }).join('\n\n')
