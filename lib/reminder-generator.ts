@@ -117,7 +117,7 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
   const isPraTahfidz = halaqah.class_type === 'pra_tahfidz';
   const title = isPraTahfidz ? `🌟  𝐏𝐑𝐀 𝐓𝐈𝐊𝐑𝐀𝐑  🌟` : `🌟  𝐓𝐈𝐊𝐑𝐀𝐑  *JUZ ${juz}* 🌟`;
   
-  const muallimah_name = halaqah.muallimah?.nama_kunyah || halaqah.muallimah?.full_name || '';
+  const muallimah_name = toTitleCase(halaqah.muallimah?.nama_kunyah || halaqah.muallimah?.full_name || '');
   const day_name = getDayName(halaqah.day_of_week) || new Intl.DateTimeFormat('id-ID', { weekday: 'long', timeZone: 'Asia/Jakarta' }).format(date);
   
   const tanggal_masehi = getMasehiDate(date);
@@ -162,8 +162,8 @@ export function generateHalaqahReminder(halaqah: HalaqahForReminder, date: Date 
     const validMentors = halaqah.mentors.filter(m => m.role === 'raisah' || m.role === 'musyrifah');
     mentorLine = validMentors.map(m => {
       const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
-      const mentorName = m.user?.full_name || '...';
-      return `\n🎗️ ${roleLabel}: ${toTitleCase(mentorName)}`;
+      const mentorName = toTitleCase(m.user?.full_name || '...');
+      return `\n🎗️ ${roleLabel}: ${mentorName}`;
     }).join('');
   }
 
@@ -236,7 +236,7 @@ export function generateDailyReminder(batchName: string, halaqahs: HalaqahForRem
     const maxStudents = h.max_students || '-';
     return `🛡️  ${classLabel}
 ⏰  *${formatTimeShort(h.start_time)} WIB*
-👑  Ustadzah ${h.muallimah?.nama_kunyah || h.muallimah?.full_name || ''}
+👑  Ustadzah ${toTitleCase(h.muallimah?.nama_kunyah || h.muallimah?.full_name || '')}
 🎗️  ${coordinatorLabel} : ${coordinatorNameFormatted}
 👥  Kuota : ${activeStudents}/${maxStudents} Thalibah
 🌐  Link Zoom${getZoomEmoji(h.zoom_name) ? ' ' + getZoomEmoji(h.zoom_name) : ''}
@@ -302,8 +302,8 @@ export function generateLaporanKelas(halaqah: HalaqahForReminder, date: Date = n
     if (validMentors.length > 0) {
       mentorLine = validMentors.map(m => {
         const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
-        const mentorName = m.user?.full_name || '...';
-        return `🏅${roleLabel} : ${toTitleCase(mentorName)}`;
+        const mentorName = toTitleCase(m.user?.full_name || '...');
+        return `🏅${roleLabel} : ${mentorName}`;
       }).join('\n');
     }
   }
@@ -352,8 +352,8 @@ export function generateMuallimahReminder(halaqah: HalaqahForReminder, date: Dat
     const validMentors = halaqah.mentors.filter(m => m.role === 'raisah' || m.role === 'musyrifah');
     mentorLine = validMentors.map(m => {
       const roleLabel = m.role === 'raisah' ? 'Raisah' : m.role === 'musyrifah' ? 'Musyrifah' : 'Musyrifah/Raisah';
-      const mentorName = m.user?.full_name || '...';
-      return `\n🎗️  *${roleLabel} : ${toTitleCase(mentorName)}*`;
+      const mentorName = toTitleCase(m.user?.full_name || '...');
+      return `\n🎗️  *${roleLabel} : ${mentorName}*`;
     }).join('');
   }
 
