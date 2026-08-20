@@ -1583,7 +1583,8 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                 const progress = e.summary?.completion_percentage_target || 0;
                 
                 let emoji = '🚨';
-                if (progress >= 75) emoji = '🔋';
+                if (progress >= 100) emoji = '✅';
+                else if (progress >= 75) emoji = '🔋';
                 else if (progress >= 50) emoji = '⏳';
                 else if (progress >= 25) emoji = '⚠️';
                 else if (progress > 0) emoji = '⚠️';
@@ -1613,10 +1614,11 @@ Pengisian laporan jurnal paling lambat hari Ahad pukul 00.00. Bagi yang tidak me
 ${namesList}
 
 Keterangan:
-🚨 0% (Belum lapor sama sekali)
-⚠️ 25% (Baru sedikit, ayo semangat!)
-⏳ 50% (Sedang proses)
+✅ 100% (Selesai, Barakallah!)
 🔋 75% (Hampir penuh)
+⏳ 50% (Sedang proses)
+⚠️ 25% (Baru sedikit, ayo semangat!)
+🚨 0% (Belum lapor sama sekali)
 
 ✨ _"Sesungguhnya amalan yang paling dicintai oleh Allah adalah amalan yang terus-menerus (istiqamah) walaupun sedikit." (HR. Muslim)_
 Mari Ukhti, kita perbarui semangat dan niat kita. Sedikit demi sedikit, insya Allah target pekan ini bisa diselesaikan dengan baik! 🔥
