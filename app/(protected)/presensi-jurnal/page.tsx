@@ -1529,7 +1529,13 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
           // calculate halaqah percentage
           const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
           
-          let str = `*${halaqah}* (Rata-rata: ${halaqahAvg}%)\n`;
+          let halaqahTitle = halaqah;
+          if (halaqah !== 'Tanpa Halaqah') {
+            halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
+            halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+          }
+
+          let str = `*${halaqahTitle}* (Rata-rata: ${halaqahAvg}%)\n`;
           str += thalibahs.map(e => {
             const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
             const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
