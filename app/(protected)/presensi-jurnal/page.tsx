@@ -894,7 +894,9 @@ function PresensiJurnalContent() {
                   <HalaqahSummaryTab batchId={selectedBatchId} />
                 </div>
               ) : activeTab === 'dropout' ? (
-                <JurnalTabSimple 
+                <JurnalTabSimple
+                  selectedBatchId={selectedBatchId}
+                  selectedBlok={selectedBlok} 
                   entries={jurnalEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
@@ -950,7 +952,9 @@ function PresensiJurnalContent() {
                   onResign={handleResign}
                 />
               ) : (
-                <JurnalTabSimple 
+                <JurnalTabSimple
+                  selectedBatchId={selectedBatchId}
+                  selectedBlok={selectedBlok} 
                   entries={jurnalEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
@@ -1438,6 +1442,8 @@ interface JurnalTabProps {
   pagination: any;
   onPageChange: (page: number) => void;
   emptyMessage?: string;
+  selectedBatchId?: string;
+  selectedBlok?: string;
 }
 
 // --- Hijri date helpers for reminder template ---
@@ -1481,9 +1487,10 @@ function formatReminderDate(date: Date): string {
   return `${dayName}, ${day} ${month} ${year} / ${h.day} ${hijriMonth} ${h.year} H`;
 }
 
-function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: JurnalTabProps) {
+function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage, selectedBatchId, selectedBlok }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [reminderCopied, setReminderCopied] = useState(false);
+  const [isGeneratingReminder, setIsGeneratingReminder] = useState(false);
 
   const toggleRow = (userId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1504,51 +1511,65 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
   );
 
   // Generate reminder chat template
-  const generateReminderChat = () => {
-    const today = new Date();
-    const dateStr = formatReminderDate(today);
-    
-    // Find thalibah who have NOT completed all blocks up to currentWeek
-    const incompleteThalibah = entries.filter(entry => {
-      if (!entry.user?.full_name) return false;
-      if (entry.user?.is_blacklisted) return false;
-      const targetCompletion = entry.summary?.completion_percentage_target || 0;
-      return targetCompletion < 100;
-    });
+  const generateReminderChat = async () => {
+    setIsGeneratingReminder(true);
+    try {
+      const batchParam = selectedBatchId ? `&batch_id=${selectedBatchId}` : '';
+      const blokParam = selectedBlok ? `&blok=${selectedBlok}` : '';
+      // Fetch all thalibah data (limit 1000 to ensure we get everything across pages)
+      const response = await fetch(`/api/musyrifah/jurnal?limit=1000${blokParam}${batchParam}`);
+      let fullEntries: typeof entries = entries;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.entries) {
+          fullEntries = result.data.entries;
+        }
+      }
 
-    // Group thalibah by halaqah
-    const grouped = incompleteThalibah.reduce((acc, entry) => {
-      const halaqah = entry.halaqah_name || 'Tanpa Halaqah';
-      if (!acc[halaqah]) acc[halaqah] = [];
-      acc[halaqah].push(entry);
-      return acc;
-    }, {} as Record<string, typeof incompleteThalibah>);
+      const today = new Date();
+      const dateStr = formatReminderDate(today);
+      
+      // Find thalibah who have NOT completed all blocks up to currentWeek
+      const incompleteThalibah = fullEntries.filter(entry => {
+        if (!entry.user?.full_name) return false;
+        if (entry.user?.is_blacklisted) return false;
+        const targetCompletion = entry.summary?.completion_percentage_target || 0;
+        return targetCompletion < 100;
+      });
 
-    const namesList = incompleteThalibah.length > 0
-      ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
-          // calculate halaqah percentage
-          const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
-          
-          let halaqahTitle = halaqah;
-          if (halaqah !== 'Tanpa Halaqah') {
-            halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
-            halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
-          }
+      // Group thalibah by halaqah
+      const grouped = incompleteThalibah.reduce((acc, entry) => {
+        const halaqah = entry.halaqah_name || 'Tanpa Halaqah';
+        if (!acc[halaqah]) acc[halaqah] = [];
+        acc[halaqah].push(entry);
+        return acc;
+      }, {} as Record<string, typeof incompleteThalibah>);
 
-          let str = `*${halaqahTitle}* (Rata-rata: ${halaqahAvg}%)\n`;
-          str += thalibahs.map(e => {
-            const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
-            const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
-            const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
-            const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
-            const progress = e.summary?.completion_percentage_target || 0;
-            return `- ${name} | ${juz} | ${progress}% | ${phone}`;
-          }).join('\n');
-          return str;
-        }).join('\n\n')
-      : '_(Semua thalibah sudah lengkap, Alhamdulillah!)_';
+      const namesList = incompleteThalibah.length > 0
+        ? Object.entries(grouped).map(([halaqah, thalibahs]) => {
+            // calculate halaqah percentage
+            const halaqahAvg = Math.round(thalibahs.reduce((sum, t) => sum + (t.summary?.completion_percentage_target || 0), 0) / thalibahs.length);
+            
+            let halaqahTitle = halaqah;
+            if (halaqah !== 'Tanpa Halaqah') {
+              halaqahTitle = halaqahTitle.replace(/halaqah\s+/i, '').replace(/ustadzah\s+/i, '').trim();
+              halaqahTitle = `Halaqah Ustadzah ${halaqahTitle}`;
+            }
 
-    const template = `╔❀◎🎓◎❀════════════════╗
+            let str = `*${halaqahTitle}* (Rata-rata: ${halaqahAvg}%)\n`;
+            str += thalibahs.map(e => {
+              const phoneStr = e.user?.whatsapp ? e.user.whatsapp.replace(/[^0-9]/g, '') : '';
+              const phone = phoneStr ? `wa.me/${phoneStr.startsWith('0') ? '62' + phoneStr.substring(1) : phoneStr}` : 'No HP tidak tersedia';
+              const juz = e.confirmed_chosen_juz ? `Juz ${e.confirmed_chosen_juz}` : 'Juz tidak tersedia';
+              const name = e.user?.nama_kunyah || e.user?.full_name || 'Thalibah';
+              const progress = e.summary?.completion_percentage_target || 0;
+              return `- ${name} | ${juz} | ${progress}% | ${phone}`;
+            }).join('\n');
+            return str;
+          }).join('\n\n')
+        : '_(Semua thalibah sudah lengkap, Alhamdulillah!)_';
+
+      const template = `╔❀◎🎓◎❀════════════════╗
  🔸𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔🔸
 ╚════════════════❀◎🎓◎❀╝
 
@@ -1564,7 +1585,8 @@ Pengisian laporan jurnal paling lambat hari Ahad pukul 00.00
 
 Bagi yang tidak menyelesaikan kurikulum atau laporan jurnal lengkap sampai H1d/H11d maka akan kami kenakan SP1 pada hari Senin melalui personal chat.
 
-Thalibah yang belum lengkap laporannya per hari ini
+Thalibah yang belum lengkap laporannya per hari ini:
+
 ${namesList}
 
 Semoga Allah mudahkan 
@@ -1575,13 +1597,19 @@ Barakallahufiikunna..
 📱 *MTI OFFICIAL : 081330000784*
 🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
 
-    navigator.clipboard.writeText(template).then(() => {
-      setReminderCopied(true);
-      toast.success(`Template reminder berhasil disalin! (${incompleteThalibah.length} thalibah belum lengkap)`);
-      setTimeout(() => setReminderCopied(false), 3000);
-    }).catch(() => {
-      toast.error('Gagal menyalin. Coba lagi.');
-    });
+      navigator.clipboard.writeText(template).then(() => {
+        setReminderCopied(true);
+        toast.success(`Template reminder berhasil disalin! (${incompleteThalibah.length} thalibah belum lengkap)`);
+        setTimeout(() => setReminderCopied(false), 3000);
+      }).catch(() => {
+        toast.error('Gagal menyalin. Coba lagi.');
+      });
+    } catch (error) {
+      console.error('Failed to generate reminder chat:', error);
+      toast.error('Gagal membuat template reminder');
+    } finally {
+      setIsGeneratingReminder(false);
+    }
   };
 
   return (
@@ -1594,17 +1622,28 @@ Barakallahufiikunna..
         </div>
         <button
           onClick={generateReminderChat}
+          disabled={isGeneratingReminder}
           className={cn(
             "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border whitespace-nowrap",
+            isGeneratingReminder ? "opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 border-gray-200" :
             reminderCopied
               ? "bg-emerald-600 text-white border-emerald-700"
               : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-700"
           )}
         >
-          {reminderCopied ? (
-            <><ClipboardCheck className="w-4 h-4" /> Tersalin!</>
+          {isGeneratingReminder ? (
+            <>
+              <div className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
+              Memuat Data...
+            </>
+          ) : reminderCopied ? (
+            <>
+              <Check className="w-4 h-4" /> Tersalin!
+            </>
           ) : (
-            <><Copy className="w-4 h-4" /> Copy Template Reminder</>
+            <>
+              <Copy className="w-4 h-4" /> Copy Reminder
+            </>
           )}
         </button>
       </div>
