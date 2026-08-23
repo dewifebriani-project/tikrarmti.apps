@@ -512,7 +512,7 @@ function PresensiJurnalContent() {
       
       const batchParam = selectedBatchId ? `&batch_id=${selectedBatchId}` : '';
       
-      if (activeTab === 'jurnal' || activeTab === 'dropout') {
+      if (activeTab === 'jurnal' || activeTab === 'dropout' || activeTab === 'kurikulum') {
         const typeParam = activeTab === 'dropout' ? '&status=dropout&is_dropout=true' : '';
         const response = await fetch(`/api/musyrifah/jurnal?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}${batchParam}`);
         if (response.ok) {
@@ -523,9 +523,9 @@ function PresensiJurnalContent() {
           setJurnalEntries(entries);
           setPagination(meta);
           
-          if (result.availableBloks) setAvailableBloks(result.availableBloks);
-          if (result.currentWeek) {
-            setCurrentWeek(result.currentWeek);
+          if (result.data?.availableBloks) setAvailableBloks(result.data.availableBloks);
+          if (result.data?.currentWeek) {
+            setCurrentWeek(result.data.currentWeek);
           }
         }
       } else {
@@ -539,7 +539,8 @@ function PresensiJurnalContent() {
           setTashihEntries(entries);
           setPagination(meta);
           
-          if (result.availableBloks) setAvailableBloks(result.availableBloks);
+          if (result.data?.availableBloks) setAvailableBloks(result.data.availableBloks);
+          if (result.data?.currentWeek) setCurrentWeek(result.data.currentWeek);
         }
       }
     } catch (error) {
@@ -560,9 +561,9 @@ function PresensiJurnalContent() {
       setJurnalEntries(entries);
       setPagination(meta);
       
-      if (result.availableBloks) setAvailableBloks(result.availableBloks);
-      if (result.currentWeek) {
-        setCurrentWeek(result.currentWeek);
+      if (result.data?.availableBloks) setAvailableBloks(result.data.availableBloks);
+      if (result.data?.currentWeek) {
+        setCurrentWeek(result.data.currentWeek);
       }
     }
   };
@@ -577,7 +578,8 @@ function PresensiJurnalContent() {
       setTashihEntries(entries);
       setPagination(meta);
       
-      if (result.availableBloks) setAvailableBloks(result.availableBloks);
+      if (result.data?.availableBloks) setAvailableBloks(result.data.availableBloks);
+      if (result.data?.currentWeek) setCurrentWeek(result.data.currentWeek);
     }
   };
 
@@ -775,8 +777,8 @@ function PresensiJurnalContent() {
             )}
           >
             <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Drop Out</span>
-            <span className="sm:hidden">DO</span>
+            <span className="hidden sm:inline">DO & Resign</span>
+            <span className="sm:hidden">DO/Resign</span>
           </button>
         </div>
 
@@ -901,7 +903,7 @@ function PresensiJurnalContent() {
                   }}
                   onDropout={handleDropout}
                   onResign={handleResign}
-                  emptyMessage="Tidak ada thalibah dalam daftar Drop Out."
+                  emptyMessage="Tidak ada thalibah dalam daftar DO/Resign."
                 />
               ) : activeTab === 'blacklist' ? (
                 <TashihTabSimple 
@@ -1318,7 +1320,7 @@ function TashihTabSimple({ selectedBatchId, entries, currentWeek, onRefresh, onS
                           <span className="inline">SP</span>
                         </button>
                         <button
-                          onClick={() => onDropout(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onDropout(entry.user_id, selectedBatchId || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Lakukan Dropout (DO)"
                         >
@@ -1326,7 +1328,7 @@ function TashihTabSimple({ selectedBatchId, entries, currentWeek, onRefresh, onS
                           <span className="inline">DO</span>
                         </button>
                         <button
-                          onClick={() => onResign(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onResign(entry.user_id, selectedBatchId || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Tandai Mengundurkan Diri"
                         >
@@ -1865,7 +1867,7 @@ Tetap semangat untuk pekan-pekan berikutnya!
                           onClick={() => {
                             const missingBlocks: string[] = [];
                             entry.weekly_status.forEach((w: any) => {
-                              if (currentWeek > 0 && w.week_number > currentWeek) return;
+                              if (w.week_number !== currentWeek) return;
                               
                               w.blocks.forEach((b: any) => {
                                 if (!b.is_completed) missingBlocks.push(b.block_code);
@@ -1873,12 +1875,12 @@ Tetap semangat untuk pekan-pekan berikutnya!
                             });
 
                             if (missingBlocks.length === 0) {
-                              toast.error('Semua blok sudah dilaporkan');
+                              toast.error('Semua blok pada pekan aktif sudah dilaporkan');
                               return;
                             }
 
                             const phone = entry.user.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '62');
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut *belum dilaporkan* (sampai Pekan ${currentWeek}):\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut pada pekan aktif *belum dilaporkan* (Pekan ${currentWeek}):\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             
                             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
                           }}

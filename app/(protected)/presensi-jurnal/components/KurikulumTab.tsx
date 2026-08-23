@@ -189,13 +189,10 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
            rabthString = '(belum ada)';
         } else if (absoluteIndex === 2) {
            murojaahString = getFormat(1);
-           rabthString = '(belum ada)';
-        } else if (absoluteIndex === 3) {
-           murojaahString = getFormat(2);
            rabthString = getFormat(1);
         } else {
            murojaahString = getFormat(absoluteIndex - 1);
-           rabthString = `H1a-${getPartOnly(absoluteIndex - 2, 0)}/H11a-${getPartOnly(absoluteIndex - 2, 10)}`;
+           rabthString = `H1a-${getPartOnly(absoluteIndex - 1, 0)}/H11a-${getPartOnly(absoluteIndex - 1, 10)}`;
         }
       } else {
         blockString = '[MURAJAAH/RABTH PEKANAN]';
@@ -242,8 +239,9 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
       const codeOnly = j.name.replace(/Juz\s*/i, '').replace(/\s*\(.*?\)/, '').trim();
       text += `Juz ${codeOnly} mulai dari hal ${j.start_page}\n`;
     });
+    text += `\n`;
 
-    text += `\nYassarallah \nBarakallahufiikunna..\n\n━━━━━━━━━━━━━━━━❁❁\n\n𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔\n\n📱 *MTI OFFICIAL : 081330000784*\n🪩  *Website MTI : markaztikrar.id*\n🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
+    text += `Yassarallah \nBarakallahufiikunna..\n\n━━━━━━━━━━━━━━━━❁❁\n\n𝗠𝗔𝗥𝗞𝗔𝗭 𝗧𝗜𝗞𝗥𝗔𝗥 𝗜𝗡𝗗𝗢𝗡𝗘𝗦𝗜𝗔\n\n📱 *MTI OFFICIAL : 081330000784*\n🪩  *Website MTI : markaztikrar.id*\n🔗 *Tap Lynk : https://lynk.id/markaztikrar.id*`;
 
     return text.trim();
   };
@@ -424,7 +422,8 @@ export function KurikulumTab({ currentWeek }: KurikulumTabProps = {}) {
           blockString={blockString} 
           rabthString={rabthString}
           murojaahString={murojaahString}
-          juzOptions={juzOptions} 
+          juzOptions={juzOptions}
+          pekan={selectedPekan}
         />
       </div>
     </div>

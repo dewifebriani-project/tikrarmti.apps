@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     let targetStatuses = ['approved', 'submitted'];
     const isBlacklisted = searchParams.get('is_blacklisted') === 'true';
     if (statusParam === 'dropout') {
-      targetStatuses = ['dropout'];
+      targetStatuses = ['dropout', 'mengundurkan_diri'];
     }
 
     let activeBatchData: any = null;
@@ -161,6 +161,8 @@ export async function GET(request: Request) {
 
     if (activeBatchData?.first_week_start_date) {
       const firstWeekStart = new Date(activeBatchData.first_week_start_date);
+      // Jurnal logic: add 7 days to first_week_start_date to calculate currentWeek
+      firstWeekStart.setDate(firstWeekStart.getDate() + 7);
       const now = new Date();
       const diffTime = now.getTime() - firstWeekStart.getTime();
       const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));

@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { requireAnyRole } from '@/lib/rbac';
 
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Ensure only admins can execute this route
+  const authError = await requireAnyRole(['admin']);
+  if (authError) return authError;
+
+  const supabase = createClient();
 
   const { data, error } = await supabase.rpc('admin_exec_sql', {
     sql_query: `
-      ALTER TABLE public.batches ADD COLUMN IF NOT EXISTS transfer_schedule_end_date timestamp with time zone;
+      ALTER TABLE public.jurnal_records 
+      ADD COLUMN IF NOT EXISTS rabth_methods TEXT[] DEFAULT '{}',
+      ADD COLUMN IF NOT EXISTS tafsir_options TEXT[] DEFAULT '{}';
+      
       NOTIFY pgrst, 'reload schema';
     `
   });

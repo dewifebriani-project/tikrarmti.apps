@@ -345,7 +345,7 @@ export async function GET(request: Request) {
     // Define allowed statuses based on the request
     let targetStatuses = ['approved', 'submitted'];
     if (statusParam === 'dropout' || isDropout) {
-      targetStatuses = ['dropout'];
+      targetStatuses = ['dropout', 'mengundurkan_diri'];
     }
 
     if (!activeBatchId) {

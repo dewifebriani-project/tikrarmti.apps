@@ -20,13 +20,14 @@ interface MutasiJadwalClientProps {
 
 export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: MutasiJadwalClientProps) {
   const [requests, setRequests] = useState(initialRequests);
+  const [sitInsList, setSitInsList] = useState(initialSitIns || []);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [editingSitInUser, setEditingSitInUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'sit_in'>('pending');
 
   const pendingRequests = requests.filter(req => req.status === 'pending');
   const approvedRequests = requests.filter(req => req.status === 'approved');
-  const sitInRequests = initialSitIns || [];
+  const sitInRequests = sitInsList;
 
   const handleAction = async (requestId: string, action: 'approve' | 'reject') => {
     if (!confirm(`Yakin ingin ${action === 'approve' ? 'MENYETUJUI' : 'MENOLAK'} pengajuan ini?`)) return;
@@ -50,6 +51,23 @@ export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: 
       ));
     } catch (error: any) {
       console.error(error);
+      toast.error(error.message || 'Terjadi kesalahan');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleCancelSitIn = async (userId: string, logId: string) => {
+    if (!confirm('Yakin ingin membatalkan Sit-In thalibah ini?')) return;
+    setLoadingId(logId);
+    try {
+      const response = await fetch(`/api/alumni/sit-in?target_user_id=${userId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Gagal membatalkan Sit-In');
+      toast.success('Sit-In berhasil dibatalkan');
+      setSitInsList(prev => prev.filter((s: any) => s.id !== logId));
+    } catch (error: any) {
       toast.error(error.message || 'Terjadi kesalahan');
     } finally {
       setLoadingId(null);
@@ -152,18 +170,26 @@ export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: 
                       </div>
                       
                       {activeTab === 'sit_in' && (
-                        <div className="flex w-full sm:w-auto shrink-0 mt-3 sm:mt-0">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto shrink-0 mt-3 sm:mt-0">
                           <Button
                             variant="outline"
                             size="sm"
                             className="w-full sm:w-auto font-bold border-blue-200 text-blue-600 hover:bg-blue-50"
                             onClick={() => {
-                              // We just use a modal state. We need to add state for this at the component level.
-                              // Since this is a map, we can set an `editingSitInUser` state.
                               setEditingSitInUser({ user: req.user, currentHalaqah: { id: req.details?.halaqah_id } });
                             }}
                           >
                             Edit Kelas Sit-In
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={loadingId === req.id}
+                            className="w-full sm:w-auto font-bold border-red-200 text-red-600 hover:bg-red-50"
+                            onClick={() => handleCancelSitIn(req.user?.id, req.id)}
+                          >
+                            {loadingId === req.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                            Batalkan Sit-In
                           </Button>
                         </div>
                       )}

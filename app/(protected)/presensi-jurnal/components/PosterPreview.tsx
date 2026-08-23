@@ -6,6 +6,7 @@ interface PosterPreviewProps {
   rabthString: string;
   murojaahString: string;
   juzOptions: Array<{ name: string; start_page: number }>;
+  pekan?: number;
 }
 
 // Pre-define font URL at module level
@@ -14,7 +15,7 @@ const FONT_FACE_CSS = `
 `;
 
 export const PosterPreview = React.forwardRef<HTMLDivElement, PosterPreviewProps>(
-  ({ dateHeader, blockString, rabthString, murojaahString, juzOptions }, ref) => {
+  ({ dateHeader, blockString, rabthString, murojaahString, juzOptions, pekan = 1 }, ref) => {
     
     // Format notes: "Juz 1A mulai dari hal X" — strip "Juz" prefix and "(Hal X-Y)" range
     const notesItems = juzOptions.map(j => {

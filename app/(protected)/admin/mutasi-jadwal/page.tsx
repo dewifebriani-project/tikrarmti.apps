@@ -38,17 +38,40 @@ export default async function MutasiJadwalPage() {
     console.error('[MutasiJadwal] Query error:', error);
   }
 
-  // Fetch Sit In requests
+  // Get Monday of current week for active sit-in filter
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(diff);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // Fetch Sit In requests from activity_logs (SIT_IN action, current week only)
   const { data: sitInLogs } = await supabase
-    .from('system_logs')
+    .from('activity_logs')
     .select(`
-      id, created_at, details,
-      user:users!system_logs_user_id_fkey(id, full_name, email, whatsapp)
+      id, timestamp, details,
+      user:users!activity_logs_user_id_fkey(id, full_name, email, whatsapp)
     `)
     .eq('resource', 'halaqah')
-    .contains('details', { action_type: 'SIT_IN' })
-    .order('created_at', { ascending: false })
-    .limit(100);
+    .gte('timestamp', startOfWeek.toISOString())
+    .order('timestamp', { ascending: false });
+
+  // Post-process: keep only the latest log per user, and only if it's SIT_IN (not CANCEL_SIT_IN)
+  const userLatestMap = new Map<string, any>();
+  for (const log of (sitInLogs || [])) {
+    const userId = (log.user as any)?.id;
+    const actionType = (log.details as any)?.action_type;
+    if (!userId || !actionType) continue;
+    // Map already has user's latest (since ordered desc), skip if already set
+    if (!userLatestMap.has(userId)) {
+      userLatestMap.set(userId, log);
+    }
+  }
+  // Only include users whose latest halaqah action is SIT_IN
+  const activeSitIns = Array.from(userLatestMap.values()).filter(
+    (log: any) => log.details?.action_type === 'SIT_IN'
+  );
 
   // Add current active count to target halaqah to prevent overfilling
   const enrichedRequests = await Promise.all((requests || []).map(async (req: any) => {
@@ -67,7 +90,7 @@ export default async function MutasiJadwalPage() {
     <div className="min-h-screen bg-gray-50/50 pb-20">
       <MutasiJadwalClient 
         initialRequests={enrichedRequests} 
-        initialSitIns={sitInLogs || []}
+        initialSitIns={activeSitIns}
         batches={batches || []} 
       />
     </div>

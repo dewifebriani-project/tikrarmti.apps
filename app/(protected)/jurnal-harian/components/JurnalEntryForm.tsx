@@ -228,11 +228,12 @@ export function JurnalEntryForm({
                          <div className="flex flex-col items-center">
                             <p className="text-[9px] font-black uppercase tracking-widest text-green-800 mb-3">Metode Rabth (Opsional)</p>
                             <div className="flex flex-wrap items-center justify-center gap-2 w-full">
-                              {[
-                                { id: 'pasangan', label: 'Setor Pasangan' },
-                                { id: 'tarteel', label: 'Setor Tarteel' },
-                                { id: 'solat', label: 'Setor Solat' }
-                              ].map(r => {
+                               {[
+                                 { id: 'pasangan', label: 'Setor Pasangan' },
+                                 { id: 'tarteel', label: 'Setor Tarteel' },
+                                 { id: 'solat', label: 'Setor Solat' },
+                                 { id: 'murajaah', label: 'Murajaah' }
+                               ].map(r => {
                                 const checked = formData.rabth_methods.includes(r.id);
                                 return (
                                   <button
@@ -269,7 +270,8 @@ export function JurnalEntryForm({
                                {[
                                  { id: 'partner', label: 'Partner', icon: User },
                                  { id: 'tarteel', label: 'Tarteel', icon: Sparkles },
-                                 { id: 'keluarga', label: 'Keluarga', icon: Headphones }
+                                 { id: 'keluarga', label: 'Keluarga', icon: Headphones },
+                                 { id: 'teman', label: 'Teman', icon: User }
                                ].map(cat => (
                                  <button
                                    key={cat.id}
@@ -359,9 +361,7 @@ export function JurnalEntryForm({
                                       { id: 'keluarga_40_ibu', label: 'Ibu' },
                                       { id: 'keluarga_40_kakak', label: 'Kakak' },
                                       { id: 'keluarga_40_adik', label: 'Adik' },
-                                      { id: 'keluarga_40_anak', label: 'Anak' },
-                                      { id: 'keluarga_40_teman_mti', label: 'Teman Thalibah MTI' },
-                                      { id: 'keluarga_40_teman_luar', label: 'Teman Diluar MTI' }
+                                      { id: 'keluarga_40_anak', label: 'Anak' }
                                     ].map((fam, idx) => (
                                       <button
                                         key={idx}
@@ -371,6 +371,24 @@ export function JurnalEntryForm({
                                           formData.tikrar_bi_al_ghaib_type === fam.id ? "bg-green-600 text-white border-green-500 shadow-md" : "bg-white text-green-900 border-green-100 hover:border-green-300")}
                                       >
                                         {fam.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                                {ghaibCategory === 'teman' && (
+                                  <div className="flex flex-wrap items-center justify-center gap-2 w-full">
+                                    {[
+                                      { id: 'teman_40_mti', label: 'Teman Thalibah MTI' },
+                                      { id: 'teman_40_luar', label: 'Teman Diluar MTI' }
+                                    ].map((teman, idx) => (
+                                      <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => { handleGhaibSelection(teman.id); setShowGhaibMenu(false); setGhaibCategory(null); }}
+                                        className={cn("px-4 py-2.5 rounded-2xl border text-[9px] font-black uppercase tracking-tight transition-all", 
+                                          formData.tikrar_bi_al_ghaib_type === teman.id ? "bg-green-600 text-white border-green-500 shadow-md" : "bg-white text-green-900 border-green-100 hover:border-green-300")}
+                                      >
+                                        {teman.label}
                                       </button>
                                     ))}
                                   </div>

@@ -40,15 +40,14 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   return null;
 }
 
-// Helper function to get the first week start date from batch
-// First week starts 3 weeks after batch start_date
+// Helper function to get the first week start date from batch (JURNAL WEEK 1)
 function getFirstWeekStart(batch: any): Date | null {
-  const startDate = batch.start_date ? new Date(batch.start_date) : null;
+  const startDate = batch.first_week_start_date ? new Date(batch.first_week_start_date) : null;
   if (!startDate) return null;
 
-  // First week starts 1 week after batch start_date (Pekan Tashih)
+  // Jurnal week 1 starts 1 week after Tashih week 1 (first_week_start_date)
   const firstWeekStart = new Date(startDate);
-  firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7)); // +1 week
+  firstWeekStart.setDate(firstWeekStart.getDate() + 7);
   return firstWeekStart;
 }
 
