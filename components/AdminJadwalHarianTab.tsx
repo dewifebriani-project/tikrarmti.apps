@@ -111,12 +111,20 @@ export default function AdminJadwalHarianTab() {
       }
 
       // Map to HalaqahForReminder format
+      // Get the start of the current week (Monday)
+      const now = new Date();
+      const currentDay = now.getDay();
+      const distance = currentDay === 0 ? 6 : currentDay - 1;
+      const lastMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distance);
+      lastMonday.setHours(0, 0, 0, 0);
+      const startOfWeek = lastMonday.toISOString();
+
       const { data: sitInLogs } = await supabase
         .from('audit_logs')
         .select('user_id, created_at, details, user:users(full_name, whatsapp)')
         .eq('action', 'UPDATE')
         .eq('resource', 'halaqah')
-        .gte('created_at', new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()); // Past 180 days
+        .gte('created_at', startOfWeek);
 
       // Fetch accurate quota/student counts that bypass RLS
       let quotas: Record<string, { activeCount: number, maxStudents: number }> = {};

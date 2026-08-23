@@ -24,9 +24,7 @@ const activityOptions = [
   { id: 'tikrar_bi_an_nadzar_completed', name: 'Tikrar Bi An Nadzar', sub: 'Baca Melihat Mushaf', desc: '40x per Blok', icon: Sparkles },
   { id: 'tasmi_record_completed', name: 'Tasmi Record', sub: 'Rekam Tanpa Mushaf', desc: '3x Rekaman Lancar', icon: Mic },
   { id: 'simak_record_completed', name: 'Simak Record', sub: 'Dengar Rekaman Sendiri', desc: '1x per Blok', icon: Headphones },
-  { id: 'tikrar_bi_al_ghaib_completed', name: 'Tikrar Bi Al Ghaib', sub: 'Baca Tanpa Mushaf', desc: '40x per Blok', icon: Star },
-  { id: 'tafsir_completed', name: 'Tafsir', sub: 'Memahami Makna Ayat', desc: '1x per Blok', icon: BookOpen },
-  { id: 'menulis_completed', name: 'Menulis', sub: 'Tulis Ulang Tanpa Mushaf', desc: '1x per Blok', icon: BookOpen }
+  { id: 'tikrar_bi_al_ghaib_completed', name: 'Tikrar Bi Al Ghaib', sub: 'Baca Tanpa Mushaf', desc: '40x per Blok', icon: Star }
 ]
 
 export function JurnalEntryForm({
@@ -50,13 +48,14 @@ export function JurnalEntryForm({
     tikrar_bi_al_ghaib_type: null,
     tikrar_bi_al_ghaib_20x_multi: [],
     tarteel_screenshot_url: null,
-    tafsir_completed: false,
-    menulis_completed: false,
+    rabth_methods: initialData.rabth_methods || [],
+    tafsir_options: initialData.tafsir_options || [],
     catatan_tambahan: ''
   })
 
+  const [showRabthMenu, setShowRabthMenu] = useState(false)
   const [showGhaibMenu, setShowGhaibMenu] = useState(false)
-  const [ghaibCategory, setGhaibCategory] = useState<'partner' | 'tarteel' | 'keluarga' | null>(null)
+  const [ghaibCategory, setGhaibCategory] = useState<'partner' | 'tarteel' | 'keluarga' | 'teman' | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
   const toggleActivity = (id: string) => {
@@ -65,6 +64,9 @@ export function JurnalEntryForm({
       setShowGhaibMenu(!showGhaibMenu)
       if (isClosing) setGhaibCategory(null)
       return
+    }
+    if (id === 'rabth_completed') {
+      setShowRabthMenu(!showRabthMenu)
     }
     setFormData((prev: any) => ({ ...prev, [id]: !prev[id] }))
   }
@@ -221,6 +223,44 @@ export function JurnalEntryForm({
                       </div>
                     </button>
 
+                    {opt.id === 'rabth_completed' && showRabthMenu && isSelected && (
+                      <Card className="p-4 bg-green-50/50 border-green-100 border-2 rounded-2xl animate-fadeInDown space-y-4">
+                         <div className="flex flex-col items-center">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-green-800 mb-3">Metode Rabth (Opsional)</p>
+                            <div className="flex flex-wrap items-center justify-center gap-2 w-full">
+                              {[
+                                { id: 'pasangan', label: 'Setor Pasangan' },
+                                { id: 'tarteel', label: 'Setor Tarteel' },
+                                { id: 'solat', label: 'Setor Solat' }
+                              ].map(r => {
+                                const checked = formData.rabth_methods.includes(r.id);
+                                return (
+                                  <button
+                                    key={r.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData((prev: any) => ({
+                                        ...prev,
+                                        rabth_methods: checked 
+                                          ? prev.rabth_methods.filter((x:string) => x !== r.id) 
+                                          : [...prev.rabth_methods, r.id]
+                                      }))
+                                    }}
+                                    className={cn("px-4 py-2.5 rounded-2xl border text-[9px] font-black uppercase tracking-tight transition-all flex items-center gap-2", 
+                                      checked ? "bg-green-600 text-white border-green-500 shadow-md" : "bg-white text-green-900 border-green-100 hover:border-green-300")}
+                                  >
+                                    <div className={cn("w-3 h-3 rounded border flex items-center justify-center", checked ? "border-white bg-green-500" : "border-green-300")}>
+                                      {checked && <CheckCircle className="w-2.5 h-2.5 text-white" />}
+                                    </div>
+                                    {r.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                         </div>
+                      </Card>
+                    )}
+
                     {isGhaib && showGhaibMenu && (
                       <Card className="p-4 bg-green-50/50 border-green-100 border-2 rounded-2xl animate-fadeInDown space-y-4">
                          <div className="flex flex-col items-center">
@@ -320,7 +360,8 @@ export function JurnalEntryForm({
                                       { id: 'keluarga_40_kakak', label: 'Kakak' },
                                       { id: 'keluarga_40_adik', label: 'Adik' },
                                       { id: 'keluarga_40_anak', label: 'Anak' },
-                                      { id: 'keluarga_40_teman', label: 'Teman' }
+                                      { id: 'keluarga_40_teman_mti', label: 'Teman Thalibah MTI' },
+                                      { id: 'keluarga_40_teman_luar', label: 'Teman Diluar MTI' }
                                     ].map((fam, idx) => (
                                       <button
                                         key={idx}
@@ -344,6 +385,53 @@ export function JurnalEntryForm({
               })}
             </div>
           )}
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-widest text-green-800/80 pl-1">
+            Kegiatan Opsional
+          </label>
+          <div className="space-y-2">
+            {[
+              { id: 'baca_tafsir', label: 'Baca Tafsir', icon: BookOpen },
+              { id: 'tulis_ayat', label: 'Tulis Ayat', icon: BookOpen },
+              { id: 'audio_tafsir', label: 'Menyimak Video/Audio Tafsir', icon: Headphones },
+              { id: 'baca_terjemahan', label: 'Baca Terjemahan', icon: BookOpen },
+              { id: 'baca_terjemahan_perkata', label: 'Baca Terjemahan + Perkata', icon: BookOpen },
+            ].map(opt => {
+              const isChecked = formData.tafsir_options.includes(opt.id)
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setFormData((prev: any) => ({
+                      ...prev,
+                      tafsir_options: isChecked 
+                        ? prev.tafsir_options.filter((x:string) => x !== opt.id) 
+                        : [...prev.tafsir_options, opt.id]
+                    }))
+                  }}
+                  className={cn(
+                    "w-full p-3 rounded-2xl border transition-all duration-300 flex items-center justify-between relative overflow-hidden group",
+                    isChecked ? "bg-white border-green-500 shadow-emerald-600/5 ring-1 ring-green-500 ring-offset-0" : "bg-white border-green-50 text-gray-700 hover:border-green-200 shadow-sm"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center transition-all", isChecked ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400 group-hover:bg-green-50 group-hover:text-green-600")}>
+                      <opt.icon className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className={cn("text-xs font-black uppercase tracking-tight", isChecked ? "text-green-900" : "text-gray-900")}>{opt.label}</div>
+                    </div>
+                  </div>
+                  <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all mr-1", isChecked ? "border-green-600 bg-green-600 text-white" : "border-gray-100 bg-white")}>
+                    {isChecked && <CheckCircle className="w-3.5 h-3.5" />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <Card className="glass-premium border-none shadow-md p-4 rounded-3xl relative overflow-hidden">

@@ -450,6 +450,7 @@ export async function GET(request: Request) {
 
     return ApiResponses.success({
       entries: combinedEntries,
+      currentWeek: currentWeek,
       meta: {
         totalCount: totalCount || 0,
         page,

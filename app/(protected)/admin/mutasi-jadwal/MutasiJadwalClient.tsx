@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { SitInModal } from '@/components/dashboard/SitInModal';
 import { Button } from '@/components/ui/button';
 import { formatTimeShort } from '@/lib/reminder-generator';
 import { toast } from 'react-hot-toast';
@@ -20,6 +21,7 @@ interface MutasiJadwalClientProps {
 export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: MutasiJadwalClientProps) {
   const [requests, setRequests] = useState(initialRequests);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [editingSitInUser, setEditingSitInUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'sit_in'>('pending');
 
   const pendingRequests = requests.filter(req => req.status === 'pending');
@@ -148,6 +150,23 @@ export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: 
                         <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Target Sit In</p>
                         <p className="font-bold text-blue-700 text-sm">{req.details?.halaqah_name || 'Halaqah tidak diketahui'}</p>
                       </div>
+                      
+                      {activeTab === 'sit_in' && (
+                        <div className="flex w-full sm:w-auto shrink-0 mt-3 sm:mt-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto font-bold border-blue-200 text-blue-600 hover:bg-blue-50"
+                            onClick={() => {
+                              // We just use a modal state. We need to add state for this at the component level.
+                              // Since this is a map, we can set an `editingSitInUser` state.
+                              setEditingSitInUser({ user: req.user, currentHalaqah: { id: req.details?.halaqah_id } });
+                            }}
+                          >
+                            Edit Kelas Sit-In
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="flex-1 flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-4 rounded-xl w-full md:w-auto">
@@ -212,6 +231,19 @@ export function MutasiJadwalClient({ initialRequests, initialSitIns, batches }: 
             </Card>
           ))}
         </div>
+      )}
+
+      {editingSitInUser && (
+        <SitInModal
+          isOpen={!!editingSitInUser}
+          onClose={() => {
+            setEditingSitInUser(null);
+            window.location.reload(); // refresh when modal closes
+          }}
+          user={editingSitInUser.user}
+          activeBatch={batches[0]}
+          currentHalaqah={editingSitInUser.currentHalaqah}
+        />
       )}
     </div>
   );

@@ -22,7 +22,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { halaqah_id } = body;
+    const { halaqah_id, target_user_id } = body;
+
+    let auditUserId = context.userId;
+
+    // Admin can register on behalf of thalibah
+    if (target_user_id && target_user_id !== context.userId) {
+      if (!context.roles.includes('admin') && !context.roles.includes('musyrifah')) {
+         return ApiResponses.unauthorized('Hanya Admin/Musyrifah yang dapat memindahkan kelas Sit-In Thalibah lain.');
+      }
+      auditUserId = target_user_id;
+    }
 
     if (!halaqah_id) {
       return ApiResponses.badRequest('ID Halaqah diperlukan.');
@@ -75,7 +85,7 @@ export async function POST(request: Request) {
 
     // 5. Audit Log (as a simple way to track sit-ins without creating a new table)
     await logAudit({
-      userId: context.userId,
+      userId: auditUserId,
       action: 'UPDATE',
       resource: 'halaqah',
       details: { action_type: 'SIT_IN', halaqah_id, halaqah_name: targetHalaqah.name },
@@ -90,6 +100,43 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('[Sit-In API] Error:', error);
+    return ApiResponses.handleUnknown(error);
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const authError = await requireAuth();
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
+
+    const { searchParams } = new URL(request.url);
+    const target_user_id = searchParams.get('target_user_id');
+
+    let auditUserId = context.userId;
+
+    if (target_user_id && target_user_id !== context.userId) {
+      if (!context.roles.includes('admin') && !context.roles.includes('musyrifah')) {
+         return ApiResponses.unauthorized('Hanya Admin/Musyrifah yang dapat membatalkan kelas Sit-In Thalibah lain.');
+      }
+      auditUserId = target_user_id;
+    }
+
+    await logAudit({
+      userId: auditUserId,
+      action: 'UPDATE',
+      resource: 'halaqah',
+      details: { action_type: 'CANCEL_SIT_IN' },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+      level: 'INFO'
+    });
+
+    return ApiResponses.success({ message: 'Sit-In dibatalkan' });
+  } catch (error) {
+    console.error('[Sit-In API DELETE] Error:', error);
     return ApiResponses.handleUnknown(error);
   }
 }

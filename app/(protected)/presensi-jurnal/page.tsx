@@ -1934,7 +1934,7 @@ Tetap semangat untuk pekan-pekan berikutnya!
                           <span className="inline">SP</span>
                         </button>
                         <button
-                          onClick={() => onDropout(entry.user_id, selectedBatchId, entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onDropout(entry.user_id, selectedBatchId || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Lakukan Dropout (DO)"
                         >
@@ -1942,7 +1942,7 @@ Tetap semangat untuk pekan-pekan berikutnya!
                           <span className="inline">DO</span>
                         </button>
                         <button
-                          onClick={() => onResign(entry.user_id, selectedBatchId, entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onResign(entry.user_id, selectedBatchId || '', entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Tandai Mengundurkan Diri"
                         >

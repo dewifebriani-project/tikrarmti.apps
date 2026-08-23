@@ -353,13 +353,20 @@ export function HalaqahManagementTab() {
           }));
       }
 
-      const startOfBatch = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
+      // Get the start of the current week (Monday)
+      const now = new Date();
+      const currentDay = now.getDay();
+      const distance = currentDay === 0 ? 6 : currentDay - 1;
+      const lastMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distance);
+      lastMonday.setHours(0, 0, 0, 0);
+      const startOfWeek = lastMonday.toISOString();
+      
       const { data: sitInLogs } = await supabase
         .from('audit_logs')
         .select('user_id, created_at, details, user:users(full_name, whatsapp)')
         .eq('action', 'UPDATE')
         .eq('resource', 'halaqah')
-        .gte('created_at', startOfBatch);
+        .gte('created_at', startOfWeek);
 
       const sitIns = sitInLogs?.filter((log: any) => log.details?.action_type === 'SIT_IN' && log.details?.halaqah_id === halaqah.id) || [];
       const sitInStudents = sitIns.map((log: any) => ({

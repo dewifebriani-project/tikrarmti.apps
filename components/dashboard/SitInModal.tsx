@@ -27,6 +27,7 @@ interface ZoomInfo {
 
 export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah }: SitInModalProps) {
   const [availableHalaqahs, setAvailableHalaqahs] = useState<any[]>([]);
+  const [currentSitIn, setCurrentSitIn] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [registeredZoom, setRegisteredZoom] = useState<Record<string, ZoomInfo>>({});
@@ -44,7 +45,15 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
       // Find the program type the user is in. We can derive from currentHalaqah
       const classType = currentHalaqah?.program?.class_type || 'tikrar_tahfidz';
 
-      const [halaqahsResponse, quotaResponse] = await Promise.all([
+      
+      // Get current date and Monday of this week
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1); 
+      const startOfWeek = new Date(now.setDate(diff));
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const [halaqahsResponse, quotaResponse, sitInResponse] = await Promise.all([
         supabase
           .from('halaqah')
           .select(`
@@ -57,11 +66,24 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
           .eq('program.batch_id', activeBatch.id)
           .eq('program.class_type', classType)
           .eq('status', 'active'),
-        fetch(`/api/shared/halaqah-quota?batch_id=${activeBatch.id}`)
+        fetch(`/api/shared/halaqah-quota?batch_id=${activeBatch.id}`),
+        supabase
+          .from('audit_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('action_type', 'SIT_IN')
+          .gte('created_at', startOfWeek.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
       ]);
+
       
       if (halaqahsResponse.error) throw halaqahsResponse.error;
       
+      if (sitInResponse.data) {
+        setCurrentSitIn(sitInResponse.data.details?.halaqah_id);
+      }
       const quotaData = quotaResponse.ok ? await quotaResponse.json() : null;
       const quotaMap = new Map();
       if (quotaData && quotaData.success && quotaData.data?.halaqah) {
@@ -103,6 +125,7 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
         body: JSON.stringify({
           batch_id: activeBatch.id,
           halaqah_id: halaqahId,
+          target_user_id: user.id,
         })
       });
 
@@ -119,6 +142,25 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
       toast.error(error.message || 'Gagal mendaftar Sit-In');
     } finally {
       setRegisteringId(null);
+    }
+  };
+
+
+  const handleCancelSitIn = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/alumni/sit-in?target_user_id=${user.id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        toast.success('Sit-In dibatalkan');
+        setCurrentSitIn(null);
+        setRegisteredZoom({});
+      }
+    } catch(e) {
+      toast.error('Gagal membatalkan Sit-In');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,16 +192,33 @@ export function SitInModal({ isOpen, onClose, user, activeBatch, currentHalaqah 
             </div>
           ) : (
             <div className="space-y-4">
+
+              {currentSitIn && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-indigo-800 uppercase mb-1">Status Anda</p>
+                      <p className="text-sm font-medium text-indigo-900">
+                        Anda sedang terdaftar Sit-In di salah satu kelas ini. Memilih kelas lain akan menimpa Sit-In sebelumnya.
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleCancelSitIn} className="text-red-600 border-red-200 hover:bg-red-50">
+                      Batalkan Sit-In
+                    </Button>
+                  </div>
+                </div>
+              )}
               {availableHalaqahs.map((halaqah) => {
                 const activeCount = halaqah.activeCount || 0;
                 const isFull = activeCount >= (halaqah.max_students || 999);
                 const zoomInfo = registeredZoom[halaqah.id];
+                const isCurrent = currentSitIn === halaqah.id;
                 const validMentors = halaqah.mentors?.filter((m: any) => (m.role === 'raisah' || m.role === 'musyrifah') && m.user?.full_name !== halaqah.muallimah?.full_name) || [];
 
                 return (
                   <div 
                     key={halaqah.id} 
-                    className={`border p-5 rounded-xl transition-all bg-white shadow-sm ${
+                    className={`border p-5 rounded-xl transition-all bg-white shadow-sm ${isCurrent ? 'ring-2 ring-indigo-500 bg-indigo-50/30' : ''} ${
                       isFull ? 'border-gray-200 opacity-60' : 'border-indigo-100'
                     }`}
                   >

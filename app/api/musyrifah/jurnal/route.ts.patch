@@ -1,0 +1,16 @@
+--- app/api/musyrifah/jurnal/route.ts
++++ app/api/musyrifah/jurnal/route.ts
+@@ -216,4 +216,6 @@
+   tashih_completed: z.boolean().optional(),
+   rabth_completed: z.boolean().optional(),
++  rabth_methods: z.array(z.string()).optional(),
++  tafsir_options: z.array(z.string()).optional(),
+   murajaah_count: z.number().optional(),
+   simak_murattal_count: z.number().optional(),
+@@ -223,6 +225,4 @@
+   simak_record_completed: z.boolean().optional(),
+   tikrar_bi_al_ghaib_count: z.number().optional(),
+-  tafsir_completed: z.boolean().optional(),
+-  menulis_completed: z.boolean().optional(),
+   total_duration_minutes: z.number().optional(),
+   catatan_tambahan: z.string().nullable().optional(),

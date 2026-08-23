@@ -8,6 +8,7 @@ export interface JurnalFormData {
   juz_code?: string | null
   blok: string // Single blok for jurnal (stored as array in DB)
   rabth_completed: boolean
+  rabth_methods: string[]
   murajaah_completed: boolean
   simak_murattal_completed: boolean
   tikrar_bi_an_nadzar_completed: boolean
@@ -17,8 +18,7 @@ export interface JurnalFormData {
   tikrar_bi_al_ghaib_subtype?: string | null
   tikrar_bi_al_ghaib_20x_multi: string[]
   tarteel_screenshot_url?: string | null
-  tafsir_completed: boolean
-  menulis_completed: boolean
+  tafsir_options: string[]
   catatan_tambahan?: string | null
   // For tashih validation
   weekNumber: number
@@ -131,6 +131,7 @@ export async function saveJurnalRecord(data: JurnalFormData) {
       blok: data.blok || null, // Store as single string (VARCHAR in DB)
       tashih_completed: true,
       rabth_completed: data.rabth_completed,
+      rabth_methods: data.rabth_completed ? data.rabth_methods : [],
       murajaah_count: data.murajaah_completed ? 1 : 0,
       simak_murattal_count: data.simak_murattal_completed ? 1 : 0,
       tikrar_bi_an_nadzar_completed: data.tikrar_bi_an_nadzar_completed,
@@ -145,8 +146,9 @@ export async function saveJurnalRecord(data: JurnalFormData) {
         ? data.tikrar_bi_al_ghaib_20x_multi
         : (data.tikrar_bi_al_ghaib_type?.endsWith('_20') ? [data.tikrar_bi_al_ghaib_type] : null),
       tarteel_screenshot_url: data.tarteel_screenshot_url || null,
-      tafsir_completed: data.tafsir_completed,
-      menulis_completed: data.menulis_completed,
+      tafsir_completed: data.tafsir_options.includes('baca_tafsir'),
+      menulis_completed: data.tafsir_options.includes('tulis_ayat'),
+      tafsir_options: data.tafsir_options,
       catatan_tambahan: data.catatan_tambahan || null
     }
 
