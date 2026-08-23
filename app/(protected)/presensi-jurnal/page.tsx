@@ -855,8 +855,22 @@ function PresensiJurnalContent() {
               {activeTab === 'jurnal' && (
                 <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Pekan Aktif (Remind)</label>
-                  <div className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] cursor-default flex items-center h-[42px]">
-                    Pekan {currentWeek}
+                  <div className="flex items-center bg-green-50 border border-green-100 shadow-sm rounded-xl h-[42px] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentWeek(w => Math.max(1, w - 1))}
+                      className="px-2.5 h-full text-green-700 hover:bg-green-100 transition-colors text-lg font-bold leading-none"
+                      title="Pekan sebelumnya"
+                    >‹</button>
+                    <span className="px-3 text-sm font-bold text-green-900 min-w-[80px] text-center">
+                      Pekan {currentWeek}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentWeek(w => w + 1)}
+                      className="px-2.5 h-full text-green-700 hover:bg-green-100 transition-colors text-lg font-bold leading-none"
+                      title="Pekan berikutnya"
+                    >›</button>
                   </div>
                 </div>
               )}

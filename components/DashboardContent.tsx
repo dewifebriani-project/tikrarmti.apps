@@ -518,7 +518,11 @@ export default function DashboardContent() {
             <div className="hidden lg:block">
               <div className="w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center shadow-xl">
                 <p className="text-[10px] uppercase font-black text-white/60 tracking-widest">Pekan</p>
-                <p className="text-4xl font-black">{currentWeek}</p>
+                <div className="flex items-center gap-2 mt-1">
+                   <button onClick={() => setCurrentWeek(w => Math.max(1, w - 1))} className="text-white/50 hover:text-white">‹</button>
+                   <p className="text-4xl font-black">{currentWeek}</p>
+                   <button onClick={() => setCurrentWeek(w => w + 1)} className="text-white/50 hover:text-white">›</button>
+                </div>
               </div>
             </div>
           </div>
@@ -847,7 +851,7 @@ export default function DashboardContent() {
                   Halaqah of the Week
                 </span>
                 <span className="text-xs font-bold text-gray-500">
-                  Angkatan {activeBatch?.id?.split('-')[0] || 'Aktif'}
+                  {activeBatch?.name || 'Aktif'}
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-1 break-words">

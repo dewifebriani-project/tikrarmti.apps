@@ -47,12 +47,10 @@ export default async function MutasiJadwalPage() {
   startOfWeek.setHours(0, 0, 0, 0);
 
   // Fetch Sit In requests from activity_logs (SIT_IN action, current week only)
+  // Select user_id directly to avoid FK join name mismatch
   const { data: sitInLogs } = await supabase
     .from('activity_logs')
-    .select(`
-      id, timestamp, details,
-      user:users!activity_logs_user_id_fkey(id, full_name, email, whatsapp)
-    `)
+    .select('id, user_id, timestamp, details')
     .eq('resource', 'halaqah')
     .gte('timestamp', startOfWeek.toISOString())
     .order('timestamp', { ascending: false });
@@ -60,8 +58,9 @@ export default async function MutasiJadwalPage() {
   // Post-process: keep only the latest log per user, and only if it's SIT_IN (not CANCEL_SIT_IN)
   const userLatestMap = new Map<string, any>();
   for (const log of (sitInLogs || [])) {
-    const userId = (log.user as any)?.id;
+    const userId = (log as any).user_id;
     const actionType = (log.details as any)?.action_type;
+    // Skip logs without action_type (e.g. admin edits)
     if (!userId || !actionType) continue;
     // Map already has user's latest (since ordered desc), skip if already set
     if (!userLatestMap.has(userId)) {
@@ -69,9 +68,24 @@ export default async function MutasiJadwalPage() {
     }
   }
   // Only include users whose latest halaqah action is SIT_IN
-  const activeSitIns = Array.from(userLatestMap.values()).filter(
+  const activeSitInLogs = Array.from(userLatestMap.values()).filter(
     (log: any) => log.details?.action_type === 'SIT_IN'
   );
+
+  // Fetch user details for the active sit-ins
+  const sitInUserIds = activeSitInLogs.map((log: any) => log.user_id);
+  const { data: sitInUsers } = sitInUserIds.length > 0
+    ? await supabase
+        .from('users')
+        .select('id, full_name, email, whatsapp')
+        .in('id', sitInUserIds)
+    : { data: [] };
+
+  const sitInUserMap = new Map((sitInUsers || []).map((u: any) => [u.id, u]));
+  const activeSitIns = activeSitInLogs.map((log: any) => ({
+    ...log,
+    user: sitInUserMap.get(log.user_id) || null,
+  }));
 
   // Add current active count to target halaqah to prevent overfilling
   const enrichedRequests = await Promise.all((requests || []).map(async (req: any) => {
