@@ -199,13 +199,19 @@ export default function DashboardContent() {
 
   // If thalibah info exists, we prioritize it for the main stats display
   // Calculate current week based on batch timeline
-  const currentWeek = activeBatch?.first_week_start_date ? (() => {
+  const computeCurrentWeek = () => {
+    if (!activeBatch?.first_week_start_date) return 0;
     const today = new Date();
     const week1Start = new Date(activeBatch.first_week_start_date);
-    if (today < week1Start) return 0; // Before batch starts
+    if (today < week1Start) return 0;
     const daysDiff = Math.floor((today.getTime() - week1Start.getTime()) / (1000 * 60 * 60 * 24));
     return Math.floor(daysDiff / 7) + 1;
-  })() : 0;
+  };
+  const [currentWeek, setCurrentWeek] = useState<number>(computeCurrentWeek());
+  // Update current week when batch changes
+  useEffect(() => {
+    setCurrentWeek(computeCurrentWeek());
+  }, [activeBatch]);
 
   const displayStats = {
     totalHariTarget: totalHariTarget,
