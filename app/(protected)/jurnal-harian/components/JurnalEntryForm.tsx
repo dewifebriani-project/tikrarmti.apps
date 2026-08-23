@@ -231,8 +231,7 @@ export function JurnalEntryForm({
                                {[
                                  { id: 'pasangan', label: 'Setor Pasangan' },
                                  { id: 'tarteel', label: 'Setor Tarteel' },
-                                 { id: 'solat', label: 'Setor Solat' },
-                                 { id: 'murajaah', label: 'Murajaah' }
+                                 { id: 'solat', label: 'Setor Solat' }
                                ].map(r => {
                                 const checked = formData.rabth_methods.includes(r.id);
                                 return (
