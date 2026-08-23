@@ -11,9 +11,11 @@ export async function GET() {
 
   const { data, error } = await supabase.rpc('admin_exec_sql', {
     sql_query: `
-      ALTER TABLE public.jurnal_records 
-      ADD COLUMN IF NOT EXISTS rabth_methods TEXT[] DEFAULT '{}',
-      ADD COLUMN IF NOT EXISTS tafsir_options TEXT[] DEFAULT '{}';
+      ALTER TABLE public.daftar_ulang_submissions 
+      DROP CONSTRAINT IF EXISTS daftar_ulang_submissions_status_check;
+      
+      ALTER TABLE public.pendaftaran_tikrar_tahfidz 
+      DROP CONSTRAINT IF EXISTS pendaftaran_tikrar_tahfidz_status_check;
       
       NOTIFY pgrst, 'reload schema';
     `

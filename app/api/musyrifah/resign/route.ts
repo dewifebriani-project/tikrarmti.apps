@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('[Musyrifah Resign API] Database error:', error);
-      return ApiResponses.databaseError(error);
+      return new Response(JSON.stringify({ success: false, error: { message: error.message || JSON.stringify(error) } }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
     if (!data) {
