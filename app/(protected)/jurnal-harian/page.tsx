@@ -144,6 +144,13 @@ export default function JurnalHarianPage() {
       return
     }
 
+    if (weekNumber > currentWeekNumber) {
+      const confirmMsg = `Peringatan: Blok ${blockCode} adalah target untuk Pekan ${weekNumber}, sedangkan Jurnal Harian saat ini baru Pekan ${currentWeekNumber}.\n\nApakah Ukhti yakin ingin mengisi jurnal mendahului jadwal kalender?`;
+      if (!window.confirm(confirmMsg)) {
+        return;
+      }
+    }
+
     // Reset form for the specific block
     const blockData = jurnalStatus?.blocks.find(b => b.block_code === blockCode)
     

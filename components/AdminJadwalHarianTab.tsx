@@ -116,7 +116,7 @@ export default function AdminJadwalHarianTab() {
         .select('user_id, created_at, details, user:users(full_name, whatsapp)')
         .eq('action', 'UPDATE')
         .eq('resource', 'halaqah')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Past 7 days
+        .gte('created_at', new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()); // Past 180 days
 
       // Fetch accurate quota/student counts that bypass RLS
       let quotas: Record<string, { activeCount: number, maxStudents: number }> = {};

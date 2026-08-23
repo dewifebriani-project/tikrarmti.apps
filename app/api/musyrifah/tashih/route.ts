@@ -149,17 +149,6 @@ export async function GET(request: Request) {
       
       activeBatchId = activeBatch?.id;
       activeBatchData = activeBatch;
-
-      if (activeBatch?.start_date) {
-        const startDate = new Date(activeBatch.start_date);
-        const firstWeekStart = new Date(startDate);
-        firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
-
-        const now = new Date();
-        const diffTime = now.getTime() - firstWeekStart.getTime();
-        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
-        currentWeek = diffWeeks + 1;
-      }
     } else {
       const { data: batch } = await supabase
         .from('batches')
@@ -168,6 +157,14 @@ export async function GET(request: Request) {
         .maybeSingle();
         
       activeBatchData = batch;
+    }
+
+    if (activeBatchData?.first_week_start_date) {
+      const firstWeekStart = new Date(activeBatchData.first_week_start_date);
+      const now = new Date();
+      const diffTime = now.getTime() - firstWeekStart.getTime();
+      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+      currentWeek = Math.max(1, diffWeeks + 1);
     }
 
     // First, get total count

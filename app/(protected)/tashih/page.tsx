@@ -133,7 +133,7 @@ export default function TashihPage() {
       setConfirmedJuz(juzToUse)
       if (activeRegistration?.batch) {
         setBatchId(activeRegistration.batch.id)
-        setBatchStartDate(activeRegistration.batch.start_date)
+        setBatchStartDate(activeRegistration.batch.first_week_start_date || activeRegistration.batch.start_date)
       } else if (isAdmin) {
         setBatchId('preview-batch')
         setBatchStartDate(new Date().toISOString())
@@ -252,7 +252,10 @@ export default function TashihPage() {
 
     const currentWeekNumber = getCurrentWeekNumber()
     if (blockWeekNumber > currentWeekNumber) {
-        toast.error(`Pekan ${blockWeekNumber} belum dimulai.`); return
+        const confirmMsg = `Peringatan: Blok ini merupakan target untuk Pekan ${blockWeekNumber}, sedangkan jadwal Tashih saat ini masih Pekan ${currentWeekNumber}.\n\nApakah Ukhti yakin ingin menyetorkan Tashih mendahului jadwal? Pastikan data yang diinput benar.`;
+        if (!window.confirm(confirmMsg)) {
+            return;
+        }
     }
 
     if (block.is_completed && block.tashih_date) {

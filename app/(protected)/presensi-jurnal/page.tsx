@@ -313,7 +313,6 @@ function PresensiJurnalContent() {
   const [rowsPerPage, setRowsPerPage] = useState<number>(20);
   const [availableBloks, setAvailableBloks] = useState<string[]>([]);
   const [currentWeek, setCurrentWeek] = useState<number>(0);
-  const [overrideWeek, setOverrideWeek] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pagination, setPagination] = useState<{
     totalCount: number;
@@ -527,7 +526,6 @@ function PresensiJurnalContent() {
           if (result.availableBloks) setAvailableBloks(result.availableBloks);
           if (result.currentWeek) {
             setCurrentWeek(result.currentWeek);
-            if (overrideWeek === 0) setOverrideWeek(result.currentWeek);
           }
         }
       } else {
@@ -565,8 +563,6 @@ function PresensiJurnalContent() {
       if (result.availableBloks) setAvailableBloks(result.availableBloks);
       if (result.currentWeek) {
         setCurrentWeek(result.currentWeek);
-        // Only set override if it's the first load or 0
-        if (overrideWeek === 0) setOverrideWeek(result.currentWeek);
       }
     }
   };
@@ -857,15 +853,9 @@ function PresensiJurnalContent() {
               {activeTab === 'jurnal' && (
                 <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Pekan Aktif (Remind)</label>
-                  <select
-                    value={overrideWeek}
-                    onChange={(e) => setOverrideWeek(Number(e.target.value))}
-                    className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
-                  >
-                    {[...Array(10)].map((_, i) => (
-                      <option key={i+1} value={i+1}>Pekan {i+1} {i+1 === currentWeek ? '(Sesuai Jadwal)' : ''}</option>
-                    ))}
-                  </select>
+                  <div className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] cursor-default flex items-center h-[42px]">
+                    Pekan {currentWeek}
+                  </div>
                 </div>
               )}
               <button 
@@ -898,7 +888,7 @@ function PresensiJurnalContent() {
                   selectedBatchId={selectedBatchId}
                   selectedBlok={selectedBlok} 
                   entries={jurnalEntries} 
-                  currentWeek={overrideWeek || currentWeek}
+                  currentWeek={currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
                   pagination={pagination}
@@ -915,8 +905,9 @@ function PresensiJurnalContent() {
                 />
               ) : activeTab === 'blacklist' ? (
                 <TashihTabSimple 
+                  selectedBatchId={selectedBatchId}
                   entries={tashihEntries} 
-                  currentWeek={overrideWeek || currentWeek}
+                  currentWeek={currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
                   pagination={pagination}
@@ -936,8 +927,9 @@ function PresensiJurnalContent() {
                 />
               ) : activeTab === 'presensi' ? (
                 <TashihTabSimple 
+                  selectedBatchId={selectedBatchId}
                   entries={tashihEntries} 
-                  currentWeek={overrideWeek || currentWeek}
+                  currentWeek={currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
                   pagination={pagination}
@@ -956,7 +948,7 @@ function PresensiJurnalContent() {
                   selectedBatchId={selectedBatchId}
                   selectedBlok={selectedBlok} 
                   entries={jurnalEntries} 
-                  currentWeek={overrideWeek || currentWeek}
+                  currentWeek={currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
                   pagination={pagination}
@@ -1178,6 +1170,7 @@ function SPStatusBadge({ summary }: { summary: any }) {
 // --- sub components ---
 
 interface TashihTabProps {
+  selectedBatchId: string;
   entries: TashihEntry[];
   currentWeek: number;
   onRefresh: () => void;
@@ -1190,7 +1183,7 @@ interface TashihTabProps {
   emptyMessage?: { title: string; description: string };
 }
 
-function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: TashihTabProps) {
+function TashihTabSimple({ selectedBatchId, entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, onResign, pagination, onPageChange, emptyMessage }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -1941,7 +1934,7 @@ Tetap semangat untuk pekan-pekan berikutnya!
                           <span className="inline">SP</span>
                         </button>
                         <button
-                          onClick={() => onDropout(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onDropout(entry.user_id, selectedBatchId, entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Lakukan Dropout (DO)"
                         >
@@ -1949,7 +1942,7 @@ Tetap semangat untuk pekan-pekan berikutnya!
                           <span className="inline">DO</span>
                         </button>
                         <button
-                          onClick={() => onResign(entry.user_id, entry.batch_id || '', entry.user?.full_name || 'Thalibah')}
+                          onClick={() => onResign(entry.user_id, selectedBatchId, entry.user?.full_name || 'Thalibah')}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
                           title="Tandai Mengundurkan Diri"
                         >
