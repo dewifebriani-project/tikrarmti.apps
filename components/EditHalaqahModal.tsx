@@ -17,6 +17,7 @@ interface Halaqah {
   waitlist_max?: number;
   preferred_juz?: string;
   zoom_link?: string;
+  zoom_link_id?: string;
   libur_date?: string | null;
   status: 'active' | 'inactive' | 'suspended';
   program_id: string | null;
@@ -52,7 +53,8 @@ interface EditHalaqahModalProps {
 export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahModalProps) {
   const [saving, setSaving] = useState(false);
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [zoomLinks, setZoomLinks] = useState<{name: string, url: string}[]>([]);
+  const [zoomLinks, setZoomLinks] = useState<{id: string, name: string, url: string}[]>([]);
+  const [isCustomZoom, setIsCustomZoom] = useState(false);
 
   // Assistant Assignment State
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,6 +77,7 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
     waitlist_max: halaqah.waitlist_max || 0,
     preferred_juz: halaqah.preferred_juz || '',
     zoom_link: halaqah.zoom_link || '',
+    zoom_link_id: halaqah.zoom_link_id || '',
     libur_date: halaqah.libur_date || '',
     status: halaqah.status,
   });
@@ -106,6 +109,17 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
       const zoomResult = await zoomRes.json();
       if (zoomRes.ok && zoomResult.success) {
         setZoomLinks(zoomResult.data);
+        
+        // Determine if custom zoom
+        const hasMTILink = halaqah.zoom_link_id 
+          ? zoomResult.data.some((z: any) => z.id === halaqah.zoom_link_id)
+          : halaqah.zoom_link 
+            ? zoomResult.data.some((z: any) => z.url === halaqah.zoom_link)
+            : false;
+            
+        if ((halaqah.zoom_link || halaqah.zoom_link_id) && !hasMTILink) {
+          setIsCustomZoom(true);
+        }
       }
     } catch (error) {
       console.error('Error loading dependencies:', error);
@@ -128,6 +142,8 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
         max_students: formData.max_students,
         waitlist_max: formData.waitlist_max,
         preferred_juz: formData.preferred_juz || undefined,
+        zoom_link: formData.zoom_link || null,
+        zoom_link_id: formData.zoom_link_id || null,
         libur_date: formData.libur_date || null,
       });
 
@@ -504,25 +520,47 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
                 Zoom Link
               </label>
               {zoomLinks.length > 0 ? (
-                <select
-                  value={formData.zoom_link}
-                  onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
-                  disabled={saving}
-                >
-                  <option value="">Pilih Room Zoom</option>
-                  {zoomLinks.map((link, idx) => (
-                    <option key={idx} value={link.url}>
-                      {link.name}
-                    </option>
-                  ))}
-                  {/* Option if current url doesn't match any master data */}
-                  {formData.zoom_link && !zoomLinks.some(z => z.url === formData.zoom_link) && (
-                    <option value={formData.zoom_link} className="italic text-gray-500">
-                      Custom URL (Existing)
-                    </option>
+                <div className="space-y-2">
+                  <select
+                    value={isCustomZoom ? "custom" : (formData.zoom_link_id || formData.zoom_link || "")}
+                    onChange={(e) => {
+                      if (e.target.value === "custom") {
+                        setIsCustomZoom(true);
+                        setFormData({ ...formData, zoom_link_id: '', zoom_link: '' });
+                      } else {
+                        setIsCustomZoom(false);
+                        const selectedRoom = zoomLinks.find(z => z.id === e.target.value || z.url === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          zoom_link_id: selectedRoom ? selectedRoom.id : '',
+                          zoom_link: selectedRoom ? selectedRoom.url : e.target.value 
+                        });
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                    disabled={saving}
+                  >
+                    <option value="">-- Pilih Room Zoom MTI --</option>
+                    {zoomLinks.map((link, idx) => (
+                      <option key={idx} value={link.id || link.url}>
+                        {link.name}
+                      </option>
+                    ))}
+                    <option value="custom">Gunakan Link Custom (Luar MTI)</option>
+                  </select>
+                  
+                  {isCustomZoom && (
+                    <input
+                      type="url"
+                      value={formData.zoom_link}
+                      onChange={(e) => setFormData({ ...formData, zoom_link: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                      disabled={saving}
+                      placeholder="Masukkan URL Zoom atau Google Meet manual..."
+                      autoFocus
+                    />
                   )}
-                </select>
+                </div>
               ) : (
                 <input
                   type="url"

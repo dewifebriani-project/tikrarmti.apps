@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Users,
   Calendar,
@@ -28,7 +29,8 @@ import {
   ClipboardList,
   MessageSquare,
   MoreVertical,
-  ArrowRightLeft
+  ArrowRightLeft,
+  BookOpen
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -157,6 +159,9 @@ function QuotaDetailsCell({ halaqah }: { halaqah: Halaqah }) {
 }
 
 export function HalaqahManagementTab() {
+  const searchParams = useSearchParams();
+  const actionParam = searchParams?.get('action');
+  
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
@@ -191,6 +196,12 @@ export function HalaqahManagementTab() {
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [movingToPraId, setMovingToPraId] = useState<string | null>(null);
   const halaqahRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (actionParam === 'analisis-zoom') {
+      setShowScheduleOverlapModal(true);
+    }
+  }, [actionParam]);
 
   useEffect(() => {
     loadData();
@@ -2017,6 +2028,8 @@ export function HalaqahManagementTab() {
           isOpen={showScheduleOverlapModal}
           onClose={() => setShowScheduleOverlapModal(false)}
           halaqahs={halaqahs}
+          zoomLinks={zoomLinks}
+          onRefresh={() => setRefreshTrigger(prev => prev + 1)}
         />
       )}
     </div>

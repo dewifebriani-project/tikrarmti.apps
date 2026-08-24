@@ -358,6 +358,10 @@ export async function GET(request: Request) {
          puncArray.forEach(p => {
            studentPuncScore += p;
          });
+         
+         // Pastikan score tidak lebih dari 100 dan tidak kurang dari 0
+         studentPuncScore = Math.max(0, Math.min(100, studentPuncScore));
+         
          halaqahPunctualityScore += studentPuncScore;
          
          allStudentsScores.push({ id: s.thalibah_id, score: studentPuncScore });

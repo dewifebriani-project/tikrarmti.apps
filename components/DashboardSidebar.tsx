@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { 
   X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight, Eye,
   LayoutGrid, ClipboardList, FileText, UserCheck, BarChart3, Calendar, Shield, Settings,
-  MessageSquare, HeartHandshake, HelpCircle, Award, ArrowRightLeft
+  MessageSquare, HeartHandshake, HelpCircle, Award, ArrowRightLeft, Video
 } from 'lucide-react';
 import { ROLE_RANKS, hasRequiredRank, isStaff } from '@/lib/roles';
 import { useAuth } from '@/hooks/useAuth';
@@ -119,6 +119,14 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Jadwal Harian',
         icon: <Calendar className="h-5 w-5" />,
       });
+
+      if (isAdmin) {
+        baseItems.push({
+          href: '/admin/halaqah?action=analisis-zoom',
+          label: 'Analisis Zoom',
+          icon: <Video className="h-5 w-5" />,
+        });
+      }
 
       if (isAdmin) {
         baseItems.push({

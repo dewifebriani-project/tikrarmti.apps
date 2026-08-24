@@ -462,15 +462,15 @@ export default function DashboardContent() {
         welcomeTheme.ring
       )}>
         <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-4 flex-1 min-w-0">
               <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-bold ring-1 ring-white/20">
                 {welcomeTheme.icon}
                 <span className="tracking-[0.2em] uppercase">{welcomeTheme.label} di Tikrar MTI Apps</span>
               </div>
               
               <div>
-                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-2 tracking-tight">
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black mb-2 tracking-tight break-words">
                   {welcomeTheme.greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">{user?.full_name?.split(' ')[0] || 'Ukhti'}!</span>
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-white/80 text-xs sm:text-sm font-semibold">
@@ -526,7 +526,7 @@ export default function DashboardContent() {
               )}
             </div>
             
-            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide snap-x">
+            <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide snap-x shrink-0">
               {/* Thalibah Rank Card */}
               {userRank && (
                 <div 
