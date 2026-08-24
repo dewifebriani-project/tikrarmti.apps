@@ -58,7 +58,7 @@ function minutesToTime(mins: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 }
 
-export function ScheduleOverlapAnalysis({ halaqahs, zoomLinks = [], onRefresh }: ScheduleOverlapAnalysisProps) {
+export function ScheduleOverlapAnalysis({ isOpen, onClose, halaqahs, zoomLinks = [], onRefresh }: ScheduleOverlapAnalysisProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -444,6 +444,7 @@ export function ScheduleOverlapAnalysis({ halaqahs, zoomLinks = [], onRefresh }:
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
