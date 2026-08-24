@@ -694,6 +694,15 @@ export function useJurnalStatus(userId?: string, batchId?: string) {
   }
 }
 
+export interface HalaqahStudentStat {
+  id: string;
+  name: string;
+  progress: number;
+  jurnal: number;
+  tashih: number;
+  punctualityScore: number;
+}
+
 export interface HalaqahOfTheWeekData {
   id: string
   name: string
@@ -704,18 +713,25 @@ export interface HalaqahOfTheWeekData {
   active_tashih: number
   active_jurnal: number
   total_interactions: number
+  on_time_score?: number
   evaluation_period?: string
   target_week?: number
+  students?: HalaqahStudentStat[]
+}
+
+export interface HalaqahRankingResponse {
+  topHalaqah: HalaqahOfTheWeekData | null;
+  allHalaqahs: HalaqahOfTheWeekData[];
 }
 
 /**
- * Hook for fetching halaqah of the week
+ * Hook for fetching halaqah of the week and ranking
  */
 export function useHalaqahOfTheWeek(batchId?: string) {
   const queryParams = new URLSearchParams()
   if (batchId) queryParams.append('batch_id', batchId)
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ''
-  const { data, error, isLoading, mutate } = useSWR<HalaqahOfTheWeekData | null>(
+  const { data, error, isLoading, mutate } = useSWR<HalaqahRankingResponse | null>(
     `/api/dashboard/halaqah-of-the-week${queryString}`,
     getFetcher,
     {
@@ -726,7 +742,8 @@ export function useHalaqahOfTheWeek(batchId?: string) {
   )
 
   return {
-    halaqahOfTheWeek: data || null,
+    halaqahOfTheWeek: data?.topHalaqah || null,
+    allHalaqahs: data?.allHalaqahs || [],
     isLoading,
     isError: !!error,
     error,

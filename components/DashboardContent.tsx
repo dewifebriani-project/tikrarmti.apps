@@ -31,7 +31,9 @@ import {
   AlertTriangle,
   Lock,
   Snowflake,
-  Trophy
+  Trophy,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -62,6 +64,7 @@ export default function DashboardContent() {
   const userRole = user?.primaryRole || 'calon_thalibah'
   const canSeeAdminStats = isStaff(userRole)
   const isImpersonating = !!(targetUserId && userRole === 'admin')
+  const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
 
   // SWR hooks for data fetching
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
@@ -69,7 +72,7 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined, activeBatch?.id)
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined, activeBatch?.id)
-  const { halaqahOfTheWeek, isLoading: halaqahLoading } = useHalaqahOfTheWeek(activeBatch?.id)
+  const { halaqahOfTheWeek, allHalaqahs, isLoading: halaqahLoading } = useHalaqahOfTheWeek(activeBatch?.id)
   
   const isMurajaahCompleted = useMemo(() => {
     if (!jurnalStatus || !jurnalStatus.blocks) return false;
@@ -95,6 +98,7 @@ export default function DashboardContent() {
   
   const [activitiesPage, setActivitiesPage] = useState(1)
   const [examModalOpen, setExamModalOpen] = useState(false)
+  const [expandedHalaqahId, setExpandedHalaqahId] = useState<string | null>(null)
   const activitiesPerPage = 5
 
   const [hasMuallimahReg, setHasMuallimahReg] = useState(false)
@@ -843,8 +847,12 @@ export default function DashboardContent() {
 
       {/* Halaqah of the Week Banner */}
       {!halaqahLoading && halaqahOfTheWeek && (
-        <div className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 shadow-xl border-l-8 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 animate-fadeInUp mt-4 w-full" style={{ animationDelay: '150ms' }}>
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 text-yellow-500 opacity-20">
+        <div 
+          className="relative overflow-hidden rounded-[2rem] p-4 sm:p-6 shadow-xl border-l-8 border-yellow-400 bg-gradient-to-r from-yellow-50 to-amber-50 animate-fadeInUp mt-4 w-full cursor-pointer hover:scale-[1.01] hover:shadow-2xl transition-all duration-300 group" 
+          style={{ animationDelay: '150ms' }}
+          onClick={() => setIsRankingModalOpen(true)}
+        >
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 text-yellow-500 opacity-20 group-hover:scale-110 transition-transform duration-500">
             <Trophy className="w-40 h-40" />
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6 relative z-10 w-full">
@@ -1282,6 +1290,132 @@ export default function DashboardContent() {
         batchId={registrations[0]?.batch_id}
         isMurajaahCompleted={isMurajaahCompleted}
       />
+
+      {/* Halaqah Ranking Modal */}
+      <Dialog open={isRankingModalOpen} onOpenChange={setIsRankingModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-gradient-to-b from-yellow-50 to-white rounded-[2rem] border-0 shadow-2xl">
+          <DialogHeader className="p-6 pb-5 bg-yellow-400 text-yellow-950 shrink-0 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-6 -mr-6 text-yellow-500 opacity-30">
+              <Trophy className="w-32 h-32" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-yellow-950 shadow-inner">
+                <Trophy className="w-7 h-7" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-2xl font-black tracking-tight">Peringkat Halaqah</DialogTitle>
+                <DialogDescription className="text-yellow-900/80 font-semibold mt-1">
+                  Berdasarkan pencapaian pekan {halaqahOfTheWeek?.target_week} ({halaqahOfTheWeek?.evaluation_period})
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="overflow-y-auto p-4 sm:p-6 flex-1 space-y-3 bg-gray-50/50">
+            {allHalaqahs && allHalaqahs.length > 0 ? (
+              allHalaqahs.map((halaqah, index) => (
+                <div key={halaqah.id} className="flex flex-col gap-2">
+                  <div 
+                    onClick={() => setExpandedHalaqahId(expandedHalaqahId === halaqah.id ? null : halaqah.id)}
+                    className={`flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer hover:shadow-md ${
+                      index === 0 
+                        ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-yellow-300 shadow-md ring-1 ring-yellow-400/50' 
+                        : index < 3 
+                          ? 'bg-white border-gray-200 shadow-sm' 
+                          : 'bg-white/80 border-gray-100 hover:border-gray-200 hover:bg-white'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner ${
+                      index === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-yellow-500/50' :
+                      index === 1 ? 'bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700 shadow-gray-400/30' :
+                      index === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-amber-700/30' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    
+                    <div className="flex-1 text-center sm:text-left min-w-0 w-full">
+                      <h3 className={`font-bold truncate ${index === 0 ? 'text-lg text-yellow-900' : 'text-base text-gray-900'}`} title={halaqah.name}>
+                        {halaqah.name}
+                      </h3>
+                      <p className="text-sm text-gray-500 font-medium mt-0.5">Ustadzah {halaqah.muallimah_name}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-2 sm:gap-3 w-full sm:w-auto text-center shrink-0 mt-3 sm:mt-0">
+                      <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Progress</p>
+                        <p className="font-black text-gray-900 text-sm">{halaqah.avg_progress}%</p>
+                      </div>
+                      <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Jurnal</p>
+                        <p className="font-black text-emerald-600 text-sm">{halaqah.active_jurnal} <span className="text-[10px] font-medium text-gray-400">/{halaqah.total_thalibah}</span></p>
+                      </div>
+                      <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tashih</p>
+                        <p className="font-black text-amber-600 text-sm">{halaqah.active_tashih} <span className="text-[10px] font-medium text-gray-400">/{halaqah.total_thalibah}</span></p>
+                      </div>
+                      <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center relative">
+                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Skor Disiplin</p>
+                        <p className="font-black text-purple-600 text-sm mt-0.5 whitespace-nowrap">{halaqah.on_time_score ?? '-'}</p>
+                        <div className="absolute -right-2 -bottom-2 bg-white rounded-full p-0.5 shadow-sm border border-gray-100 text-gray-400">
+                           {expandedHalaqahId === halaqah.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Breakdown section */}
+                  {expandedHalaqahId === halaqah.id && (
+                    <div className="ml-0 sm:ml-16 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      {(!halaqah.students || halaqah.students.length === 0) ? (
+                        <div className="p-4 text-center text-sm text-gray-500 font-medium">
+                          Data rincian tidak tersedia atau Anda tidak memiliki akses untuk melihat rincian halaqah ini.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wider">
+                              <tr>
+                                <th className="px-4 py-3 font-semibold">Nama Santri</th>
+                                <th className="px-4 py-3 font-semibold text-center">Progress</th>
+                                <th className="px-4 py-3 font-semibold text-center">Jurnal</th>
+                                <th className="px-4 py-3 font-semibold text-center">Tashih</th>
+                                <th className="px-4 py-3 font-semibold text-center">Skor Disiplin</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {halaqah.students.map((student) => (
+                                <tr key={student.id} className="hover:bg-gray-50/50">
+                                  <td className="px-4 py-3 font-medium text-gray-900">{student.name}</td>
+                                  <td className="px-4 py-3 text-center font-bold text-gray-700">{student.progress}%</td>
+                                  <td className="px-4 py-3 text-center font-bold text-emerald-600">{student.jurnal}</td>
+                                  <td className="px-4 py-3 text-center font-bold text-amber-600">{student.tashih}</td>
+                                  <td className="px-4 py-3 text-center font-black text-purple-600">{student.punctualityScore}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="py-16 text-center text-gray-400 flex flex-col items-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Trophy className="w-10 h-10 opacity-20" />
+                </div>
+                <p className="font-medium">Data peringkat belum tersedia</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="p-4 sm:p-5 bg-white border-t border-gray-100 shrink-0">
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full sm:w-auto rounded-xl font-bold hover:bg-gray-50">Tutup</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

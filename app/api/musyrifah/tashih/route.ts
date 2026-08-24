@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
 import { revalidatePath } from 'next/cache';
 import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
@@ -589,7 +590,8 @@ export async function POST(request: Request) {
 
     // Check for duplicate record
     if (validatedData.blok) {
-      const { data: existingRecords } = await supabase
+      const supabaseAdmin = createSupabaseAdmin();
+      const { data: existingRecords } = await supabaseAdmin
         .from('tashih_records')
         .select('id')
         .eq('user_id', validatedData.user_id)
