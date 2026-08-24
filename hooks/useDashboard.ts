@@ -722,6 +722,7 @@ export interface HalaqahOfTheWeekData {
 export interface HalaqahRankingResponse {
   topHalaqah: HalaqahOfTheWeekData | null;
   allHalaqahs: HalaqahOfTheWeekData[];
+  userRank?: { rank: number; total: number; score: number } | null;
 }
 
 /**
@@ -744,6 +745,7 @@ export function useHalaqahOfTheWeek(batchId?: string) {
   return {
     halaqahOfTheWeek: data?.topHalaqah || null,
     allHalaqahs: data?.allHalaqahs || [],
+    userRank: data?.userRank || null,
     isLoading,
     isError: !!error,
     error,

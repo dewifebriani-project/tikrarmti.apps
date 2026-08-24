@@ -65,6 +65,7 @@ export default function DashboardContent() {
   const canSeeAdminStats = isStaff(userRole)
   const isImpersonating = !!(targetUserId && userRole === 'admin')
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
+  const [isThalibahRankModalOpen, setIsThalibahRankModalOpen] = useState(false);
 
   // SWR hooks for data fetching
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
@@ -72,7 +73,7 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined, activeBatch?.id)
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined, activeBatch?.id)
-  const { halaqahOfTheWeek, allHalaqahs, isLoading: halaqahLoading } = useHalaqahOfTheWeek(activeBatch?.id)
+  const { halaqahOfTheWeek, allHalaqahs, userRank, isLoading: halaqahLoading } = useHalaqahOfTheWeek(activeBatch?.id)
   
   const isMurajaahCompleted = useMemo(() => {
     if (!jurnalStatus || !jurnalStatus.blocks) return false;
@@ -525,13 +526,34 @@ export default function DashboardContent() {
               )}
             </div>
             
-            <div className="hidden lg:block">
-              <div className="w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center shadow-xl">
-                <p className="text-[10px] uppercase font-black text-white/60 tracking-widest">Pekan</p>
-                <div className="flex items-center gap-2 mt-1">
-                   <button onClick={() => setCurrentWeek(w => Math.max(1, w - 1))} className="text-white/50 hover:text-white">‹</button>
-                   <p className="text-4xl font-black">{currentWeek}</p>
-                   <button onClick={() => setCurrentWeek(w => w + 1)} className="text-white/50 hover:text-white">›</button>
+            <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide snap-x">
+              {/* Thalibah Rank Card */}
+              {userRank && (
+                <div 
+                  className="relative group shrink-0 snap-center cursor-pointer"
+                  onClick={() => setIsThalibahRankModalOpen(true)}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-amber-400/20 to-transparent blur-xl opacity-50 rounded-3xl group-hover:opacity-70 transition-opacity" />
+                  <div className="relative h-16 lg:h-24 px-5 lg:px-0 lg:w-28 rounded-2xl lg:rounded-[2rem] bg-gradient-to-b from-amber-500/10 to-black/40 backdrop-blur-xl border border-amber-500/20 flex flex-col justify-center items-center shadow-2xl transition-all group-hover:border-amber-400/50 group-hover:scale-105" title="Klik untuk evaluasi skor">
+                    <div className="flex items-center gap-1.5 lg:mb-1">
+                       <Trophy className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                       <p className="text-[9px] lg:text-[10px] uppercase font-black text-amber-200/80 tracking-widest drop-shadow-md">Peringkat</p>
+                    </div>
+                    <div className="flex items-baseline gap-1 mt-0.5 lg:mt-1">
+                      <span className="text-2xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-100 to-amber-400 drop-shadow-sm">{userRank.rank}</span>
+                      <span className="text-xs lg:text-sm font-bold text-amber-500/60">/ {userRank.total}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pekan Card */}
+              <div className="shrink-0 snap-center h-16 lg:h-24 px-5 lg:px-0 lg:w-24 rounded-2xl lg:rounded-[2rem] bg-white/5 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center shadow-2xl transition-all hover:bg-white/10">
+                <p className="text-[9px] lg:text-[10px] uppercase font-black text-white/50 tracking-widest">Pekan</p>
+                <div className="flex items-center gap-3 lg:gap-2 mt-0.5 lg:mt-1">
+                   <button onClick={() => setCurrentWeek(w => Math.max(1, w - 1))} className="text-white/40 hover:text-white transition-colors w-6 lg:w-auto text-center font-medium">‹</button>
+                   <p className="text-2xl lg:text-4xl font-black text-white/90">{currentWeek}</p>
+                   <button onClick={() => setCurrentWeek(w => w + 1)} className="text-white/40 hover:text-white transition-colors w-6 lg:w-auto text-center font-medium">›</button>
                 </div>
               </div>
             </div>
@@ -1290,6 +1312,79 @@ export default function DashboardContent() {
         batchId={registrations[0]?.batch_id}
         isMurajaahCompleted={isMurajaahCompleted}
       />
+
+      {/* Thalibah Rank Modal */}
+      <Dialog open={isThalibahRankModalOpen} onOpenChange={setIsThalibahRankModalOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-gradient-to-b from-amber-50 to-white rounded-[2rem] border-0 shadow-2xl">
+          <DialogHeader className="p-6 pb-5 bg-amber-400 text-amber-950 shrink-0 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-6 -mr-6 text-amber-500 opacity-30">
+              <Trophy className="w-32 h-32" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-amber-950 shadow-inner">
+                <Trophy className="w-7 h-7" />
+              </div>
+              <div className="text-left">
+                <DialogTitle className="text-2xl font-black tracking-tight">Evaluasi Kedisiplinan</DialogTitle>
+                <DialogDescription className="text-amber-900/80 font-semibold mt-1">
+                  Rincian perhitungan skor disiplin Anda
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-amber-100/50 rounded-2xl p-4 flex flex-col items-center justify-center border border-amber-200">
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Peringkat</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black text-amber-600">{userRank?.rank}</span>
+                  <span className="text-sm font-bold text-amber-500/70">/ {userRank?.total}</span>
+                </div>
+              </div>
+              <div className="bg-amber-100/50 rounded-2xl p-4 flex flex-col items-center justify-center border border-amber-200">
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Total Skor</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black text-amber-600">{userRank?.score}</span>
+                  <span className="text-sm font-bold text-amber-500/70">pts</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-bold text-gray-800">Bagaimana skor dihitung?</h3>
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li className="flex items-start gap-2">
+                  <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <p>Skor dihitung berdasarkan <b>ketepatan waktu</b> Anda menyetorkan Jurnal dan Tugas Tashih pekanan.</p>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <p>Setiap blok (Jurnal/Tashih) yang dikumpulkan <b>tepat waktu</b> atau lebih awal mendapatkan skor wajib penuh <b>10 poin</b>.</p>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                  <p>Anda mendapatkan tambahan <b>+1 Poin Opsional</b> untuk setiap kegiatan ekstra (Baca Tafsir, dsb) yang Anda centang per blok Jurnal.</p>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                  <p>Keterlambatan 1 hari akan <b>mengurangi 2 poin</b> dari skor maksimal blok terkait.</p>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <p>Total skor maksimal adalah <b>100 Poin</b> (80 poin wajib + 20 poin ekstra kegiatan opsional).</p>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="p-4 bg-gray-50 border-t">
+            <DialogClose asChild>
+              <button className="w-full py-3 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors">
+                Tutup
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Halaqah Ranking Modal */}
       <Dialog open={isRankingModalOpen} onOpenChange={setIsRankingModalOpen}>

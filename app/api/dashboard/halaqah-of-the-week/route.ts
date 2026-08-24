@@ -169,7 +169,7 @@ export async function GET(request: Request) {
     if (thalibahIds.length > 0) {
       let jurnalQuery = supabaseAdmin
         .from('jurnal_records')
-        .select('user_id, blok, created_at')
+        .select('user_id, blok, created_at, tafsir_options')
         .in('user_id', thalibahIds);
         
       if (activeBatch.start_date) {
@@ -258,7 +258,15 @@ export async function GET(request: Request) {
       
       if (newBlocksForUser.length > 0) {
         jurnalCountMap.set(r.user_id, (jurnalCountMap.get(r.user_id) || 0) + newBlocksForUser.length);
-        const punctuality = calculatePunctuality(newBlocksForUser, r.created_at);
+        let punctuality = calculatePunctuality(newBlocksForUser, r.created_at);
+        
+        // Add optional points
+        if (r.tafsir_options && Array.isArray(r.tafsir_options)) {
+          // Up to 5 points per block (1 point per option)
+          const optionalPointsPerBlock = Math.min(5, r.tafsir_options.length);
+          punctuality += (optionalPointsPerBlock * newBlocksForUser.length);
+        }
+
         const currentPunc = userPunctualityMap.get(r.user_id) || [];
         currentPunc.push(punctuality);
         userPunctualityMap.set(r.user_id, currentPunc);
@@ -298,6 +306,8 @@ export async function GET(request: Request) {
     });
 
     const targetBlocks = 4; // Target blocks for a single week is always 4
+
+    const allStudentsScores: { id: string, score: number }[] = [];
 
     const result = tikrarHalaqahs.map(h => {
       const activeStudents = h.students?.filter((s: any) => s.status === 'active') || [];
@@ -349,6 +359,8 @@ export async function GET(request: Request) {
            studentPuncScore += p;
          });
          halaqahPunctualityScore += studentPuncScore;
+         
+         allStudentsScores.push({ id: s.thalibah_id, score: studentPuncScore });
          
          studentsBreakdown.push({
            id: s.thalibah_id,
@@ -412,7 +424,22 @@ export async function GET(request: Request) {
       topHalaqah.target_week = targetWeek;
     }
 
-    return ApiResponses.success({ topHalaqah, allHalaqahs: result }, 'Halaqah of the week retrieved successfully');
+    // Compute global Thalibah rank
+    allStudentsScores.sort((a, b) => b.score - a.score);
+    let userRank = null;
+    
+    if (isOnlyThalibah) {
+      const rankIndex = allStudentsScores.findIndex(s => s.id === authContext.userId);
+      if (rankIndex !== -1) {
+        userRank = {
+          rank: rankIndex + 1,
+          total: allStudentsScores.length,
+          score: allStudentsScores[rankIndex].score
+        };
+      }
+    }
+
+    return ApiResponses.success({ topHalaqah, allHalaqahs: result, userRank }, 'Halaqah of the week retrieved successfully');
   } catch (error) {
     console.error('[Halaqah of the week API] Unexpected error:', error);
     return ApiResponses.serverError('Terjadi kesalahan internal server.');

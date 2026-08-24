@@ -413,8 +413,8 @@ export function JurnalEntryForm({
               { id: 'baca_tafsir', label: 'Baca Tafsir', icon: BookOpen },
               { id: 'tulis_ayat', label: 'Tulis Ayat', icon: BookOpen },
               { id: 'audio_tafsir', label: 'Menyimak Video/Audio Tafsir', icon: Headphones },
-              { id: 'baca_terjemahan', label: 'Baca Terjemahan', icon: BookOpen },
-              { id: 'baca_terjemahan_perkata', label: 'Baca Terjemahan + Perkata', icon: BookOpen },
+              { id: 'baca_terjemahan', label: 'Baca Terjemahan per Kalimat', icon: BookOpen },
+              { id: 'baca_terjemahan_perkata', label: 'Baca Terjemahan per Kata', icon: BookOpen },
             ].map(opt => {
               const isChecked = formData.tafsir_options.includes(opt.id)
               return (
